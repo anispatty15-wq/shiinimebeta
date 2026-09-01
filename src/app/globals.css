@@ -1,0 +1,192 @@
+/* src/app/globals.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ─────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing:  antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+    background-color: #0F0F12;
+  }
+
+  body {
+    background-color: #0F0F12;
+    color: #F1F5F9;
+  }
+
+  /* Scrollbar — webkit */
+  ::-webkit-scrollbar       { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: #0F0F12; }
+  ::-webkit-scrollbar-thumb {
+    background: #2A2A38;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: #00E5FF44; }
+
+  /* Focus ring */
+  *:focus-visible {
+    outline: 2px solid #00E5FF;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Remove default search input clear button on WebKit */
+  input[type='search']::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}
+
+/* ── Components ──────────────────────────────────────────── */
+@layer components {
+
+  /* App shell — accounts for bottom nav on mobile */
+  .app-shell {
+    @apply min-h-screen pb-20 md:pb-0;
+  }
+
+  /* Responsive media card grid */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+
+  @screen sm {
+    .card-grid {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+    }
+  }
+
+  @screen lg {
+    .card-grid {
+      grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+      gap: 16px;
+    }
+  }
+
+  /* Horizontal scroll row */
+  .scroll-row {
+    @apply flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory;
+    scrollbar-width: none;
+  }
+  .scroll-row::-webkit-scrollbar { display: none; }
+  .scroll-row > * { @apply snap-start flex-shrink-0; }
+
+  /* Section header */
+  .section-title {
+    @apply flex items-center gap-2.5 text-[0.95rem] font-semibold text-primary;
+  }
+  .section-title::before {
+    content: '';
+    @apply block w-1 h-[1.1em] rounded-full flex-shrink-0 bg-cyan;
+  }
+  .section-title.violet::before { @apply bg-violet; }
+  .section-title.pink::before   { @apply bg-pink;   }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-[0.65rem]
+           font-semibold uppercase tracking-wide border;
+  }
+  .badge-ongoing   { @apply bg-cyan-500/15   text-cyan-400   border-cyan-400/30; }
+  .badge-completed { @apply bg-green-500/15  text-green-400  border-green-400/30; }
+  .badge-movie     { @apply bg-orange-500/15 text-orange-400 border-orange-400/30; }
+  .badge-hentai    { @apply bg-pink-500/15   text-pink-400   border-pink-400/30; }
+  .badge-comic     { @apply bg-violet-500/15 text-violet-400 border-violet-400/30; }
+
+  /* Shimmer skeleton */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255,255,255,0.05) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    @apply animate-shimmer;
+  }
+
+  /* Glassmorphism panel */
+  .glass {
+    @apply bg-surface/80 backdrop-blur-xl border border-white/[0.07];
+  }
+
+  /* Button variants */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
+           rounded-app text-sm font-semibold transition-all duration-150
+           focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan;
+  }
+  .btn-primary {
+    @apply btn bg-cyan text-bg shadow-glow-c
+           hover:brightness-90 active:scale-[0.97];
+  }
+  .btn-ghost {
+    @apply btn bg-white/10 text-primary border border-border
+           hover:bg-white/15 active:scale-[0.97];
+  }
+  .btn-violet {
+    @apply btn bg-violet text-white shadow-glow-v
+           hover:brightness-110 active:scale-[0.97];
+  }
+  .btn-pink {
+    @apply btn bg-pink text-white shadow-[0_0_16px_rgba(233,30,140,0.35)]
+           hover:brightness-110 active:scale-[0.97];
+  }
+
+  /* Episode pill */
+  .ep-pill {
+    @apply px-3 py-1.5 rounded-lg bg-surface border border-border
+           text-xs font-semibold text-secondary cursor-pointer
+           transition-all duration-150
+           hover:border-cyan/60 hover:text-cyan
+           focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan;
+  }
+  .ep-pill.active {
+    @apply bg-cyan text-bg border-cyan;
+  }
+
+  /* Comic reader container */
+  .comic-reader {
+    @apply flex flex-col items-center gap-1 bg-black min-h-screen py-4;
+  }
+  .comic-page {
+    @apply w-full max-w-2xl relative bg-surface-2;
+    min-height: 300px; /* prevent layout shift */
+  }
+  .comic-page img {
+    @apply w-full h-auto block;
+    min-height: 300px;
+  }
+}
+
+/* ── Utilities ────────────────────────────────────────────── */
+@layer utilities {
+  .text-balance  { text-wrap: balance; }
+  .pb-safe       { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .no-scrollbar  { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .will-transform { will-change: transform; }
+}
+
+/* ── Reduced motion ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:      0.01ms !important;
+    animation-iteration-count: 1   !important;
+    transition-duration:     0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
+}
