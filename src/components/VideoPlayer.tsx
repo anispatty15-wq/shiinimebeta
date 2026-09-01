@@ -40,6 +40,12 @@ const BLOCKED_DOMAINS = [
   'mega.nz',
 ];
 
+// ── Domains that need embed extraction (full page, not direct embed) ─
+const EXTRACT_DOMAINS = [
+  'nekopoi.care',
+  'animekompi.web.id',
+];
+
 function isBlockedDomain(url: string): boolean {
   try {
     const host = new URL(url).hostname;
@@ -49,9 +55,22 @@ function isBlockedDomain(url: string): boolean {
   }
 }
 
+function needsExtract(url: string): boolean {
+  try {
+    const { hostname, pathname } = new URL(url);
+    if (!EXTRACT_DOMAINS.some((d) => hostname.includes(d))) return false;
+    const isEmbedPath = ['/embed', '/player', '/watch', '.mp4', '.m3u8']
+      .some((s) => pathname.includes(s));
+    return !isEmbedPath;
+  } catch { return false; }
+}
+
 // ── Build proxy URL ───────────────────────────────────────────
 function toProxyUrl(url: string): string {
   return `/api/stream-proxy?url=${encodeURIComponent(url)}`;
+}
+function toExtractUrl(url: string): string {
+  return `/api/stream-proxy?url=${encodeURIComponent(url)}&extract=1`;
 }
 
 // ── Component ─────────────────────────────────────────────────
@@ -88,6 +107,7 @@ export default function VideoPlayer({
   const [errored,    setErrored]   = useState(false);
   const [showModal,  setShowModal] = useState(false);
   const [useProxy,   setUseProxy]  = useState(false);
+  const [resolvedUrl, setResolvedUrl] = useState<string>(''); // after embed extraction
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const videoRef  = useRef<HTMLVideoElement>(null);
 
@@ -105,6 +125,25 @@ export default function VideoPlayer({
   useEffect(() => {
     if (active?.url && isBlockedDomain(active.url)) {
       setUseProxy(true);
+    }
+    // Try to extract embed URL for episode pages
+    if (active?.url && needsExtract(active.url)) {
+      setLoading(true);
+      setResolvedUrl('');
+      fetch(toExtractUrl(active.url))
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.embedUrl) {
+            setResolvedUrl(data.embedUrl);
+          } else if (data.proxyUrl) {
+            setResolvedUrl(data.proxyUrl);
+          }
+          // loading will be cleared by iframe onLoad
+        })
+        .catch(() => {
+          // Fallback to proxy of original URL
+          setResolvedUrl(toProxyUrl(active.url));
+        });
     }
   }, [active?.url]);
 
@@ -158,7 +197,8 @@ export default function VideoPlayer({
   // ── Determine what to render ─────────────────────────────────
   const activeUrl  = active?.url ?? '';
   const kind       = classifyUrl(activeUrl);
-  const resolvedUrl = useProxy ? toProxyUrl(activeUrl) : activeUrl;
+  // Use resolvedUrl (from extraction) if available, else proxy or direct
+  const finalUrl   = resolvedUrl || (useProxy ? toProxyUrl(activeUrl) : activeUrl);
 
   return (
     <div className="w-full">
@@ -219,8 +259,8 @@ export default function VideoPlayer({
         {(kind === 'mp4' || kind === 'm3u8') && activeUrl && (
           <video
             ref={videoRef}
-            key={resolvedUrl}
-            src={resolvedUrl}
+            key={finalUrl}
+            src={finalUrl}
             controls
             playsInline
             poster={poster}
@@ -234,8 +274,8 @@ export default function VideoPlayer({
         {kind === 'iframe' && activeUrl && (
           <iframe
             ref={iframeRef}
-            key={resolvedUrl + (useProxy ? '-proxied' : '')}
-            src={resolvedUrl}
+            key={finalUrl + (useProxy ? '-proxied' : '')}
+            src={finalUrl}
             title={title ?? 'Video Player'}
             className={clsx(
               'w-full h-full border-0 transition-opacity duration-300',
