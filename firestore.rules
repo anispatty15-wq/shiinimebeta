@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──────────────────────────────────
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isLoggedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isLoggedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // ── /users/{uid} ──────────────────────────────────────
+    match /users/{uid} {
+      // Anyone logged in can read their own doc
+      allow read: if isOwner(uid) || isAdmin();
+
+      // User can create their own doc (first login)
+      allow create: if isOwner(uid);
+
+      // User can update their own doc — BUT only specific fields
+      // They CANNOT update roles or adultStatus approval themselves
+      allow update: if isOwner(uid)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['roles'])
+        // Allow user to set adultStatus = 'pending' only
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['adultStatus'])
+          ||
+          request.resource.data.adultStatus == 'pending'
+        );
+
+      // Admin can update any user doc (approve/reject)
+      allow update: if isAdmin();
+    }
+
+    // ── /admins/{uid} ─────────────────────────────────────
+    // Only admins can read admin list
+    // Nobody can write via client (manage via Firebase Console)
+    match /admins/{uid} {
+      allow read:  if isAdmin() || isOwner(uid);
+      allow write: if false; // Console only
+    }
+  }
+}

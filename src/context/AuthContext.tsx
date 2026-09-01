@@ -1,70 +1,69 @@
 'use client';
 // src/context/AuthContext.tsx
 // ─────────────────────────────────────────────────────────────
-// Google Auth + Firestore user profile.
-//
-// User document structure in Firestore:
+// Firestore user document structure:
 //   /users/{uid}
-//     displayName: string
-//     email:       string
-//     photoURL:    string
-//     roles:       string[]   ← e.g. ['user', '18+']
-//     createdAt:   Timestamp
+//     displayName:    string
+//     email:          string
+//     photoURL:       string
+//     roles:          string[]   ['user'] | ['user','18+'] | ['user','admin']
+//     adultStatus:    'none' | 'pending' | 'approved' | 'rejected'
+//     adultRequestAt: Timestamp  (when user submitted request)
+//     createdAt:      Timestamp
 //
-// Access rules:
-//   • Hentai: requires roles to include '18+'
-//   • Any logged-in user can request 18+ via profile page
+// Admin doc:  /admins/{uid}  { uid, email }
+//   → Only these UIDs can approve/reject 18+ requests
+//
+// Role flow:
+//   user clicks "Request 18+"
+//     → adultStatus = 'pending'
+//   admin approves
+//     → roles += '18+', adultStatus = 'approved'
+//   admin rejects
+//     → adultStatus = 'rejected'
 // ─────────────────────────────────────────────────────────────
 
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
+  createContext, useCallback, useContext,
+  useEffect, useState, type ReactNode,
 } from 'react';
 import {
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut as firebaseSignOut,
-  type User,
+  onAuthStateChanged, signInWithPopup,
+  signOut as firebaseSignOut, type User,
 } from 'firebase/auth';
 import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  serverTimestamp,
+  doc, getDoc, setDoc, updateDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { auth, db, googleProvider, FIREBASE_READY } from '@/lib/firebase';
 
 // ── Types ─────────────────────────────────────────────────────
+export type AdultStatus = 'none' | 'pending' | 'approved' | 'rejected';
+
 export interface UserProfile {
-  uid:         string;
-  displayName: string;
-  email:       string;
-  photoURL:    string;
-  roles:       string[];   // e.g. ['user'] or ['user', '18+']
+  uid:          string;
+  displayName:  string;
+  email:        string;
+  photoURL:     string;
+  roles:        string[];
+  adultStatus:  AdultStatus;
+  isAdmin:      boolean;
 }
 
 interface AuthContextValue {
-  user:         User | null;
-  profile:      UserProfile | null;
-  loading:      boolean;
-  /** true if user has the '18+' role */
-  isAdult:      boolean;
-  /** true if firebase config is missing (dev without .env) */
-  configMissing: boolean;
+  user:             User | null;
+  profile:          UserProfile | null;
+  loading:          boolean;
+  isAdult:          boolean;
+  isAdmin:          boolean;
+  adultStatus:      AdultStatus;
+  configMissing:    boolean;
   signInWithGoogle: () => Promise<void>;
   signOut:          () => Promise<void>;
-  /** Request 18+ role — sets role in Firestore */
+  /** Submit 18+ request → sets adultStatus = 'pending' */
   requestAdultRole: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-// ── Check Firebase config ─────────────────────────────────────
 const CONFIG_MISSING = !FIREBASE_READY;
 
 // ── Provider ──────────────────────────────────────────────────
@@ -73,24 +72,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const isAdult = profile?.roles?.includes('18+') ?? false;
+  const isAdult     = profile?.roles?.includes('18+')   ?? false;
+  const isAdmin     = profile?.isAdmin                   ?? false;
+  const adultStatus = profile?.adultStatus               ?? 'none';
 
-  // ── Fetch / create Firestore user doc ─────────────────────
+  // ── Sync Firestore user doc ───────────────────────────────
   const syncProfile = useCallback(async (u: User) => {
     if (CONFIG_MISSING || !db) {
-      // Fallback: build profile from Firebase Auth only (no Firestore)
-      setProfile({
-        uid:         u.uid,
-        displayName: u.displayName ?? 'User',
-        email:       u.email ?? '',
-        photoURL:    u.photoURL ?? '',
-        roles:       ['user'],
-      });
+      setProfile({ uid: u.uid, displayName: u.displayName ?? 'User',
+        email: u.email ?? '', photoURL: u.photoURL ?? '',
+        roles: ['user'], adultStatus: 'none', isAdmin: false });
       return;
     }
     try {
-      const ref  = doc(db, 'users', u.uid);
-      const snap = await getDoc(ref);
+      const userRef  = doc(db, 'users', u.uid);
+      const adminRef = doc(db, 'admins', u.uid);
+      const [snap, adminSnap] = await Promise.all([getDoc(userRef), getDoc(adminRef)]);
+      const isAdmin = adminSnap.exists();
+
       if (snap.exists()) {
         const d = snap.data();
         setProfile({
@@ -99,108 +98,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email:       d.email       ?? u.email        ?? '',
           photoURL:    d.photoURL    ?? u.photoURL      ?? '',
           roles:       Array.isArray(d.roles) ? d.roles : ['user'],
+          adultStatus: (d.adultStatus as AdultStatus) ?? 'none',
+          isAdmin,
         });
       } else {
-        // First login — create doc
-        const newProfile: UserProfile = {
-          uid:         u.uid,
-          displayName: u.displayName ?? 'User',
-          email:       u.email       ?? '',
-          photoURL:    u.photoURL    ?? '',
-          roles:       ['user'],
-        };
-        await setDoc(ref, { ...newProfile, createdAt: serverTimestamp() });
-        setProfile(newProfile);
+        const p: UserProfile = { uid: u.uid,
+          displayName: u.displayName ?? 'User', email: u.email ?? '',
+          photoURL: u.photoURL ?? '', roles: ['user'],
+          adultStatus: 'none', isAdmin };
+        await setDoc(userRef, { ...p, createdAt: serverTimestamp() });
+        setProfile(p);
       }
     } catch (err) {
       console.error('[Auth] Firestore sync error:', err);
-      // Still set basic profile from auth
-      setProfile({
-        uid:         u.uid,
-        displayName: u.displayName ?? 'User',
-        email:       u.email ?? '',
-        photoURL:    u.photoURL ?? '',
-        roles:       ['user'],
-      });
+      setProfile({ uid: u.uid, displayName: u.displayName ?? 'User',
+        email: u.email ?? '', photoURL: u.photoURL ?? '',
+        roles: ['user'], adultStatus: 'none', isAdmin: false });
     }
   }, []);
 
-  // ── Listen to auth state ───────────────────────────────────
   useEffect(() => {
-    if (CONFIG_MISSING || !auth) {
-      setLoading(false);
-      return;
-    }
+    if (CONFIG_MISSING || !auth) { setLoading(false); return; }
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
-      if (u) {
-        await syncProfile(u);
-      } else {
-        setProfile(null);
-      }
+      if (u) await syncProfile(u); else setProfile(null);
       setLoading(false);
     });
     return unsub;
   }, [syncProfile]);
 
-  // ── Sign in ────────────────────────────────────────────────
   const signInWithGoogle = useCallback(async () => {
     if (CONFIG_MISSING || !auth) {
       alert('Firebase belum dikonfigurasi. Isi NEXT_PUBLIC_FIREBASE_* di .env.local');
       return;
     }
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (err: unknown) {
+    try { await signInWithPopup(auth, googleProvider); }
+    catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes('popup-closed')) console.error('[Auth] Login error:', msg);
     }
   }, []);
 
-  // ── Sign out ───────────────────────────────────────────────
   const signOut = useCallback(async () => {
     if (!auth) return;
-    try {
-      await firebaseSignOut(auth);
-      setUser(null);
-      setProfile(null);
-    } catch (err) {
-      console.error('[Auth] Sign out error:', err);
-    }
+    try { await firebaseSignOut(auth); setUser(null); setProfile(null); }
+    catch (err) { console.error('[Auth] Sign out error:', err); }
   }, []);
 
-  // ── Request 18+ role ──────────────────────────────────────
+  // ── Request 18+ — hanya set status 'pending', BUKAN langsung beri role ──
   const requestAdultRole = useCallback(async () => {
     if (!user || !db) return;
+    if (adultStatus === 'pending' || adultStatus === 'approved') return;
     try {
-      const ref = doc(db, 'users', user.uid);
-      const newRoles = Array.from(new Set([...(profile?.roles ?? ['user']), '18+']));
-      await updateDoc(ref, { roles: newRoles });
-      setProfile((prev) => prev ? { ...prev, roles: newRoles } : prev);
-    } catch (err) {
-      console.error('[Auth] Role update error:', err);
-    }
-  }, [user, profile]);
-
-  const value: AuthContextValue = {
-    user,
-    profile,
-    loading,
-    isAdult,
-    configMissing: CONFIG_MISSING,
-    signInWithGoogle,
-    signOut,
-    requestAdultRole,
-  };
+      await updateDoc(doc(db, 'users', user.uid), {
+        adultStatus:    'pending',
+        adultRequestAt: serverTimestamp(),
+      });
+      setProfile((prev) => prev ? { ...prev, adultStatus: 'pending' } : prev);
+    } catch (err) { console.error('[Auth] Request adult role error:', err); }
+  }, [user, adultStatus]);
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{
+      user, profile, loading, isAdult, isAdmin,
+      adultStatus, configMissing: CONFIG_MISSING,
+      signInWithGoogle, signOut, requestAdultRole,
+    }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-// ── Hooks ─────────────────────────────────────────────────────
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be inside <AuthProvider>');
