@@ -149,49 +149,135 @@ function parseAnimeDetail(raw: unknown): AnimeDetail {
 
 function parseAnimeEpisodeData(raw: unknown): AnimeEpisodeData {
   const o = (unwrap(raw) ?? {}) as Record<string, unknown>;
-  const stream_servers: StreamServer[] = mapArr(
-    o.stream_servers ?? o.servers ?? o.streamingLinks ?? o.links,
-    (item) => {
+
+  // ── Try every known field name for stream servers ────────────
+  // Some APIs nest servers inside quality groups like:
+  //   { qualities: [{ name:'720p', servers:[{name,url}] }] }
+  // Others use flat arrays: { stream_servers: [{name,url}] }
+
+  let stream_servers: StreamServer[] = [];
+
+  // 1. Flat server list
+  const flatList =
+    o.stream_servers ??
+    o.servers        ??
+    o.streamingLinks ??
+    o.streaming      ??
+    o.links          ??
+    o.sources        ??
+    o.players        ??
+    o.mirror         ??
+    o.mirrors        ??
+    o.videos;
+
+  if (Array.isArray(flatList) && flatList.length > 0) {
+    stream_servers = mapArr(flatList, (item) => {
       if (!item || typeof item !== 'object') return null;
       const s = item as Record<string, unknown>;
-      const url = str(s.url ?? s.link ?? s.src ?? s.iframe ?? s.embed);
-      if (!url) return null;
-      return { name: str(s.name ?? s.server ?? 'Server', 'Server'), url };
-    }
-  );
 
+      // If item has a nested servers/links array, flatten it
+      const nestedArr = s.servers ?? s.links ?? s.sources ?? s.urls;
+      if (Array.isArray(nestedArr) && nestedArr.length > 0) {
+        // Return first nested item (will be flattened below)
+        const quality = str(s.quality ?? s.resolution ?? s.name ?? '');
+        return nestedArr.map((n) => {
+          if (!n || typeof n !== 'object') return null;
+          const ni = n as Record<string, unknown>;
+          const url = str(ni.url ?? ni.link ?? ni.src ?? ni.iframe ?? ni.embed ?? ni.file);
+          if (!url) return null;
+          return {
+            name: str(ni.name ?? ni.server ?? ni.host, quality || 'Server'),
+            url,
+          };
+        }).filter(Boolean)[0] as StreamServer | null;
+      }
+
+      const url = str(s.url ?? s.link ?? s.src ?? s.iframe ?? s.embed ?? s.file ?? s.streamUrl);
+      if (!url) return null;
+      return {
+        name: str(s.name ?? s.server ?? s.host ?? s.label, 'Server'),
+        url,
+      };
+    }).filter((s): s is StreamServer => s !== null);
+  }
+
+  // 2. Quality-grouped servers: { qualities:[{name,servers:[{name,url}]}] }
+  if (stream_servers.length === 0) {
+    const qualityGroups = o.qualities ?? o.resolutions ?? o.quality_list;
+    if (Array.isArray(qualityGroups)) {
+      qualityGroups.forEach((group) => {
+        if (!group || typeof group !== 'object') return;
+        const g = group as Record<string, unknown>;
+        const quality = str(g.name ?? g.quality ?? g.resolution);
+        const inner = g.servers ?? g.links ?? g.urls ?? g.list;
+        if (Array.isArray(inner)) {
+          inner.forEach((s) => {
+            if (!s || typeof s !== 'object') return;
+            const si = s as Record<string, unknown>;
+            const url = str(si.url ?? si.link ?? si.src ?? si.iframe ?? si.embed);
+            if (url) {
+              stream_servers.push({
+                name: str(si.name ?? si.server, quality || 'Server'),
+                url,
+              });
+            }
+          });
+        }
+      });
+    }
+  }
+
+  // 3. Single iframe/embed URL at the top level
+  if (stream_servers.length === 0) {
+    const directUrl = str(
+      o.stream_url  ?? o.streamUrl  ??
+      o.iframe_url  ?? o.iframeUrl  ??
+      o.embed_url   ?? o.embedUrl   ??
+      o.video_url   ?? o.videoUrl   ??
+      o.url         ?? o.src        ??
+      o.embed       ?? o.iframe
+    );
+    if (directUrl) {
+      stream_servers.push({ name: 'Server 1', url: directUrl });
+    }
+  }
+
+  // ── Download links ────────────────────────────────────────────
   const download_links: DownloadResolution[] = mapArr(
-    o.download_links ?? o.downloads ?? o.download,
+    o.download_links ?? o.downloads ?? o.download ?? o.dl,
     (item) => {
       if (!item || typeof item !== 'object') return null;
       const d = item as Record<string, unknown>;
-      const links = mapArr(d.links ?? d.urls ?? d.mirrors, (l) => {
-        if (!l || typeof l !== 'object') return null;
-        const li = l as Record<string, unknown>;
-        const url = str(li.url ?? li.link ?? li.href);
-        if (!url) return null;
-        return { name: str(li.name ?? li.host ?? li.label, 'Download'), url };
-      });
+      const links = mapArr(
+        d.links ?? d.urls ?? d.mirrors ?? d.hosts ?? d.list,
+        (l) => {
+          if (!l || typeof l !== 'object') return null;
+          const li = l as Record<string, unknown>;
+          const url = str(li.url ?? li.link ?? li.href ?? li.src);
+          if (!url) return null;
+          return {
+            name: str(li.name ?? li.host ?? li.label ?? li.server, 'Download'),
+            url,
+          };
+        }
+      );
+      if (links.length === 0) return null;
       return {
-        resolution: str(d.resolution ?? d.quality ?? d.label, 'Default'),
+        resolution: str(d.resolution ?? d.quality ?? d.label ?? d.name, 'Default'),
         links,
       };
     }
   );
 
-  // direct stream_url fallback
-  const stream_url =
-    str(o.stream_url ?? o.streamUrl ?? o.url) ||
-    stream_servers[0]?.url ||
-    '';
+  const stream_url = stream_servers[0]?.url ?? str(o.stream_url ?? o.streamUrl ?? o.url);
 
   return {
-    title:             str(o.title ?? o.episodeTitle, '(Tanpa Judul)'),
+    title:             str(o.title ?? o.episodeTitle ?? o.episode_title, '(Tanpa Judul)'),
     stream_url,
     stream_servers,
     download_links,
-    prev_episode_slug: str(o.prev_episode_slug ?? o.prevSlug ?? o.prevEpisode),
-    next_episode_slug: str(o.next_episode_slug ?? o.nextSlug ?? o.nextEpisode),
+    prev_episode_slug: str(o.prev_episode_slug ?? o.prevSlug ?? o.prevEpisode ?? o.prev ?? o.previous),
+    next_episode_slug: str(o.next_episode_slug ?? o.nextSlug ?? o.nextEpisode ?? o.next),
   };
 }
 
@@ -212,41 +298,13 @@ function parseHentaiDetail(raw: unknown): HentaiDetail {
 }
 
 function parseHentaiEpisodeData(raw: unknown): HentaiEpisodeData {
-  const o = (unwrap(raw) ?? {}) as Record<string, unknown>;
-  const stream_servers: StreamServer[] = mapArr(
-    o.stream_servers ?? o.servers ?? o.streamingLinks ?? o.links,
-    (item) => {
-      if (!item || typeof item !== 'object') return null;
-      const s = item as Record<string, unknown>;
-      const url = str(s.url ?? s.link ?? s.src ?? s.iframe ?? s.embed);
-      if (!url) return null;
-      return { name: str(s.name ?? s.server, 'Server'), url };
-    }
-  );
-  const stream_url =
-    str(o.stream_url ?? o.streamUrl ?? o.url) ||
-    stream_servers[0]?.url ||
-    '';
-  const download_links: DownloadResolution[] = mapArr(
-    o.download_links ?? o.downloads ?? [],
-    (item) => {
-      if (!item || typeof item !== 'object') return null;
-      const d = item as Record<string, unknown>;
-      const links = mapArr(d.links ?? d.urls ?? [], (l) => {
-        if (!l || typeof l !== 'object') return null;
-        const li = l as Record<string, unknown>;
-        const url = str(li.url ?? li.link ?? li.href);
-        if (!url) return null;
-        return { name: str(li.name ?? li.host, 'Download'), url };
-      });
-      return { resolution: str(d.resolution ?? d.quality, 'Default'), links };
-    }
-  );
+  // Reuse the same exhaustive parser as anime — same field names
+  const animeResult = parseAnimeEpisodeData(raw);
   return {
-    title: str(o.title, '(Tanpa Judul)'),
-    stream_url,
-    stream_servers,
-    download_links,
+    title:          animeResult.title,
+    stream_url:     animeResult.stream_url,
+    stream_servers: animeResult.stream_servers,
+    download_links: animeResult.download_links,
   };
 }
 

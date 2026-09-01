@@ -329,22 +329,17 @@ export default function StreamPage() {
         </div>
       )}
 
-      {/* ── Dev debug panel ── */}
-      {process.env.NODE_ENV !== 'production' && (
-        <div className="px-4 pb-8">
-          <button
-            onClick={() => setShowDebug((v) => !v)}
-            className="text-xs text-muted hover:text-primary transition-colors"
-          >
-            [DEV] {showDebug ? 'Sembunyikan' : 'Lihat'} raw API
-          </button>
-          {showDebug && (
-            <pre className="mt-2 text-[0.65rem] text-secondary bg-surface border border-border rounded-app p-3 overflow-x-auto max-h-72">
-              {JSON.stringify({ slug, seriesSlug, rawEp }, null, 2)}
-            </pre>
-          )}
-        </div>
-      )}
+      {/* ── Dev debug panel (visible always for now to diagnose stream issue) ── */}
+      <div className="px-4 pb-8">
+        <details className="text-xs">
+          <summary className="cursor-pointer text-muted hover:text-primary transition-colors py-2">
+            🔧 Debug: lihat raw API response
+          </summary>
+          <pre className="mt-2 text-[0.65rem] text-secondary bg-surface border border-border rounded-app p-3 overflow-x-auto max-h-80 whitespace-pre-wrap break-all">
+            {JSON.stringify({ slug, seriesSlug, rawEp }, null, 2)}
+          </pre>
+        </details>
+      </div>
 
       {/* ── Episode list drawer ── */}
       {showDrawer && (

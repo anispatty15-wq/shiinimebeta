@@ -81,6 +81,18 @@ export default function VideoPlayer({
         <p className="text-sm text-center px-4">
           Server streaming tidak tersedia untuk episode ini.
         </p>
+        {/* Debug: show raw data so we can identify the correct field name */}
+        {typeof window !== 'undefined' && (
+          <details className="text-[0.65rem] text-muted max-w-xs w-full px-4">
+            <summary className="cursor-pointer hover:text-primary transition-colors text-center">
+              Lihat data API (debug)
+            </summary>
+            <pre className="mt-2 bg-surface border border-border rounded p-2 overflow-x-auto max-h-48 text-left whitespace-pre-wrap break-all">
+              stream_url: &ldquo;{defaultUrl || '(kosong)'}&rdquo;{'\n'}
+              stream_servers: {JSON.stringify(servers, null, 1)}
+            </pre>
+          </details>
+        )}
       </div>
     );
   }
