@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Filter, X, ChevronLeft } from 'lucide-react';
 import { clsx } from 'clsx';
-import { AnimeAPI, toArray } from '@/lib/apiClient';
+import { AnimeAPI, toArray } from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
 import MediaCard from '@/components/MediaCard';
 import { SkeletonGrid } from '@/components/SkeletonLoader';

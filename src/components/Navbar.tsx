@@ -79,8 +79,8 @@ export default function Navbar() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-1.5 flex-shrink-0 font-bold text-[1.2rem] tracking-tight">
-          <span className="text-primary">Shiiii</span>
-          <span className="text-cyan">Nime</span>
+          <span className="text-primary">Shiiinime</span>
+          <span className="text-cyan">Stream</span>
         </Link>
 
         {/* Desktop tabs */}

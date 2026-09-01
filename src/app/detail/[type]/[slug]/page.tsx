@@ -214,7 +214,7 @@ export default function DetailPage() {
             </h2>
 
             {contentType === 'comic' ? (
-              /* Chapter list — vertical, shows dates */
+              /* Chapter list — vertical rows with date */
               <div className="space-y-1.5">
                 {(visibleItems as typeof chapterList).map((ch) => (
                   <Link
@@ -230,17 +230,22 @@ export default function DetailPage() {
                 ))}
               </div>
             ) : (
-              /* Episode pills — compact */
-              <div className="flex flex-wrap gap-2">
-                {(visibleItems as typeof episodeList).map((ep) => (
-                  <Link
-                    key={ep.slug}
-                    href={`/stream/${contentType}/${ep.slug}`}
-                    className="ep-pill"
-                  >
-                    {ep.title}
-                  </Link>
-                ))}
+              /* Episode number pills — compact, extract number from title */
+              <div className="flex flex-wrap gap-1.5">
+                {(visibleItems as typeof episodeList).map((ep, idx) => {
+                  const nums    = ep.title.match(/\d+/g);
+                  const epLabel = nums ? nums[nums.length - 1] : String(idx + 1);
+                  return (
+                    <Link
+                      key={ep.slug}
+                      href={`/stream/${contentType}/${ep.slug}`}
+                      title={ep.title}
+                      className="ep-pill min-w-[2.75rem] text-center px-2"
+                    >
+                      {epLabel}
+                    </Link>
+                  );
+                })}
               </div>
             )}
 

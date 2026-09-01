@@ -17,7 +17,7 @@ import MediaCard from './MediaCard';
 import { SkeletonGrid } from './SkeletonLoader';
 import type { ContentType } from '@/types/media';
 import type { ApiResult } from '@/types/media';
-import { toArray } from '@/lib/apiClient';
+import { toArray } from '@/lib/api';
 import { normaliseCardItem } from '@/utils/slugHelpers';
 
 interface BrowsePageProps {

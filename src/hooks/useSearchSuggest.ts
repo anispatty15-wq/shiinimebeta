@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { useDebounce } from './useDebounce';
-import { AnimeAPI, ComicAPI, HentaiAPI, toArray } from '@/lib/apiClient';
+import { AnimeAPI, ComicAPI, HentaiAPI, toArray } from '@/lib/api';
 import type { ContentType } from '@/types/media';
 
 export interface SuggestionItem {

@@ -1,6 +1,6 @@
 'use client';
 import { useCallback } from 'react';
-import { HentaiAPI } from '@/lib/apiClient';
+import { HentaiAPI } from '@/lib/api';
 import BrowsePage from '@/components/BrowsePage';
 
 export default function JAVLatestPage() {

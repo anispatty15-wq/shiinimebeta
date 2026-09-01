@@ -5,7 +5,7 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, X } from 'lucide-react';
 import { clsx } from 'clsx';
-import { AnimeAPI, HentaiAPI, ComicAPI, toArray } from '@/lib/apiClient';
+import { AnimeAPI, HentaiAPI, ComicAPI, toArray } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
 import MediaCard from '@/components/MediaCard';
 import { SkeletonGrid } from '@/components/SkeletonLoader';

@@ -1,6 +1,6 @@
 'use client';
 import { useCallback } from 'react';
-import { AnimeAPI } from '@/lib/apiClient';
+import { AnimeAPI } from '@/lib/api';
 import BrowsePage from '@/components/BrowsePage';
 
 export default function AnimeTerbaruPage() {

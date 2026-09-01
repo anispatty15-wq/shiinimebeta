@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Heart, Play } from 'lucide-react';
 import { clsx } from 'clsx';
-import { getPoster } from '@/lib/apiClient';
+import { getPoster } from '@/lib/api';
 import { useBookmarkToggle } from '@/context/BookmarkContext';
 import type { BookmarkEntry, ContentType } from '@/types/media';
 
