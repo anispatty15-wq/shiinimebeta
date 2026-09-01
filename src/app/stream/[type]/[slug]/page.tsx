@@ -30,9 +30,8 @@ import { clsx } from 'clsx';
 import { AnimeAPI, HentaiAPI } from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
 import VideoPlayer from '@/components/VideoPlayer';
-import ResumeModal from '@/components/ResumeModal';
 import { SkeletonBanner } from '@/components/SkeletonLoader';
-import { useVideoProgressSaver } from '@/context/HistoryContext';
+import { useHistory } from '@/context/HistoryContext';
 import type {
   AnimeEpisodeData,
   HentaiEpisodeData,
@@ -134,21 +133,33 @@ export default function StreamPage() {
   const prevSlug  = (rawEp as AnimeEpisodeData | null)?.prev_episode_slug ?? '';
   const nextSlug  = (rawEp as AnimeEpisodeData | null)?.next_episode_slug ?? '';
 
-  // ── Video progress saver ─────────────────────────────────
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const { resumeState, attachRef } = useVideoProgressSaver(
-    rawEp && slug
-      ? { slug, seriesSlug, title, episodeTitle: title, poster: '', type: isHentai ? 'hentai' : 'anime' }
-      : null
-  );
-  const [resumeOpen, setResumeOpen] = useState(false);
-  const didCheck = useRef(false);
+  // ── Save to watch history as soon as episode data is loaded ──
+  const { saveWatchProgress, updateWatchPoster } = useHistory();
+  const savedToHistory = useRef(false);
   useEffect(() => {
-    if (didCheck.current || !rawEp) return;
-    if (resumeState.shouldResume) setResumeOpen(true);
-    didCheck.current = true;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawEp]);
+    if (savedToHistory.current || !rawEp || !slug) return;
+    savedToHistory.current = true;
+    saveWatchProgress({
+      slug,
+      seriesSlug,
+      title:           (rawEp as AnimeEpisodeData).title ?? title,
+      episodeTitle:    (rawEp as AnimeEpisodeData).title ?? title,
+      poster:          '',
+      type:            isHentai ? 'hentai' : 'anime',
+      positionSeconds: 0,
+      durationSeconds: 0,
+      completed:       false,
+    });
+  }, [rawEp, slug, seriesSlug, title, isHentai, saveWatchProgress]);
+
+  // Backfill poster once series detail is loaded (from drawer)
+  useEffect(() => {
+    if (!slug || !detailData) return;
+    const poster = (detailData as AnimeDetail | HentaiDetail).poster ?? '';
+    if (poster) updateWatchPoster(slug, poster);
+  }, [slug, detailData, updateWatchPoster]);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // ── Loading state ─────────────────────────────────────────
   if (loading) {
@@ -181,30 +192,6 @@ export default function StreamPage() {
 
   return (
     <div className="max-w-screen-xl mx-auto">
-
-      {/* ── Resume modal ── */}
-      <ResumeModal
-        open={resumeOpen}
-        onClose={() => setResumeOpen(false)}
-        icon="🎬"
-        title="Lanjutkan Menonton?"
-        subtitle={title}
-        highlight={`Terakhir di: ${resumeState.formatted}`}
-        continueLabel={`Lanjut (${resumeState.formatted})`}
-        restartLabel="Mulai dari Awal"
-        onContinue={() => {
-          if (videoRef.current) {
-            videoRef.current.currentTime = resumeState.positionSeconds;
-            videoRef.current.play().catch(() => {});
-          }
-        }}
-        onRestart={() => {
-          if (videoRef.current) {
-            videoRef.current.currentTime = 0;
-            videoRef.current.play().catch(() => {});
-          }
-        }}
-      />
 
       {/* ── Video player ── */}
       <VideoPlayer

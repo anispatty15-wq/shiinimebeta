@@ -121,6 +121,14 @@ export const WatchHistory = {
 
   clear(): void { lsRemove(STORAGE_KEYS.WATCH_HISTORY); },
 
+  /** Update poster URL for an existing entry (backfill after detail is loaded) */
+  updatePoster(slug: string, poster: string): boolean {
+    if (!slug || !poster) return false;
+    const e = this.get(slug);
+    if (!e || e.poster) return false; // already has poster
+    return this.save({ ...e, poster });
+  },
+
   checkResume(slug: string): { shouldResume: boolean; positionSeconds: number; formatted: string } {
     const fallback = { shouldResume: false, positionSeconds: 0, formatted: '0:00' };
     if (!slug) return fallback;

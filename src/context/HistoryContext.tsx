@@ -26,6 +26,7 @@ interface HistoryContextValue {
   removeWatch:       (slug: string) => void;
   clearWatch:        () => void;
   checkVideoResume:  (slug: string) => { shouldResume: boolean; positionSeconds: number; formatted: string };
+  updateWatchPoster: (slug: string, poster: string) => void;
 
   // Read history
   readHistory:       ReadEntry[];
@@ -81,6 +82,11 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const updateWatchPoster = useCallback((slug: string, poster: string) => {
+    WatchHistory.updatePoster(slug, poster);
+    setWatchHistory(WatchHistory.getAll());
+  }, []);
+
   // ── Read ───────────────────────────────────────────────────
   const saveReadProgress = useCallback(
     (entry: Omit<ReadEntry, 'updatedAt'>) => {
@@ -117,6 +123,7 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
     removeWatch,
     clearWatch,
     checkVideoResume,
+    updateWatchPoster,
 
     readHistory,
     saveReadProgress,
