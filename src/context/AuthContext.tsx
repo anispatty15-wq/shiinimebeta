@@ -77,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const adultStatus = profile?.adultStatus               ?? 'none';
 
   // ── Sync Firestore user doc ───────────────────────────────
+  // ── Sync Firestore user doc ───────────────────────────────
   const syncProfile = useCallback(async (u: User) => {
     if (CONFIG_MISSING || !db) {
       setProfile({ uid: u.uid, displayName: u.displayName ?? 'User',
@@ -88,8 +89,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userRef  = doc(db, 'users', u.uid);
       const adminRef = doc(db, 'admins', u.uid);
 
-      // Fetch both in parallel — adminRef may fail if rules block it,
-      // so we catch individually
       const [snap, adminSnap] = await Promise.allSettled([
         getDoc(userRef),
         getDoc(adminRef),
@@ -101,14 +100,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (userSnap?.exists()) {
         const d = userSnap.data();
-        const roles: string[] = Array.isArray(d.roles) ? d.roles : ['user'];
 
-        // Auto-grant 18+ to admin if not already there
+        // Build correct roles array
+        let roles: string[] = Array.isArray(d.roles) ? [...d.roles] : ['user'];
+
+        // Fix: remove invalid role values like 'admins', keep only valid ones
+        roles = roles.filter((r) => ['user', '18+', 'admin'].includes(r));
+        if (!roles.includes('user')) roles.unshift('user');
+
+        // Admin always gets 18+ automatically
         if (isAdmin && !roles.includes('18+')) roles.push('18+');
 
-        // Update isAdmin field in doc if it changed
-        if (d.isAdmin !== isAdmin) {
-          updateDoc(userRef, { isAdmin, roles }).catch(() => {});
+        // Admin status
+        const adultStatus: AdultStatus = isAdmin
+          ? 'approved'
+          : (d.adultStatus as AdultStatus) ?? 'none';
+
+        // Auto-fix doc if roles/isAdmin/adultStatus is wrong
+        const needsFix =
+          JSON.stringify(roles) !== JSON.stringify(d.roles) ||
+          d.isAdmin !== isAdmin ||
+          (isAdmin && d.adultStatus !== 'approved');
+
+        if (needsFix) {
+          updateDoc(userRef, { roles, isAdmin, adultStatus }).catch(() => {});
         }
 
         setProfile({
@@ -117,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email:       d.email       ?? u.email        ?? '',
           photoURL:    d.photoURL    ?? u.photoURL      ?? '',
           roles,
-          adultStatus: (d.adultStatus as AdultStatus) ?? 'none',
+          adultStatus,
           isAdmin,
         });
       } else {
