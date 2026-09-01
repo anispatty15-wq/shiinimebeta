@@ -3,82 +3,106 @@
 // ─────────────────────────────────────────────────────────────
 // Anti-lag comic page reader.
 //
-// Performance strategy
-// ──────────────────────────────────────────────────────────────
-// 1. Every <img> uses loading="lazy" + decoding="async" so the
-//    browser defers decode off the main thread.
-// 2. A single IntersectionObserver (via useComicPageObserver)
-//    fires the data-src → src swap only when a page is ~400px
-//    from the viewport — preventing up-front network burst.
-// 3. Each .comic-page wrapper has a min-height of 300px so the
-//    layout doesn't shift when images load, keeping scrolling
-//    smooth and preventing reflow jank.
-// 4. The observer also reports which page is currently visible,
-//    letting useComicProgressSaver throttle-save progress every
-//    2 s without any scroll event listeners.
-// 5. ResumeModal is shown once on mount if lastPage > 1.
+// Anti-lag strategy:
+//  • loading="lazy" + decoding="async" — browser defers each
+//    image decode off the main thread until needed.
+//  • min-h-[300px] on every image container prevents layout
+//    shift (CLS), keeping scroll smooth and avoiding reflow.
+//  • IntersectionObserver tracks the active page number for
+//    progress saving without ANY scroll event listeners.
+//  • Single shared observer instance for all pages.
 // ─────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, List, X } from 'lucide-react';
 import Link from 'next/link';
+import { ChevronLeft, ChevronRight, List, X } from 'lucide-react';
 import { clsx } from 'clsx';
-import { useComicPageObserver } from '@/hooks/useIntersectionObserver';
-import { useComicProgressSaver, type ComicMeta } from '@/context/HistoryContext';
-import ResumeModal from './ResumeModal';
+import type { ComicChapterData } from '@/types/media';
 
-// ── Types ─────────────────────────────────────────────────────
 interface ComicReaderProps {
-  pages:       string[];   // array of image URLs
-  meta:        ComicMeta;
-  prevChapter?: string | null;
-  nextChapter?: string | null;
-  /** Base path for chapter navigation links, e.g. "/comic/chapter" */
-  chapterBase?: string;
+  chapter:       ComicChapterData;
+  /** slug of the comic series, used to build back-link */
+  seriesSlug:    string;
+  /** Called whenever the visible page changes (for progress saving) */
+  onPageChange?: (page: number) => void;
+  /** If provided, auto-scroll to this page on mount */
+  resumePage?:   number;
 }
 
-// ── ComicPage ─────────────────────────────────────────────────
+// ── Individual page component ─────────────────────────────────
 interface ComicPageProps {
-  url:        string;
+  src:        string;
   pageNumber: number;
   total:      number;
-  onRegister: (el: HTMLElement | null, page: number) => void;
+  onVisible:  (page: number) => void;
 }
 
-function ComicPage({ url, pageNumber, total, onRegister }: ComicPageProps) {
-  const wrapRef = useRef<HTMLDivElement>(null);
+function ComicPage({ src, pageNumber, total, onVisible }: ComicPageProps) {
+  const ref    = useRef<HTMLDivElement>(null);
+  const [err,  setErr]    = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
+  // Register with the shared observer via a custom event or
+  // directly here with a local observer on this element.
   useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    onRegister(el, pageNumber);
-    return () => onRegister(null, pageNumber);
-  // Register once per page — onRegister is stable (useCallback)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageNumber]);
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry?.isIntersecting) onVisible(pageNumber); },
+      { threshold: 0.3 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [pageNumber, onVisible]);
 
   return (
     <div
-      ref={wrapRef}
-      id={`comic-page-${pageNumber}`}
+      ref={ref}
+      id={`page-${pageNumber}`}
       data-page={pageNumber}
-      className="comic-page w-full max-w-2xl mx-auto relative"
-      // Reserve minimum height to prevent layout shift
+      className="relative w-full max-w-2xl mx-auto bg-[#111]"
       style={{ minHeight: 300 }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        data-src={url}
-        src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAI="
-        alt={`Halaman ${pageNumber} dari ${total}`}
-        loading="lazy"
-        decoding="async"
-        className="w-full h-auto block"
-        style={{ minHeight: 300 }}
-      />
-      {/* Page number badge */}
+      {/* Shimmer placeholder */}
+      {!loaded && !err && (
+        <div
+          className="absolute inset-0 bg-surface-2 overflow-hidden"
+          style={{ minHeight: 300 }}
+          aria-hidden
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent bg-[length:200%_100%] animate-shimmer" />
+        </div>
+      )}
+
+      {/* Page image */}
+      {!err ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={`Halaman ${pageNumber} dari ${total}`}
+          loading="lazy"
+          decoding="async"
+          className={clsx(
+            'w-full h-auto block transition-opacity duration-300',
+            loaded ? 'opacity-100' : 'opacity-0'
+          )}
+          style={{ minHeight: 300 }}
+          onLoad={() => setLoaded(true)}
+          onError={() => { setErr(true); setLoaded(true); }}
+        />
+      ) : (
+        <div
+          className="w-full flex items-center justify-center text-muted text-xs py-10"
+          style={{ minHeight: 300 }}
+        >
+          Gagal memuat halaman {pageNumber}
+        </div>
+      )}
+
+      {/* Page badge */}
       <span
-        aria-hidden="true"
+        aria-hidden
         className="absolute bottom-2 right-2 bg-black/60 text-secondary text-[0.65rem] font-medium px-2 py-0.5 rounded pointer-events-none"
       >
         {pageNumber} / {total}
@@ -87,107 +111,99 @@ function ComicPage({ url, pageNumber, total, onRegister }: ComicPageProps) {
   );
 }
 
-// ── ComicReader (main) ────────────────────────────────────────
+// ── Main reader ───────────────────────────────────────────────
 export default function ComicReader({
-  pages,
-  meta,
-  prevChapter,
-  nextChapter,
-  chapterBase = '/comic/chapter',
+  chapter,
+  seriesSlug,
+  onPageChange,
+  resumePage,
 }: ComicReaderProps) {
-  const totalPages = pages.length;
+  const images = chapter.images ?? [];
+  const total  = images.length;
 
-  // ── Progress & resume ───────────────────────────────────────
-  const { currentPage, setCurrentPage, resumeState } =
-    useComicProgressSaver({ ...meta, totalPages });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [drawerOpen,  setDrawerOpen]  = useState(false);
+  const didResume = useRef(false);
 
-  const [resumeOpen, setResumeOpen] = useState(false);
-  const didShowResume = useRef(false);
+  // Stable onVisible callback
+  const handlePageVisible = useCallback((page: number) => {
+    setCurrentPage(page);
+    onPageChange?.(page);
+  }, [onPageChange]);
 
+  // Scroll to resume page on mount (only once)
   useEffect(() => {
-    if (didShowResume.current) return;
-    if (resumeState.shouldResume && resumeState.lastPage > 1) {
-      setResumeOpen(true);
-      didShowResume.current = true;
+    if (didResume.current) return;
+    if (resumePage && resumePage > 1 && resumePage <= total) {
+      const el = document.getElementById(`page-${resumePage}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        didResume.current = true;
+      }
     }
-  // Only run once on mount
+  // Run once after render
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [images.length]);
 
-  // ── Scroll-to-page ──────────────────────────────────────────
-  const scrollToPage = useCallback((page: number) => {
-    const el = document.getElementById(`comic-page-${page}`);
+  const scrollToPage = (page: number) => {
+    const el = document.getElementById(`page-${page}`);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, []);
+    setDrawerOpen(false);
+  };
 
-  // ── IntersectionObserver ────────────────────────────────────
-  const { registerPage } = useComicPageObserver({
-    onPageVisible: useCallback(
-      (pageNum: number) => setCurrentPage(pageNum),
-      [setCurrentPage]
-    ),
-    preloadMargin: '400px 0px',
-  });
-
-  // ── Chapter drawer (page list) ──────────────────────────────
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  // ── Empty state ─────────────────────────────────────────────
-  if (!pages || pages.length === 0) {
+  if (total === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] text-muted gap-3">
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 text-muted">
         <span className="text-4xl" aria-hidden>📭</span>
-        <p className="text-sm font-medium">Halaman chapter tidak tersedia.</p>
+        <p className="text-sm">Halaman chapter tidak tersedia.</p>
+        {seriesSlug && (
+          <Link href={`/detail/comic/${seriesSlug}`} className="btn-ghost text-sm">
+            ← Kembali ke detail
+          </Link>
+        )}
       </div>
     );
   }
 
   return (
     <>
-      {/* ── Resume Modal ── */}
-      <ResumeModal
-        open={resumeOpen}
-        onClose={() => setResumeOpen(false)}
-        icon="📖"
-        title="Lanjutkan Membaca?"
-        subtitle={meta.chapterTitle ?? ''}
-        highlight={`Halaman ${resumeState.lastPage}`}
-        continueLabel={`Lanjut (Hal. ${resumeState.lastPage})`}
-        restartLabel="Mulai dari Hal. 1"
-        onContinue={() => scrollToPage(resumeState.lastPage)}
-        onRestart={() => scrollToPage(1)}
-      />
-
-      {/* ── Top bar ── */}
-      <div className="sticky top-14 z-30 flex items-center justify-between px-4 py-2.5 bg-bg/95 backdrop-blur border-b border-border">
+      {/* ── Sticky top bar ── */}
+      <div className="sticky top-14 z-30 bg-bg/95 backdrop-blur border-b border-border px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
-          {prevChapter && (
+          {seriesSlug && (
             <Link
-              href={`${chapterBase}/${prevChapter}`}
-              aria-label="Chapter sebelumnya"
+              href={`/detail/comic/${seriesSlug}`}
+              aria-label="Kembali ke detail"
               className="w-8 h-8 flex items-center justify-center rounded-app bg-surface border border-border text-secondary hover:text-primary transition-colors flex-shrink-0"
             >
               <ChevronLeft className="w-4 h-4" aria-hidden />
             </Link>
           )}
-          <span className="text-xs font-medium text-secondary truncate">
-            {meta.chapterTitle ?? `Chapter`}
-          </span>
-          {nextChapter && (
+          {chapter.prev_chapter_slug && (
             <Link
-              href={`${chapterBase}/${nextChapter}`}
+              href={`/read/${chapter.prev_chapter_slug}?series=${seriesSlug}`}
+              aria-label="Chapter sebelumnya"
+              className="w-8 h-8 flex items-center justify-center rounded-app bg-surface border border-border text-secondary hover:text-primary transition-colors flex-shrink-0"
+            >
+              <ChevronLeft className="w-4 h-4 -translate-x-0.5" aria-hidden />
+            </Link>
+          )}
+          <p className="text-xs font-semibold text-primary truncate max-w-[140px]">
+            {chapter.title || 'Chapter'}
+          </p>
+          {chapter.next_chapter_slug && (
+            <Link
+              href={`/read/${chapter.next_chapter_slug}?series=${seriesSlug}`}
               aria-label="Chapter berikutnya"
               className="w-8 h-8 flex items-center justify-center rounded-app bg-surface border border-border text-secondary hover:text-primary transition-colors flex-shrink-0"
             >
-              <ChevronRight className="w-4 h-4" aria-hidden />
+              <ChevronRight className="w-4 h-4 translate-x-0.5" aria-hidden />
             </Link>
           )}
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-xs text-muted">
-            {currentPage} / {totalPages}
-          </span>
+          <span className="text-xs text-muted">{currentPage} / {total}</span>
           <button
             onClick={() => setDrawerOpen((v) => !v)}
             aria-label="Daftar halaman"
@@ -198,36 +214,30 @@ export default function ComicReader({
         </div>
       </div>
 
-      {/* ── Page list drawer ── */}
+      {/* ── Page drawer ── */}
       {drawerOpen && (
         <div className="fixed inset-0 z-50 flex">
-          {/* Overlay */}
-          <div
-            className="flex-1 bg-black/60 backdrop-blur-sm"
-            onClick={() => setDrawerOpen(false)}
-            aria-hidden="true"
-          />
-          {/* Panel */}
-          <div className="w-56 bg-surface border-l border-border flex flex-col animate-slide-up h-full overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <span className="text-sm font-semibold text-primary">Daftar Halaman</span>
+          <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} aria-hidden />
+          <div className="w-52 bg-surface border-l border-border flex flex-col animate-fade-up h-full">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+              <span className="text-sm font-semibold text-primary">Halaman</span>
               <button onClick={() => setDrawerOpen(false)} aria-label="Tutup" className="text-muted hover:text-primary transition-colors">
                 <X className="w-4 h-4" aria-hidden />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-3 grid grid-cols-4 gap-2">
-              {pages.map((_, i) => {
+              {Array.from({ length: total }).map((_, i) => {
                 const pg = i + 1;
                 return (
                   <button
                     key={pg}
-                    onClick={() => { scrollToPage(pg); setDrawerOpen(false); }}
+                    onClick={() => scrollToPage(pg)}
                     aria-label={`Halaman ${pg}`}
                     className={clsx(
-                      'aspect-square flex items-center justify-center rounded-app text-xs font-semibold transition-all',
+                      'aspect-square flex items-center justify-center rounded-lg text-xs font-bold transition-all',
                       pg === currentPage
                         ? 'bg-cyan text-bg shadow-glow-c'
-                        : 'bg-surface-2 text-secondary hover:bg-cyan/15 hover:text-cyan'
+                        : 'bg-surface-2 text-secondary hover:bg-cyan/15 hover:text-cyan border border-border'
                     )}
                   >
                     {pg}
@@ -240,33 +250,40 @@ export default function ComicReader({
       )}
 
       {/* ── Pages ── */}
-      <main className="comic-reader" aria-label="Halaman komik">
-        {pages.map((url, i) => (
+      <main
+        className="flex flex-col items-center gap-0.5 bg-black min-h-screen py-2"
+        aria-label="Halaman komik"
+      >
+        {images.map((src, i) => (
           <ComicPage
             key={i}
-            url={url ?? ''}
+            src={src || ''}
             pageNumber={i + 1}
-            total={totalPages}
-            onRegister={registerPage}
+            total={total}
+            onVisible={handlePageVisible}
           />
         ))}
       </main>
 
-      {/* ── Chapter navigation footer ── */}
-      <div className="flex gap-3 justify-center py-8 px-4">
-        {prevChapter ? (
-          <Link href={`${chapterBase}/${prevChapter}`} className="btn-ghost text-sm flex items-center gap-1.5">
+      {/* ── Bottom navigation ── */}
+      <div className="flex gap-3 justify-center py-8 px-4 bg-bg border-t border-border">
+        {chapter.prev_chapter_slug ? (
+          <Link
+            href={`/read/${chapter.prev_chapter_slug}?series=${seriesSlug}`}
+            className="btn-ghost text-sm flex items-center gap-1.5"
+          >
             <ChevronLeft className="w-4 h-4" aria-hidden /> Chapter Sebelumnya
           </Link>
-        ) : (
-          <span />
-        )}
-        {nextChapter ? (
-          <Link href={`${chapterBase}/${nextChapter}`} className="btn-primary text-sm flex items-center gap-1.5">
+        ) : <span />}
+        {chapter.next_chapter_slug ? (
+          <Link
+            href={`/read/${chapter.next_chapter_slug}?series=${seriesSlug}`}
+            className="btn-violet text-sm flex items-center gap-1.5"
+          >
             Chapter Berikutnya <ChevronRight className="w-4 h-4" aria-hidden />
           </Link>
         ) : (
-          <span className="text-sm text-muted self-center">Ini chapter terakhir</span>
+          <span className="text-xs text-muted self-center">— Ini chapter terakhir —</span>
         )}
       </div>
     </>

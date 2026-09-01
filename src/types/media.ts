@@ -1,258 +1,144 @@
 // src/types/media.ts
 // ─────────────────────────────────────────────────────────────
-// All TypeScript interfaces for the Shiiinime API responses
+// TypeScript interfaces that STRICTLY match the JSON response
+// contract documented in the API spec. Do not add extra fields
+// unless they appear in the actual response.
 // ─────────────────────────────────────────────────────────────
 
-// ── Generic wrappers ──────────────────────────────────────────
-
-export interface ApiResult<T> {
-  data:   T | null;
-  error:  string | null;
-  status: number;
-}
-
-export interface PaginatedResponse<T> {
-  data:        T[];
-  currentPage?: number;
-  totalPages?:  number;
-  hasNext?:     boolean;
-  hasPrev?:     boolean;
-}
-
+// ── Content type discriminator ────────────────────────────────
 export type ContentType = 'anime' | 'hentai' | 'comic';
 
-// ── Shared primitives ─────────────────────────────────────────
-
-export interface SlugItem {
-  id?:    string | number;
-  name:   string;
-  slug:   string;
-  count?: number;
+// ─────────────────────────────────────────────────────────────
+// Generic API envelope
+// All endpoints return: { status: true, data: <T> }
+// ─────────────────────────────────────────────────────────────
+export interface ApiEnvelope<T> {
+  status: boolean;
+  data:   T;
 }
 
+// ─────────────────────────────────────────────────────────────
+// A.  ANIMEKOMPI
+// ─────────────────────────────────────────────────────────────
+
+/** One item in an episode list on the detail page */
+export interface AnimeEpisodeListItem {
+  title: string;
+  slug:  string;
+  date:  string;
+}
+
+/** GET /anime/animekompi/detail/:slug → envelope.data */
+export interface AnimeDetail {
+  title:        string;
+  poster:       string;
+  synopsis:     string;
+  genres:       string[];
+  episode_list: AnimeEpisodeListItem[];
+}
+
+/** One streaming server option */
 export interface StreamServer {
-  name:     string;
-  url:      string;
-  quality?: string;
-  type?:    'iframe' | 'mp4' | 'm3u8';
-}
-
-export interface DownloadLink {
-  host: string;
+  name: string;
   url:  string;
 }
 
-export interface DownloadOption {
-  quality: string;
-  size?:   string;
-  links:   DownloadLink[];
+/** One download resolution group */
+export interface DownloadResolution {
+  resolution: string;
+  links: {
+    name: string;
+    url:  string;
+  }[];
+}
+
+/** GET /anime/animekompi/episode/:slug → envelope.data */
+export interface AnimeEpisodeData {
+  title:             string;
+  stream_url:        string;
+  stream_servers:    StreamServer[];
+  download_links:    DownloadResolution[];
+  prev_episode_slug: string;
+  next_episode_slug: string;
 }
 
 // ─────────────────────────────────────────────────────────────
-// A.  ANIME (Animekompi)
+// B.  NEKOPOI
 // ─────────────────────────────────────────────────────────────
 
-export interface AnimeCard {
-  slug:      string;
-  title:     string;
-  poster?:   string;
-  image?:    string;
-  status?:   string;
-  type?:     string;
-  score?:    string | number;
-  episode?:  string | number;
-  genres?:   string[];
-  year?:     string | number;
+/** One item in hentai episode list */
+export interface HentaiEpisodeListItem {
+  title: string;
+  slug:  string;
 }
 
-export interface AnimeDetail {
-  slug:         string;
+/** GET /anime/nekopoi/detail/:slug → envelope.data */
+export interface HentaiDetail {
   title:        string;
-  altTitle?:    string;
-  poster?:      string;
-  synopsis?:    string;
-  status?:      string;
-  type?:        string;
-  score?:       string | number;
-  episodes?:    string | number;
-  duration?:    string;
-  aired?:       string;
-  studio?:      string | string[];
-  genres?:      (string | SlugItem)[];
-  season?:      string;
-  year?:        string | number;
-  episodeList?: AnimeEpisodeItem[];
-  related?:     AnimeCard[];
+  poster:       string;
+  synopsis:     string;
+  episode_list: HentaiEpisodeListItem[];
 }
 
-export interface AnimeEpisodeItem {
-  slug:    string;
+/** GET /anime/nekopoi/episode/:slug → envelope.data */
+export interface HentaiEpisodeData {
+  title:          string;
+  stream_url:     string;
+  stream_servers: StreamServer[];
+  download_links: DownloadResolution[];
+}
+
+// ─────────────────────────────────────────────────────────────
+// C.  WESTMANGA
+// ─────────────────────────────────────────────────────────────
+
+/** One chapter item in the comic detail */
+export interface ComicChapterItem {
+  title:        string;
+  slug:         string;
+  release_date: string;
+}
+
+/** GET /comic/westmanga/detail/:slug → envelope.data */
+export interface ComicDetail {
+  title:    string;
+  poster:   string;
+  synopsis: string;
+  chapters: ComicChapterItem[];
+}
+
+/** GET /comic/westmanga/chapter/:slug → envelope.data */
+export interface ComicChapterData {
+  title:             string;
+  images:            string[];
+  prev_chapter_slug: string;
+  next_chapter_slug: string;
+}
+
+// ─────────────────────────────────────────────────────────────
+// D.  Listing / Card shapes (home & search responses)
+// ─────────────────────────────────────────────────────────────
+
+/** Generic media card used across all listing endpoints */
+export interface MediaCard {
   title:   string;
-  number:  string | number;
+  slug:    string;
+  poster:  string;
+  /** Optional metadata shown under the title */
+  type?:   string;
+  status?: string;
+  score?:  string | number;
+  episode?: string | number;
+  chapter?: string | number;
   date?:   string;
 }
 
-export interface AnimeEpisode {
-  slug:         string;
-  title:        string;
-  number?:      string | number;
-  seriesSlug?:  string;
-  poster?:      string;
-  servers?:     StreamServer[];
-  downloads?:   DownloadOption[];
-  prevEpisode?: string | null;
-  nextEpisode?: string | null;
-}
-
-export interface AnimeSuggestion {
-  slug:    string;
-  title:   string;
-  poster?: string;
-  type?:   string;
-  year?:   string | number;
-}
-
-export interface ScheduleItem {
-  slug:     string;
-  title:    string;
-  episode?: string | number;
-  time?:    string;
-  poster?:  string;
-}
-
-export interface ScheduleDay {
-  day:   string;
-  items: ScheduleItem[];
-}
-
-export interface AnimeFilterParams {
-  genre?:   string[];
-  season?:  string[];
-  status?:  string[];
-  type?:    string[];
-  order?:   string;
-  page?:    number;
-}
-
-export interface AnimeFilterOptions {
-  genres?:   SlugItem[];
-  seasons?:  SlugItem[];
-  statuses?: SlugItem[];
-  types?:    SlugItem[];
-  orders?:   SlugItem[];
-}
-
 // ─────────────────────────────────────────────────────────────
-// B.  HENTAI (Nekopoi)
-// ─────────────────────────────────────────────────────────────
-
-export interface HentaiCard {
-  slug:      string;
-  title:     string;
-  poster?:   string;
-  image?:    string;
-  category?: string;
-  genres?:   string[];
-  year?:     string | number;
-  episode?:  string | number;
-}
-
-export interface HentaiDetail {
-  slug:         string;
-  title:        string;
-  altTitle?:    string;
-  poster?:      string;
-  synopsis?:    string;
-  category?:    string;
-  genres?:      (string | SlugItem)[];
-  year?:        string | number;
-  studio?:      string;
-  duration?:    string;
-  episodeList?: HentaiEpisodeItem[];
-  related?:     HentaiCard[];
-}
-
-export interface HentaiEpisodeItem {
-  slug:   string;
-  title:  string;
-  number: string | number;
-  date?:  string;
-}
-
-export interface HentaiEpisode {
-  slug:         string;
-  title:        string;
-  number?:      string | number;
-  seriesSlug?:  string;
-  poster?:      string;
-  servers?:     StreamServer[];
-  downloads?:   DownloadOption[];
-  prevEpisode?: string | null;
-  nextEpisode?: string | null;
-}
-
-// ─────────────────────────────────────────────────────────────
-// C.  COMIC (Westmanga)
-// ─────────────────────────────────────────────────────────────
-
-export interface ComicCard {
-  slug:     string;
-  title:    string;
-  poster?:  string;
-  image?:   string;
-  cover?:   string;
-  type?:    string;
-  status?:  string;
-  score?:   string | number;
-  genres?:  string[];
-  chapter?: string | number;
-  date?:    string;
-}
-
-export interface ComicDetail {
-  slug:          string;
-  title:         string;
-  altTitle?:     string;
-  poster?:       string;
-  synopsis?:     string;
-  status?:       string;
-  type?:         string;
-  score?:        string | number;
-  genres?:       (string | SlugItem)[];
-  author?:       string;
-  artist?:       string;
-  released?:     string | number;
-  updated?:      string;
-  chapterList?:  ComicChapterItem[];
-  related?:      ComicCard[];
-}
-
-export interface ComicChapterItem {
-  slug:   string;
-  title:  string;
-  number: string | number;
-  date?:  string;
-}
-
-export interface ComicChapter {
-  slug:          string;
-  title?:        string;
-  number?:       string | number;
-  seriesSlug?:   string;
-  seriesTitle?:  string;
-  poster?:       string;
-  pages:         string[];
-  prevChapter?:  string | null;
-  nextChapter?:  string | null;
-}
-
-// ─────────────────────────────────────────────────────────────
-// D.  LOCAL STORAGE entities
+// E.  Local-storage entities (bookmark / history)
 // ─────────────────────────────────────────────────────────────
 
 export interface BookmarkEntry {
   slug:    string;
-  id:      string;
   title:   string;
   poster:  string;
   type:    ContentType;
@@ -263,8 +149,6 @@ export interface WatchEntry {
   slug:            string;
   seriesSlug:      string;
   title:           string;
-  episodeTitle:    string;
-  poster:          string;
   type:            'anime' | 'hentai';
   positionSeconds: number;
   durationSeconds: number;
@@ -276,8 +160,6 @@ export interface ReadEntry {
   slug:         string;
   seriesSlug:   string;
   title:        string;
-  chapterTitle: string;
-  poster:       string;
   lastPage:     number;
   totalPages:   number;
   completed:    boolean;
