@@ -151,26 +151,38 @@ export default function HistoryPage() {
                       <div className="flex items-center gap-3 text-xs text-secondary">
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" aria-hidden />
-                          {formatTime(entry.positionSeconds)} / {formatTime(entry.durationSeconds)}
+                          {entry.positionSeconds > 0
+                            ? `Ditonton ${formatTime(entry.positionSeconds)}`
+                            : 'Baru ditonton'}
                         </span>
                         {entry.completed && (
                           <span className="text-cyan text-[0.65rem] font-semibold">✓ Selesai</span>
                         )}
                       </div>
-                      {/* Progress bar */}
-                      <div className="mt-2 h-1 bg-surface-2 rounded-full overflow-hidden">
-                        <div
-                          className={clsx(
-                            'h-full transition-all',
-                            entry.type === 'hentai' ? 'bg-pink' : 'bg-cyan'
-                          )}
-                          style={{
-                            width: entry.durationSeconds > 0
-                              ? `${Math.min(100, (entry.positionSeconds / entry.durationSeconds) * 100)}%`
-                              : '0%',
-                          }}
-                        />
-                      </div>
+                      {/* Progress bar — estimasi 24 menit (1440s) per episode */}
+                      {entry.positionSeconds > 0 && (
+                        <div className="mt-2 h-1 bg-surface-2 rounded-full overflow-hidden">
+                          <div
+                            className={clsx(
+                              'h-full transition-all rounded-full',
+                              entry.completed
+                                ? entry.type === 'hentai' ? 'bg-pink' : 'bg-cyan'
+                                : entry.type === 'hentai' ? 'bg-pink/70' : 'bg-cyan/70'
+                            )}
+                            style={{
+                              width: entry.completed
+                                ? '100%'
+                                : `${Math.min(95, (entry.positionSeconds / 1440) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      )}
+                      {/* Last watched time */}
+                      <p className="text-[0.62rem] text-muted/60 mt-1">
+                        {new Date(entry.updatedAt).toLocaleString('id-ID', {
+                          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+                        })}
+                      </p>
                     </div>
 
                     {/* Remove button */}

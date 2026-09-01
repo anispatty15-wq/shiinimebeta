@@ -32,6 +32,7 @@ import { useApi } from '@/hooks/useApi';
 import VideoPlayer from '@/components/VideoPlayer';
 import { SkeletonBanner } from '@/components/SkeletonLoader';
 import { useHistory } from '@/context/HistoryContext';
+import { formatTime } from '@/utils/storage';
 import type {
   AnimeEpisodeData,
   HentaiEpisodeData,
@@ -133,24 +134,94 @@ export default function StreamPage() {
   const prevSlug  = (rawEp as AnimeEpisodeData | null)?.prev_episode_slug ?? '';
   const nextSlug  = (rawEp as AnimeEpisodeData | null)?.next_episode_slug ?? '';
 
-  // ── Save to watch history as soon as episode data is loaded ──
-  const { saveWatchProgress, updateWatchPoster } = useHistory();
-  const savedToHistory = useRef(false);
+  // ── Watch progress tracking (iframe-compatible) ──────────
+  // Since we can't access video events from cross-origin iframe,
+  // we track elapsed time via a page-visibility-aware interval.
+  const { saveWatchProgress, updateWatchPoster, checkVideoResume } = useHistory();
+  const savedToHistory    = useRef(false);
+  const elapsedRef        = useRef(0);   // seconds user has been watching
+  const intervalRef       = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [showResume,    setShowResume]   = useState(false);
+  const [resumeSeconds, setResumeSeconds] = useState(0);
+
+  // Initial save + check resume on episode load
   useEffect(() => {
-    if (savedToHistory.current || !rawEp || !slug) return;
-    savedToHistory.current = true;
-    saveWatchProgress({
-      slug,
-      seriesSlug,
-      title:           (rawEp as AnimeEpisodeData).title ?? title,
-      episodeTitle:    (rawEp as AnimeEpisodeData).title ?? title,
-      poster:          '',
-      type:            isHentai ? 'hentai' : 'anime',
-      positionSeconds: 0,
-      durationSeconds: 0,
-      completed:       false,
-    });
-  }, [rawEp, slug, seriesSlug, title, isHentai, saveWatchProgress]);
+    if (!rawEp || !slug) return;
+
+    // Check if user has watched this episode before
+    if (!savedToHistory.current) {
+      savedToHistory.current = true;
+      const prev = checkVideoResume(slug);
+
+      if (prev.shouldResume && prev.positionSeconds > 10) {
+        // Pre-fill elapsed with saved position so progress continues from there
+        elapsedRef.current = prev.positionSeconds;
+        setResumeSeconds(prev.positionSeconds);
+        setShowResume(true);
+      }
+
+      // Save initial entry
+      saveWatchProgress({
+        slug,
+        seriesSlug,
+        title:           (rawEp as AnimeEpisodeData).title ?? title,
+        episodeTitle:    (rawEp as AnimeEpisodeData).title ?? title,
+        poster:          '',
+        type:            isHentai ? 'hentai' : 'anime',
+        positionSeconds: prev.positionSeconds,
+        durationSeconds: 0,
+        completed:       false,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawEp, slug]);
+
+  // Start interval timer when episode is loaded
+  useEffect(() => {
+    if (!rawEp || !slug) return;
+
+    // Save progress every 15 seconds
+    const SAVE_INTERVAL = 15_000;
+    const TICK          = 1_000;
+
+    intervalRef.current = setInterval(() => {
+      // Only count time when page is visible (tab in focus)
+      if (document.visibilityState !== 'visible') return;
+      elapsedRef.current += 1;
+
+      // Save to localStorage every 15 ticks
+      if (elapsedRef.current % (SAVE_INTERVAL / TICK) === 0) {
+        saveWatchProgress({
+          slug,
+          seriesSlug,
+          title:           title,
+          episodeTitle:    title,
+          poster:          '',
+          type:            isHentai ? 'hentai' : 'anime',
+          positionSeconds: elapsedRef.current,
+          durationSeconds: 0,
+          completed:       false,
+        });
+      }
+    }, TICK);
+
+    // Save on unmount / navigation away
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (slug && elapsedRef.current > 5) {
+        saveWatchProgress({
+          slug,
+          seriesSlug,
+          title, episodeTitle: title, poster: '',
+          type:            isHentai ? 'hentai' : 'anime',
+          positionSeconds: elapsedRef.current,
+          durationSeconds: 0,
+          completed:       elapsedRef.current > 1200, // mark complete after ~20 min
+        });
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawEp, slug]);
 
   // Backfill poster once series detail is loaded (from drawer)
   useEffect(() => {
@@ -192,6 +263,50 @@ export default function StreamPage() {
 
   return (
     <div className="max-w-screen-xl mx-auto">
+
+      {/* ── Resume modal ── */}
+      {showResume && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setShowResume(false)}
+        >
+          <div
+            className="w-full max-w-xs bg-surface border border-border rounded-app p-5 space-y-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <span className="text-3xl block mb-2">🎬</span>
+              <h3 className="text-sm font-bold text-primary mb-1">Lanjutkan Menonton?</h3>
+              <p className="text-xs text-muted">
+                Terakhir ditonton di <strong className="text-cyan">{formatTime(resumeSeconds)}</strong>
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  // Can't seek iframe — just note the position in UX
+                  setShowResume(false);
+                }}
+                className={clsx(
+                  'w-full py-2.5 rounded-app text-sm font-semibold transition-all',
+                  isHentai ? 'bg-pink text-white hover:brightness-110' : 'bg-cyan text-bg hover:brightness-110'
+                )}
+              >
+                Lanjut ({formatTime(resumeSeconds)})
+              </button>
+              <button
+                onClick={() => {
+                  elapsedRef.current = 0;
+                  setShowResume(false);
+                }}
+                className="w-full py-2 rounded-app text-sm text-muted hover:text-primary border border-border hover:border-primary/30 transition-all"
+              >
+                Mulai dari Awal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Video player ── */}
       <VideoPlayer
