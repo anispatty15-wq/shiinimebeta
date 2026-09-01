@@ -10,7 +10,7 @@ import type { HentaiCard } from '@/types/media';
 
 function toItems(raw: unknown) {
   return toArray(raw as HentaiCard[]).map((h) => {
-    const item = h as Record<string, unknown>;
+    const item = h as unknown as Record<string, unknown>;
     const slug = String(
       item.slug ?? item.id ??
       (typeof item.link === 'string'

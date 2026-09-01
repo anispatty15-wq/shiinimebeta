@@ -10,11 +10,9 @@ import type { AnimeCard } from '@/types/media';
 
 function toCardItems(raw: unknown) {
   return toArray(raw as AnimeCard[]).map((a) => {
-    // API may return slug in different fields depending on endpoint
-    const item = a as Record<string, unknown>;
+    const item = a as unknown as Record<string, unknown>;
     const slug = String(
       item.slug ?? item.id ?? item.animeId ??
-      // Some endpoints return a full URL — extract last path segment
       (typeof item.link === 'string'
         ? item.link.replace(/\/$/, '').split('/').pop()
         : undefined) ??
@@ -31,7 +29,7 @@ function toCardItems(raw: unknown) {
         ? `Ep. ${item.episode}`
         : (item.year ? String(item.year) : undefined),
     };
-  }).filter((a) => a.slug); // drop items with no usable slug
+  }).filter((a) => a.slug);
 }
 
 export default function AnimePage() {

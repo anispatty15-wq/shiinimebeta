@@ -9,7 +9,7 @@ import type { ComicCard } from '@/types/media';
 
 function toItems(raw: unknown) {
   return toArray(raw as ComicCard[]).map((c) => {
-    const item = c as Record<string, unknown>;
+    const item = c as unknown as Record<string, unknown>;
     const slug = String(
       item.slug ?? item.id ??
       (typeof item.link === 'string'
