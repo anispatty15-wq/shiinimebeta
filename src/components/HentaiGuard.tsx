@@ -9,6 +9,9 @@ export default function HentaiGuard({ children }: { children: React.ReactNode })
   const { user, isAdult, adultStatus, loading } = useAuth();
   const router = useRouter();
 
+  // Consider approved if either: has 18+ role OR adultStatus is approved
+  const hasAccess = isAdult || adultStatus === 'approved';
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -55,7 +58,7 @@ export default function HentaiGuard({ children }: { children: React.ReactNode })
   }
 
   // Logged in but no 18+ role and hasn't requested yet
-  if (!isAdult) {
+  if (!hasAccess) {
     return (
       <GateScreen
         icon={<ShieldAlert className="w-8 h-8 text-pink" />}
