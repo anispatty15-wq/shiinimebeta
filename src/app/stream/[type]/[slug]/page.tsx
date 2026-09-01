@@ -231,6 +231,7 @@ export default function StreamPage() {
   }, [slug, detailData, updateWatchPoster]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [showTimestampBar, setShowTimestampBar] = useState(false);
 
   // ── Loading state ─────────────────────────────────────────
   if (loading) {
@@ -284,8 +285,10 @@ export default function StreamPage() {
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => {
-                  // Can't seek iframe — just note the position in UX
                   setShowResume(false);
+                  setShowTimestampBar(true);
+                  // Auto-hide bar after 30 seconds
+                  setTimeout(() => setShowTimestampBar(false), 30_000);
                 }}
                 className={clsx(
                   'w-full py-2.5 rounded-app text-sm font-semibold transition-all',
@@ -298,6 +301,7 @@ export default function StreamPage() {
                 onClick={() => {
                   elapsedRef.current = 0;
                   setShowResume(false);
+                  setShowTimestampBar(false);
                 }}
                 className="w-full py-2 rounded-app text-sm text-muted hover:text-primary border border-border hover:border-primary/30 transition-all"
               >
@@ -314,6 +318,31 @@ export default function StreamPage() {
         defaultUrl={streamUrl}
         title={title}
       />
+
+      {/* ── Timestamp reminder bar (shown after "Lanjut" clicked) ── */}
+      {showTimestampBar && resumeSeconds > 0 && (
+        <div className={clsx(
+          'px-4 py-2.5 flex items-center gap-3 text-sm border-b',
+          isHentai
+            ? 'bg-pink/10 border-pink/20'
+            : 'bg-cyan/10 border-cyan/20'
+        )}>
+          <span className="text-lg" aria-hidden>⏩</span>
+          <span className="flex-1 text-secondary text-xs leading-snug">
+            Terakhir kamu menonton sampai{' '}
+            <strong className={isHentai ? 'text-pink' : 'text-cyan'}>
+              {formatTime(resumeSeconds)}
+            </strong>
+            {' '}— seek manual ke posisi ini di player.
+          </span>
+          <button
+            onClick={() => setShowTimestampBar(false)}
+            className="text-muted hover:text-primary text-xs flex-shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* ── Episode title + navigation bar ── */}
       <div className="px-4 pt-3.5 pb-3 flex items-start justify-between gap-3 border-b border-border">
