@@ -9,40 +9,28 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
     }
   ],
   "categories": ["entertainment", "video"],
   "shortcuts": [
     {
       "name": "Anime",
-      "short_name": "Anime",
-      "description": "Browse anime",
       "url": "/",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
     },
     {
-      "name": "Hentai",
-      "short_name": "Hentai",
-      "description": "Browse hentai",
-      "url": "/hentai",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Komik",
-      "short_name": "Komik",
-      "description": "Baca komik",
-      "url": "/comic",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "name": "Favorit",
+      "url": "/favorites",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
     }
   ]
 }

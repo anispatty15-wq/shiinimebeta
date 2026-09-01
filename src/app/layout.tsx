@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title:       { default: 'ShiiiNime', template: '%s | ShiiiNime' },
   description: 'Streaming anime, hentai & baca komik online.',
   manifest:    '/manifest.json',
-  icons:       { icon: '/favicon.ico', apple: '/apple-touch-icon.png' },
+  icons: { icon: [{ url: '/icon.svg', type: 'image/svg+xml' }, '/favicon.ico'], apple: '/icon.svg' },
   keywords:    ['anime', 'streaming', 'manga', 'komik', 'manhwa'],
 };
 
