@@ -34,7 +34,7 @@ import {
 import {
   doc, getDoc, setDoc, updateDoc, serverTimestamp,
 } from 'firebase/firestore';
-import { auth, db, googleProvider, FIREBASE_READY } from '@/lib/firebase';
+import { auth, db, googleProvider, FIREBASE_READY, initFirebase } from '@/lib/firebase';
 
 // ── Types ─────────────────────────────────────────────────────
 export type AdultStatus = 'none' | 'pending' | 'approved' | 'rejected';
@@ -64,7 +64,7 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-const CONFIG_MISSING = !FIREBASE_READY;
+const CONFIG_MISSING = false; // Always try — config loaded dynamically
 
 // ── Provider ──────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -155,21 +155,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (CONFIG_MISSING || !auth) { setLoading(false); return; }
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) await syncProfile(u); else setProfile(null);
-      setLoading(false);
+    let unsub: (() => void) | undefined;
+
+    initFirebase().then(() => {
+      const currentAuth = auth;
+      if (!currentAuth) { setLoading(false); return; }
+
+      unsub = onAuthStateChanged(currentAuth, async (u) => {
+        setUser(u);
+        if (u) await syncProfile(u); else setProfile(null);
+        setLoading(false);
+      });
     });
-    return unsub;
+
+    return () => { unsub?.(); };
   }, [syncProfile]);
 
   const signInWithGoogle = useCallback(async () => {
-    if (CONFIG_MISSING || !auth) {
-      alert('Firebase belum dikonfigurasi. Isi NEXT_PUBLIC_FIREBASE_* di .env.local');
+    await initFirebase();
+    const currentAuth = auth;
+    if (!currentAuth) {
+      alert('Firebase belum dikonfigurasi. Cek Environment Variables di Vercel.');
       return;
     }
-    try { await signInWithPopup(auth, googleProvider); }
+    try { await signInWithPopup(currentAuth, googleProvider); }
     catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes('popup-closed')) console.error('[Auth] Login error:', msg);
@@ -177,8 +186,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    if (!auth) return;
-    try { await firebaseSignOut(auth); setUser(null); setProfile(null); }
+    const currentAuth = auth;
+    if (!currentAuth) return;
+    try { await firebaseSignOut(currentAuth); setUser(null); setProfile(null); }
     catch (err) { console.error('[Auth] Sign out error:', err); }
   }, []);
 

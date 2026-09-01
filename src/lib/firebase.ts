@@ -1,37 +1,53 @@
 // src/lib/firebase.ts
 // ─────────────────────────────────────────────────────────────
-// Firebase client SDK — safe initialisation.
-// If env vars are missing (build/dev without .env.local),
-// we skip init and export null stubs so the app still builds.
+// Firebase client SDK — lazy initialisation.
+//
+// Config is fetched from /api/firebase-config (server-side env)
+// so API keys are NOT exposed in the JS bundle.
 // ─────────────────────────────────────────────────────────────
 
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth,  GoogleAuthProvider, type Auth }   from 'firebase/auth';
 import { getFirestore, type Firestore }               from 'firebase/firestore';
 
-const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? '';
+let app:  FirebaseApp | null = null;
+let auth: Auth       | null  = null;
+let db:   Firestore  | null  = null;
+let initPromise: Promise<void> | null = null;
 
-// ── Stub values when config is missing ───────────────────────
-// This prevents "auth/invalid-api-key" crash during next build.
-let app:  FirebaseApp | null  = null;
-let auth: Auth | null         = null;
-let db:   Firestore | null    = null;
+export const googleProvider = new GoogleAuthProvider();
+export let   FIREBASE_READY = false;
 
-if (API_KEY) {
-  const firebaseConfig = {
-    apiKey:            API_KEY,
-    authDomain:        process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN        ?? '',
-    projectId:         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID         ?? '',
-    storageBucket:     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET     ?? '',
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? '',
-    appId:             process.env.NEXT_PUBLIC_FIREBASE_APP_ID             ?? '',
-  };
-  const _app = getApps().length ? getApps()[0]! : initializeApp(firebaseConfig);
-  app  = _app;
-  auth = getAuth(_app);
-  db   = getFirestore(_app);
+// ── Initialise once — fetches config from server route ────────
+export async function initFirebase(): Promise<void> {
+  if (FIREBASE_READY) return;
+  if (initPromise) return initPromise;
+
+  initPromise = (async () => {
+    try {
+      const res = await fetch('/api/firebase-config');
+      if (!res.ok) throw new Error('Firebase config not available');
+      const config = await res.json();
+      if (!config.apiKey) throw new Error('Empty Firebase config');
+
+      const _app = getApps().length ? getApps()[0]! : initializeApp(config);
+      app  = _app;
+      auth = getAuth(_app);
+      db   = getFirestore(_app);
+      FIREBASE_READY = true;
+    } catch (err) {
+      console.warn('[Firebase] Init failed:', err);
+      FIREBASE_READY = false;
+    }
+  })();
+
+  return initPromise;
 }
 
+// Getters — call initFirebase() first
+export function getFirebaseAuth():      Auth       | null { return auth; }
+export function getFirebaseDb():        Firestore  | null { return db;   }
+export function getFirebaseApp():       FirebaseApp | null { return app;  }
+
+// Legacy named exports for compatibility
 export { app, auth, db };
-export const googleProvider = new GoogleAuthProvider();
-export const FIREBASE_READY = Boolean(API_KEY);
