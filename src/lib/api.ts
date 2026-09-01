@@ -449,3 +449,13 @@ export function toArray<T = unknown>(raw: unknown): T[] {
   }
   return [];
 }
+
+/**
+ * Extract poster URL from media object.
+ * Tries multiple field names commonly used by different APIs.
+ */
+export function getPoster(item: Record<string, unknown>): string {
+  if (!item) return '';
+  const poster = item.poster ?? item.image ?? item.cover ?? item.thumbnail ?? item.img ?? item.picture;
+  return typeof poster === 'string' ? poster : '';
+}
