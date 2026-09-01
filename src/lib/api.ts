@@ -426,3 +426,26 @@ export const ComicAPI = {
   getDetail:    (slug: string) => safeCall((ax) => ax.get(`/comic/westmanga/detail/${slug}`),  parseComicDetail,      FALLBACK_COMIC_DETAIL),
   readChapter:  (slug: string) => safeCall((ax) => ax.get(`/comic/westmanga/chapter/${slug}`), parseComicChapterData, FALLBACK_CHAPTER),
 };
+
+// ─────────────────────────────────────────────────────────────
+// Utility helpers
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Safely convert unknown value to array.
+ * Used by components that need to handle API responses that may
+ * return array OR single object OR nested { data: [...] }.
+ */
+export function toArray<T = unknown>(raw: unknown): T[] {
+  if (Array.isArray(raw)) return raw as T[];
+  if (raw && typeof raw === 'object') {
+    const o = raw as Record<string, unknown>;
+    // Try nested data field
+    if (Array.isArray(o.data)) return o.data as T[];
+    if (Array.isArray(o.results)) return o.results as T[];
+    if (Array.isArray(o.items)) return o.items as T[];
+    // Single object → wrap in array
+    return [raw as T];
+  }
+  return [];
+}
