@@ -87,25 +87,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const userRef  = doc(db, 'users', u.uid);
       const adminRef = doc(db, 'admins', u.uid);
-      const [snap, adminSnap] = await Promise.all([getDoc(userRef), getDoc(adminRef)]);
-      const isAdmin = adminSnap.exists();
 
-      if (snap.exists()) {
-        const d = snap.data();
+      // Fetch both in parallel — adminRef may fail if rules block it,
+      // so we catch individually
+      const [snap, adminSnap] = await Promise.allSettled([
+        getDoc(userRef),
+        getDoc(adminRef),
+      ]);
+
+      const userSnap  = snap.status      === 'fulfilled' ? snap.value      : null;
+      const adminDoc  = adminSnap.status === 'fulfilled' ? adminSnap.value : null;
+      const isAdmin   = adminDoc?.exists() ?? false;
+
+      if (userSnap?.exists()) {
+        const d = userSnap.data();
+        const roles: string[] = Array.isArray(d.roles) ? d.roles : ['user'];
+
+        // Auto-grant 18+ to admin if not already there
+        if (isAdmin && !roles.includes('18+')) roles.push('18+');
+
+        // Update isAdmin field in doc if it changed
+        if (d.isAdmin !== isAdmin) {
+          updateDoc(userRef, { isAdmin, roles }).catch(() => {});
+        }
+
         setProfile({
           uid:         u.uid,
           displayName: d.displayName ?? u.displayName ?? '',
           email:       d.email       ?? u.email        ?? '',
           photoURL:    d.photoURL    ?? u.photoURL      ?? '',
-          roles:       Array.isArray(d.roles) ? d.roles : ['user'],
+          roles,
           adultStatus: (d.adultStatus as AdultStatus) ?? 'none',
           isAdmin,
         });
       } else {
-        const p: UserProfile = { uid: u.uid,
-          displayName: u.displayName ?? 'User', email: u.email ?? '',
-          photoURL: u.photoURL ?? '', roles: ['user'],
-          adultStatus: 'none', isAdmin };
+        // First login — create doc
+        const roles = isAdmin ? ['user', '18+'] : ['user'];
+        const p: UserProfile = {
+          uid: u.uid, displayName: u.displayName ?? 'User',
+          email: u.email ?? '', photoURL: u.photoURL ?? '',
+          roles, adultStatus: isAdmin ? 'approved' : 'none', isAdmin,
+        };
         await setDoc(userRef, { ...p, createdAt: serverTimestamp() });
         setProfile(p);
       }
