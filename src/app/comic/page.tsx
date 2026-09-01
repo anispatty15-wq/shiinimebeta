@@ -2,13 +2,14 @@
 // src/app/comic/page.tsx — Comic Home
 
 import { useCallback } from 'react';
-import { ComicAPI, toArray } from '@/lib/apiClient';
+import { ComicAPI } from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
 import SectionRow from '@/components/SectionRow';
 import { normaliseCardItem } from '@/utils/slugHelpers';
 
 function toItems(raw: unknown) {
-  return toArray(raw as unknown[])
+  if (!Array.isArray(raw)) return [];
+  return raw
     .map((c) => normaliseCardItem(c, 'comic'))
     .filter(Boolean)
     .map((c) => ({
@@ -19,7 +20,7 @@ function toItems(raw: unknown) {
       type:   c!.typeLabel,
       score:  c!.score as string | number | undefined,
       meta:   c!.meta,
-      href:   c!.href,
+      href:   c!.href,  // always /detail/comic/...
     }));
 }
 
@@ -38,7 +39,7 @@ export default function ComicPage() {
         loading={latest.loading}
         error={latest.error}
         contentType="comic"
-        basePath="/comic"
+        basePath="/detail/comic"
         moreHref="/comic/latest"
         accent="violet"
       />
@@ -48,7 +49,7 @@ export default function ComicPage() {
         loading={popular.loading}
         error={popular.error}
         contentType="comic"
-        basePath="/comic"
+        basePath="/detail/comic"
         moreHref="/comic/popular"
         accent="cyan"
       />
@@ -58,7 +59,7 @@ export default function ComicPage() {
         loading={manga.loading}
         error={manga.error}
         contentType="comic"
-        basePath="/comic"
+        basePath="/detail/comic"
         moreHref="/comic/manga"
         accent="pink"
       />
@@ -68,7 +69,7 @@ export default function ComicPage() {
         loading={manhua.loading}
         error={manhua.error}
         contentType="comic"
-        basePath="/comic"
+        basePath="/detail/comic"
         moreHref="/comic/manhua"
         accent="violet"
       />
@@ -78,7 +79,7 @@ export default function ComicPage() {
         loading={manhwa.loading}
         error={manhwa.error}
         contentType="comic"
-        basePath="/comic"
+        basePath="/detail/comic"
         moreHref="/comic/manhwa"
         accent="cyan"
       />

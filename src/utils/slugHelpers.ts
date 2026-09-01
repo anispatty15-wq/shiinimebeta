@@ -1,76 +1,70 @@
 // src/utils/slugHelpers.ts
 // ─────────────────────────────────────────────────────────────
-// Utilities to detect whether a slug is an episode/chapter
-// slug or a series/detail slug, and to build the right href.
+// Route resolver — maps API slugs to the correct Next.js routes.
+//
+// Route structure (new):
+//   Detail :  /detail/[type]/[slug]     e.g. /detail/anime/one-piece
+//   Stream :  /stream/[type]/[slug]     e.g. /stream/anime/one-piece-ep-1
+//   Read   :  /read/[slug]?series=...   e.g. /read/chapter-1?series=slug
 // ─────────────────────────────────────────────────────────────
 
+import type { ContentType } from '@/types/media';
+
+// ── Episode slug detection ─────────────────────────────────────
 /**
- * Detect if a slug looks like an episode slug.
- * Episode slugs from Animekompi/Nekopoi typically contain
- * "episode-N" or "ep-N" somewhere in them.
- *
- * Examples:
- *   "boruto-episode-280-subtitle-indonesia" → true  (episode)
- *   "liar-game-episode-22-subtitle-indonesia" → true
- *   "aku-no-onna-kanbu-episode-7-subtitle-indonesia" → true
- *   "grand-blue-dreaming" → false (series)
- *   "kuroinu-kedakaki-seijo-wa-hakudaku-ni-somaru" → false
+ * Returns true when the slug looks like an episode/chapter slug.
+ * Animekompi & Nekopoi append "-episode-N" or "-ep-N" to episode slugs.
  */
 export function isEpisodeSlug(slug: string): boolean {
   if (!slug) return false;
   return /[_-]episode[_-]\d|[_-]ep[_-]\d|\bep\d+\b/i.test(slug);
 }
 
+// ── Primary resolver ───────────────────────────────────────────
 /**
- * Given a raw API item (any shape), extract the best slug
- * and determine the correct route href.
+ * Given a raw API item and content type, build the correct href.
  *
- * @param item       Raw API object
- * @param type       'anime' | 'hentai' | 'comic'
- * @returns          { slug, href, isEpisode }
+ * - anime/hentai + episode slug  →  /stream/[type]/[slug]
+ * - anime/hentai + series slug   →  /detail/[type]/[slug]
+ * - comic                        →  /detail/comic/[slug]  (chapters open from detail)
  */
 export function resolveHref(
   item: Record<string, unknown>,
-  type: 'anime' | 'hentai' | 'comic'
+  type: ContentType,
 ): { slug: string; href: string; isEpisode: boolean } {
-  // Extract slug — try multiple field names the API might use
   const raw = String(
-    item.slug          ??
-    item.id            ??
-    item.episodeSlug   ??
-    item.seriesSlug    ??
+    item.slug ??
+    item.id   ??
     (typeof item.link === 'string'
       ? item.link.replace(/\/$/, '').split('/').pop()
-      : undefined)     ??
+      : undefined) ??
     ''
   );
 
   if (!raw) return { slug: '', href: '#', isEpisode: false };
 
-  // Comic slugs are always series slugs (chapters come from detail page)
+  // Comic always goes to detail (chapters are listed inside detail)
   if (type === 'comic') {
-    return { slug: raw, href: `/comic/${raw}`, isEpisode: false };
+    return { slug: raw, href: `/detail/comic/${raw}`, isEpisode: false };
   }
 
-  // For anime/hentai: detect if this is an episode or series slug
+  // Detect episode vs series
   const episode = isEpisodeSlug(raw);
   if (episode) {
-    const base = type === 'hentai' ? '/hentai/episode' : '/anime/episode';
-    return { slug: raw, href: `${base}/${raw}`, isEpisode: true };
+    return { slug: raw, href: `/stream/${type}/${raw}`, isEpisode: true };
   }
 
-  // Series slug → detail page
-  const base = type === 'hentai' ? '/hentai' : '/anime';
-  return { slug: raw, href: `${base}/${raw}`, isEpisode: false };
+  return { slug: raw, href: `/detail/${type}/${raw}`, isEpisode: false };
 }
 
+// ── Card normaliser ────────────────────────────────────────────
 /**
- * Normalise a raw API item to a MediaCardItem shape.
- * Works for anime, hentai, and comic.
+ * Convert any raw API list item into a standardised card object
+ * with a pre-resolved href ready to pass to MediaCard / SectionRow.
  */
 export function normaliseCardItem(
   raw: unknown,
-  type: 'anime' | 'hentai' | 'comic'
+  type: ContentType,
 ): {
   slug:      string;
   title:     string;
@@ -88,12 +82,11 @@ export function normaliseCardItem(
   const { slug, href, isEpisode } = resolveHref(item, type);
   if (!slug) return null;
 
-  // Build meta label
   let meta: string | undefined;
   if (item.episode != null) meta = `Ep. ${item.episode}`;
   else if (item.chapter != null) meta = `Ch. ${item.chapter}`;
-  else if (item.year)    meta = String(item.year);
-  else if (item.date)    meta = String(item.date);
+  else if (item.year)  meta = String(item.year);
+  else if (item.date)  meta = String(item.date);
 
   return {
     slug,

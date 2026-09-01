@@ -2,7 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
 
-  // Prevent Vercel build failures from strict TS/ESLint errors
   typescript: { ignoreBuildErrors: true },
   eslint:     { ignoreDuringBuilds: true },
 
@@ -26,6 +25,42 @@ const nextConfig = {
           { key: 'X-Frame-Options',        value: 'SAMEORIGIN'                      },
           { key: 'Referrer-Policy',        value: 'strict-origin-when-cross-origin' },
         ],
+      },
+    ];
+  },
+
+  // ── Server-side redirects (instant, no JS needed) ─────────
+  async redirects() {
+    return [
+      // Old episode routes → new stream routes
+      {
+        source:      '/anime/episode/:slug',
+        destination: '/stream/anime/:slug',
+        permanent:   false,
+      },
+      {
+        source:      '/hentai/episode/:slug',
+        destination: '/stream/hentai/:slug',
+        permanent:   false,
+      },
+      // Old detail routes → new detail routes
+      {
+        source:      '/anime/:slug',
+        destination: '/detail/anime/:slug',
+        permanent:   false,
+        has: [{ type: 'header', key: 'x-nextjs-data' }],  // only for navigation
+      },
+      {
+        source:      '/hentai/:slug',
+        destination: '/detail/hentai/:slug',
+        permanent:   false,
+        has: [{ type: 'header', key: 'x-nextjs-data' }],
+      },
+      {
+        source:      '/comic/:slug',
+        destination: '/detail/comic/:slug',
+        permanent:   false,
+        has: [{ type: 'header', key: 'x-nextjs-data' }],
       },
     ];
   },

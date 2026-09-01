@@ -2,13 +2,14 @@
 // src/app/hentai/page.tsx — Hentai Home
 
 import { useCallback } from 'react';
-import { HentaiAPI, toArray } from '@/lib/apiClient';
+import { HentaiAPI } from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
 import SectionRow from '@/components/SectionRow';
 import { normaliseCardItem } from '@/utils/slugHelpers';
 
 function toItems(raw: unknown) {
-  return toArray(raw as unknown[])
+  if (!Array.isArray(raw)) return [];
+  return raw
     .map((h) => normaliseCardItem(h, 'hentai'))
     .filter(Boolean)
     .map((c) => ({
@@ -19,7 +20,7 @@ function toItems(raw: unknown) {
       type:   c!.typeLabel,
       score:  c!.score as string | number | undefined,
       meta:   c!.meta,
-      href:   c!.href,
+      href:   c!.href,  // /stream/hentai/... or /detail/hentai/...
     }));
 }
 
@@ -30,7 +31,6 @@ export default function HentaiPage() {
 
   return (
     <div className="max-w-screen-xl mx-auto py-5">
-      {/* 18+ warning */}
       <div className="mx-4 mb-6 px-4 py-3 rounded-app bg-pink/10 border border-pink/25 flex items-start gap-2.5">
         <span className="text-pink text-lg leading-none mt-0.5" aria-hidden>⚠️</span>
         <p className="text-xs text-secondary leading-relaxed">
@@ -45,29 +45,27 @@ export default function HentaiPage() {
         loading={home.loading}
         error={home.error}
         contentType="hentai"
-        basePath="/hentai/episode"
+        basePath="/stream/hentai"
         moreHref="/hentai/list"
         accent="pink"
       />
-
       <SectionRow
         title="Hentai Terbaru"
         items={toItems(latest.data)}
         loading={latest.loading}
         error={latest.error}
         contentType="hentai"
-        basePath="/hentai/episode"
+        basePath="/stream/hentai"
         moreHref="/hentai/latest"
         accent="violet"
       />
-
       <SectionRow
         title="JAV Terbaru"
         items={toItems(jav.data)}
         loading={jav.loading}
         error={jav.error}
         contentType="hentai"
-        basePath="/hentai/episode"
+        basePath="/stream/hentai"
         moreHref="/hentai/jav"
         accent="cyan"
       />

@@ -2,16 +2,15 @@
 // src/app/page.tsx — Anime Home
 
 import { useCallback } from 'react';
-import { AnimeAPI, toArray } from '@/lib/apiClient';
+import { AnimeAPI } from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
 import SectionRow from '@/components/SectionRow';
 import { SkeletonBanner } from '@/components/SkeletonLoader';
 import { normaliseCardItem } from '@/utils/slugHelpers';
 
-/** Convert raw API array to SectionRow items with correct hrefs */
 function toItems(raw: unknown) {
-  const arr = toArray(raw as unknown[]);
-  return arr
+  if (!Array.isArray(raw)) return [];
+  return raw
     .map((a) => normaliseCardItem(a, 'anime'))
     .filter(Boolean)
     .map((c) => ({
@@ -22,7 +21,7 @@ function toItems(raw: unknown) {
       type:   c!.typeLabel,
       score:  c!.score as string | number | undefined,
       meta:   c!.meta,
-      href:   c!.href,       // pre-resolved: /anime/[slug] or /anime/episode/[slug]
+      href:   c!.href,   // /stream/anime/... or /detail/anime/...
     }));
 }
 
@@ -35,9 +34,7 @@ export default function AnimePage() {
   return (
     <div className="max-w-screen-xl mx-auto py-5">
       {home.loading && (
-        <div className="px-4 mb-7">
-          <SkeletonBanner />
-        </div>
+        <div className="px-4 mb-7"><SkeletonBanner /></div>
       )}
 
       <SectionRow
@@ -46,40 +43,37 @@ export default function AnimePage() {
         loading={terbaru.loading}
         error={terbaru.error}
         contentType="anime"
-        basePath="/anime/episode"
+        basePath="/stream/anime"
         moreHref="/anime/terbaru"
         accent="cyan"
       />
-
       <SectionRow
         title="Beranda"
         items={toItems(home.data)}
         loading={home.loading}
         error={home.error}
         contentType="anime"
-        basePath="/anime/episode"
+        basePath="/stream/anime"
         moreHref="/anime/browse"
         accent="violet"
       />
-
       <SectionRow
         title="Anime Movie"
         items={toItems(movies.data)}
         loading={movies.loading}
         error={movies.error}
         contentType="anime"
-        basePath="/anime/episode"
+        basePath="/stream/anime"
         moreHref="/anime/movie"
         accent="pink"
       />
-
       <SectionRow
         title="Donghua Terbaru"
         items={toItems(donghua.data)}
         loading={donghua.loading}
         error={donghua.error}
         contentType="anime"
-        basePath="/anime/episode"
+        basePath="/stream/anime"
         moreHref="/anime/donghua"
         accent="cyan"
       />
