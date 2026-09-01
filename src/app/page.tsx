@@ -4,32 +4,26 @@
 import { useCallback } from 'react';
 import { AnimeAPI, toArray } from '@/lib/apiClient';
 import { useApi } from '@/hooks/useApi';
-import SectionRow    from '@/components/SectionRow';
-import { SkeletonBanner, SkeletonRow } from '@/components/SkeletonLoader';
-import type { AnimeCard } from '@/types/media';
+import SectionRow from '@/components/SectionRow';
+import { SkeletonBanner } from '@/components/SkeletonLoader';
+import { normaliseCardItem } from '@/utils/slugHelpers';
 
-function toCardItems(raw: unknown) {
-  return toArray(raw as AnimeCard[]).map((a) => {
-    const item = a as unknown as Record<string, unknown>;
-    const slug = String(
-      item.slug ?? item.id ?? item.animeId ??
-      (typeof item.link === 'string'
-        ? item.link.replace(/\/$/, '').split('/').pop()
-        : undefined) ??
-      ''
-    );
-    return {
-      slug,
-      title:  String(item.title  ?? item.name  ?? ''),
-      poster: String(item.poster ?? item.image ?? item.thumbnail ?? item.cover ?? ''),
-      status: String(item.status ?? ''),
-      type:   String(item.type   ?? item.category ?? ''),
-      score:  item.score  ?? undefined,
-      meta:   item.episode != null
-        ? `Ep. ${item.episode}`
-        : (item.year ? String(item.year) : undefined),
-    };
-  }).filter((a) => a.slug);
+/** Convert raw API array to SectionRow items with correct hrefs */
+function toItems(raw: unknown) {
+  const arr = toArray(raw as unknown[]);
+  return arr
+    .map((a) => normaliseCardItem(a, 'anime'))
+    .filter(Boolean)
+    .map((c) => ({
+      slug:   c!.slug,
+      title:  c!.title,
+      poster: c!.poster,
+      status: c!.status,
+      type:   c!.typeLabel,
+      score:  c!.score as string | number | undefined,
+      meta:   c!.meta,
+      href:   c!.href,       // pre-resolved: /anime/[slug] or /anime/episode/[slug]
+    }));
 }
 
 export default function AnimePage() {
@@ -40,7 +34,6 @@ export default function AnimePage() {
 
   return (
     <div className="max-w-screen-xl mx-auto py-5">
-      {/* Banner placeholder */}
       {home.loading && (
         <div className="px-4 mb-7">
           <SkeletonBanner />
@@ -49,44 +42,44 @@ export default function AnimePage() {
 
       <SectionRow
         title="Terbaru & Ongoing"
-        items={toCardItems(terbaru.data)}
+        items={toItems(terbaru.data)}
         loading={terbaru.loading}
         error={terbaru.error}
         contentType="anime"
-        basePath="/anime"
+        basePath="/anime/episode"
         moreHref="/anime/terbaru"
         accent="cyan"
       />
 
       <SectionRow
         title="Beranda"
-        items={toCardItems(home.data)}
+        items={toItems(home.data)}
         loading={home.loading}
         error={home.error}
         contentType="anime"
-        basePath="/anime"
-        moreHref="/anime/list"
+        basePath="/anime/episode"
+        moreHref="/anime/browse"
         accent="violet"
       />
 
       <SectionRow
         title="Anime Movie"
-        items={toCardItems(movies.data)}
+        items={toItems(movies.data)}
         loading={movies.loading}
         error={movies.error}
         contentType="anime"
-        basePath="/anime"
+        basePath="/anime/episode"
         moreHref="/anime/movie"
         accent="pink"
       />
 
       <SectionRow
         title="Donghua Terbaru"
-        items={toCardItems(donghua.data)}
+        items={toItems(donghua.data)}
         loading={donghua.loading}
         error={donghua.error}
         contentType="anime"
-        basePath="/anime"
+        basePath="/anime/episode"
         moreHref="/anime/donghua"
         accent="cyan"
       />

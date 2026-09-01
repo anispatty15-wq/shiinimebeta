@@ -8,16 +8,22 @@ import MediaCard, { type MediaCardItem } from './MediaCard';
 import { SkeletonRow } from './SkeletonLoader';
 import type { ContentType } from '@/types/media';
 
+export interface SectionRowItem extends MediaCardItem {
+  /** Pre-resolved href — if provided, overrides basePath + slug */
+  href?: string;
+}
+
 interface SectionRowProps {
-  title:       string;
-  items:       MediaCardItem[];
-  loading?:    boolean;
-  error?:      string | null;
-  contentType: ContentType;
-  basePath:    string;
-  moreHref?:   string;
-  accent?:     'cyan' | 'violet' | 'pink';
-  className?:  string;
+  title:        string;
+  items:        SectionRowItem[];
+  loading?:     boolean;
+  error?:       string | null;
+  contentType:  ContentType;
+  /** Fallback base path if item.href is not set, e.g. "/anime" */
+  basePath:     string;
+  moreHref?:    string;
+  accent?:      'cyan' | 'violet' | 'pink';
+  className?:   string;
 }
 
 const ACCENT_BAR: Record<string, string> = {
@@ -39,7 +45,7 @@ export default function SectionRow({
 }: SectionRowProps) {
   return (
     <section className={clsx('mb-8', className)}>
-      {/* Header — has horizontal padding */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4 px-4">
         <h2 className="flex items-center gap-2.5 text-[0.95rem] font-semibold text-primary">
           <span
@@ -58,7 +64,7 @@ export default function SectionRow({
         )}
       </div>
 
-      {/* Scroll area — full bleed with padding inside */}
+      {/* Content */}
       {loading ? (
         <div className="px-4">
           <SkeletonRow count={6} />
@@ -68,25 +74,23 @@ export default function SectionRow({
       ) : items.length === 0 ? (
         <p className="px-4 text-sm text-muted py-4">Tidak ada konten.</p>
       ) : (
-        /*
-         * Technique: overflow-x-auto on the row itself, with px-4 as
-         * padding so the first card isn't flush against the screen edge.
-         * We do NOT wrap in another div — that would clip the overflow.
-         */
         <div
           className="flex gap-3 overflow-x-auto pb-3 px-4 snap-x snap-mandatory"
-          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
         >
-          {items.map((item) => (
-            <div key={item.slug} className="snap-start flex-shrink-0 w-36 sm:w-40">
-              <MediaCard
-                item={item}
-                contentType={contentType}
-                href={`${basePath}/${item.slug}`}
-              />
-            </div>
-          ))}
-          {/* Right-edge spacer so last card has breathing room */}
+          {items.map((item) => {
+            // Use pre-resolved href if available, else build from basePath
+            const cardHref = item.href ?? `${basePath}/${item.slug}`;
+            return (
+              <div key={`${item.slug}-${cardHref}`} className="snap-start flex-shrink-0 w-36 sm:w-40">
+                <MediaCard
+                  item={item}
+                  contentType={contentType}
+                  href={cardHref}
+                />
+              </div>
+            );
+          })}
           <div className="flex-shrink-0 w-1" aria-hidden />
         </div>
       )}

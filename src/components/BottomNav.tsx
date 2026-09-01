@@ -4,14 +4,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Tv2, BookOpen, Heart } from 'lucide-react';
+import { Home, Tv2, BookOpen, Heart, CalendarDays } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const TABS = [
-  { href: '/',          label: 'Anime',   Icon: Home      },
-  { href: '/hentai',    label: 'Hentai',  Icon: Tv2       },
-  { href: '/comic',     label: 'Komik',   Icon: BookOpen  },
-  { href: '/bookmarks', label: 'Favorit', Icon: Heart     },
+  { href: '/',               label: 'Anime',  Icon: Home      },
+  { href: '/hentai',         label: 'Hentai', Icon: Tv2       },
+  { href: '/comic',          label: 'Komik',  Icon: BookOpen  },
+  { href: '/anime/schedule', label: 'Jadwal', Icon: CalendarDays },
+  { href: '/bookmarks',      label: 'Favorit',Icon: Heart     },
 ] as const;
 
 export default function BottomNav() {

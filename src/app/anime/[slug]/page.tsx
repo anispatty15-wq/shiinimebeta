@@ -11,6 +11,7 @@ import { useApi } from '@/hooks/useApi';
 import { useBookmarkToggle } from '@/context/BookmarkContext';
 import { SkeletonDetail } from '@/components/SkeletonLoader';
 import MediaCard from '@/components/MediaCard';
+import { isEpisodeSlug } from '@/utils/slugHelpers';
 import type { AnimeEpisodeItem } from '@/types/media';
 
 export default function AnimeDetailPage() {
@@ -18,6 +19,12 @@ export default function AnimeDetailPage() {
   const router    = useRouter();
   const [imgErr, setImgErr] = useState(false);
   const [showAll, setShowAll] = useState(false);
+
+  // Guard: if someone navigates here with an episode slug, redirect
+  if (slug && isEpisodeSlug(slug)) {
+    router.replace(`/anime/episode/${slug}`);
+    return null;
+  }
 
   const { data: anime, loading, error } = useApi(
     useCallback(() => AnimeAPI.getDetail(slug ?? ''), [slug]),

@@ -5,30 +5,22 @@ import { useCallback } from 'react';
 import { ComicAPI, toArray } from '@/lib/apiClient';
 import { useApi } from '@/hooks/useApi';
 import SectionRow from '@/components/SectionRow';
-import type { ComicCard } from '@/types/media';
+import { normaliseCardItem } from '@/utils/slugHelpers';
 
 function toItems(raw: unknown) {
-  return toArray(raw as ComicCard[]).map((c) => {
-    const item = c as unknown as Record<string, unknown>;
-    const slug = String(
-      item.slug ?? item.id ??
-      (typeof item.link === 'string'
-        ? item.link.replace(/\/$/, '').split('/').pop()
-        : undefined) ??
-      ''
-    );
-    return {
-      slug,
-      title:  String(item.title   ?? item.name  ?? ''),
-      poster: String(item.poster  ?? item.image ?? item.cover ?? item.thumbnail ?? ''),
-      status: String(item.status  ?? ''),
-      type:   String(item.type    ?? ''),
-      score:  item.score ?? undefined,
-      meta:   item.chapter != null
-        ? `Ch. ${item.chapter}`
-        : (item.date ? String(item.date) : undefined),
-    };
-  }).filter((c) => c.slug);
+  return toArray(raw as unknown[])
+    .map((c) => normaliseCardItem(c, 'comic'))
+    .filter(Boolean)
+    .map((c) => ({
+      slug:   c!.slug,
+      title:  c!.title,
+      poster: c!.poster,
+      status: c!.status,
+      type:   c!.typeLabel,
+      score:  c!.score as string | number | undefined,
+      meta:   c!.meta,
+      href:   c!.href,
+    }));
 }
 
 export default function ComicPage() {
@@ -77,6 +69,7 @@ export default function ComicPage() {
         error={manhua.error}
         contentType="comic"
         basePath="/comic"
+        moreHref="/comic/manhua"
         accent="violet"
       />
       <SectionRow
@@ -86,6 +79,7 @@ export default function ComicPage() {
         error={manhwa.error}
         contentType="comic"
         basePath="/comic"
+        moreHref="/comic/manhwa"
         accent="cyan"
       />
     </div>
