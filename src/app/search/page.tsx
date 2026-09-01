@@ -1,7 +1,7 @@
 'use client';
 // src/app/search/page.tsx — Universal search results
 
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, X } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -22,7 +22,9 @@ function basePath(type: Tab): string {
   return `/${type}`;
 }
 
-export default function SearchPage() {
+// ── Inner component that uses useSearchParams ─────────────────
+// Must be wrapped in <Suspense> per Next.js 14 requirement.
+function SearchContent() {
   const searchParams = useSearchParams();
   const router       = useRouter();
 
@@ -31,7 +33,10 @@ export default function SearchPage() {
 
   const [query,   setQuery]   = useState(initialQ);
   const [tab,     setTab]     = useState<Tab>(initialType);
-  const [items,   setItems]   = useState<{ slug: string; title: string; poster?: string; status?: string; type?: string }[]>([]);
+  const [items,   setItems]   = useState<{
+    slug: string; title: string; poster?: string;
+    status?: string; type?: string;
+  }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
 
@@ -75,7 +80,7 @@ export default function SearchPage() {
 
   useEffect(() => { void runSearch(dq, tab); }, [dq, tab, runSearch]);
 
-  // Sync URL
+  // Sync URL params
   useEffect(() => {
     const params = new URLSearchParams();
     if (query) params.set('q', query);
@@ -98,7 +103,11 @@ export default function SearchPage() {
           className="flex-1 bg-transparent text-sm text-primary placeholder:text-muted outline-none min-w-0"
         />
         {query && (
-          <button onClick={() => { setQuery(''); setItems([]); }} aria-label="Hapus" className="text-muted hover:text-primary flex-shrink-0">
+          <button
+            onClick={() => { setQuery(''); setItems([]); }}
+            aria-label="Hapus"
+            className="text-muted hover:text-primary flex-shrink-0"
+          >
             <X className="w-4 h-4" aria-hidden />
           </button>
         )}
@@ -133,12 +142,16 @@ export default function SearchPage() {
         <div className="text-center py-16 text-muted space-y-2">
           <span className="text-4xl block" aria-hidden>🔍</span>
           <p className="text-sm font-medium">
-            {query.trim() ? `Tidak ada hasil untuk "${query}"` : 'Masukkan kata kunci pencarian.'}
+            {query.trim()
+              ? `Tidak ada hasil untuk "${query}"`
+              : 'Masukkan kata kunci pencarian.'}
           </p>
         </div>
       ) : (
         <>
-          <p className="text-xs text-muted mb-3">{items.length} hasil untuk &ldquo;{query}&rdquo;</p>
+          <p className="text-xs text-muted mb-3">
+            {items.length} hasil untuk &ldquo;{query}&rdquo;
+          </p>
           <div className="card-grid">
             {items.map((item) => (
               <MediaCard
@@ -152,5 +165,25 @@ export default function SearchPage() {
         </>
       )}
     </div>
+  );
+}
+
+// ── Fallback UI while Suspense resolves ───────────────────────
+function SearchFallback() {
+  return (
+    <div className="max-w-screen-xl mx-auto px-4 py-5">
+      <div className="h-11 rounded-app bg-surface animate-pulse mb-4" />
+      <div className="h-10 rounded bg-surface animate-pulse mb-5" />
+      <SkeletonGrid count={12} />
+    </div>
+  );
+}
+
+// ── Page export — wraps content in Suspense ───────────────────
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<SearchFallback />}>
+      <SearchContent />
+    </Suspense>
   );
 }
