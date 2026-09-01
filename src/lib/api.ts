@@ -99,7 +99,18 @@ function str(v: unknown, fallback = ''): string {
 /** Safely coerce a value to a string[] */
 function strArr(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
-  return v.map((x) => str(x)).filter(Boolean);
+  return v
+    .map((x) => {
+      if (x == null) return '';
+      // If item is an object, extract name/title/label field
+      if (typeof x === 'object') {
+        const o = x as Record<string, unknown>;
+        const label = o.name ?? o.title ?? o.label ?? o.text ?? o.value ?? o.slug ?? '';
+        return label != null ? String(label) : '';
+      }
+      return String(x);
+    })
+    .filter(Boolean);
 }
 
 /** Safely coerce any value to a typed array, with per-item mapping */

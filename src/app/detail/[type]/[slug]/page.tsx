@@ -140,12 +140,15 @@ export default function DetailPage() {
               {title || slug}
             </h1>
 
-            {/* Genres (anime only) */}
+            {/* Genres */}
             {genres.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-3">
-                {genres.slice(0, 5).map((g) => (
-                  <span key={g} className={badgeClass(g)}>{g}</span>
-                ))}
+                {genres
+                  .filter((g) => typeof g === 'string' && g.trim())
+                  .slice(0, 6)
+                  .map((g) => (
+                    <span key={g} className={badgeClass(g)}>{g}</span>
+                  ))}
               </div>
             )}
 

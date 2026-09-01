@@ -5,6 +5,7 @@ import Navbar    from '@/components/Navbar';
 import BottomNav from '@/components/BottomNav';
 import { BookmarkProvider } from '@/context/BookmarkContext';
 import { HistoryProvider }  from '@/context/HistoryContext';
+import { AuthProvider }     from '@/context/AuthContext';
 
 export const metadata: Metadata = {
   title:       { default: 'ShiiiNime', template: '%s | ShiiiNime' },
@@ -26,22 +27,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id" className="dark">
       <body className="bg-bg text-primary antialiased">
-        <HistoryProvider>
-          <BookmarkProvider>
-            {/*
-              Do NOT use overflow-x-hidden on any ancestor of scroll rows —
-              it will prevent horizontal scrolling inside them.
-              Width is constrained naturally by the viewport.
-            */}
-            <div className="flex flex-col min-h-screen w-full">
-              <Navbar />
-              <main className="flex-1 app-shell w-full">
-                {children}
-              </main>
-              <BottomNav />
-            </div>
-          </BookmarkProvider>
-        </HistoryProvider>
+        <AuthProvider>
+          <HistoryProvider>
+            <BookmarkProvider>
+              <div className="flex flex-col min-h-screen w-full">
+                <Navbar />
+                <main className="flex-1 app-shell w-full">
+                  {children}
+                </main>
+                <BottomNav />
+              </div>
+            </BookmarkProvider>
+          </HistoryProvider>
+        </AuthProvider>
       </body>
     </html>
   );
