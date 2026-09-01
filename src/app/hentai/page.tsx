@@ -25,9 +25,27 @@ function toItems(raw: unknown) {
 }
 
 export default function HentaiPage() {
-  const home   = useApi(useCallback(() => HentaiAPI.getHome(),         []), []);
+  const home   = useApi(useCallback(() => HentaiAPI.getLatestHentai(), []), []);  // use latest as home
   const latest = useApi(useCallback(() => HentaiAPI.getLatestHentai(), []), []);
   const jav    = useApi(useCallback(() => HentaiAPI.getLatestJAV(),    []), []);
+
+  // JAV items always route to stream (they are episodes, not series)
+  function toJavItems(raw: unknown) {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((h) => normaliseCardItem(h, 'hentai'))
+      .filter(Boolean)
+      .map((c) => ({
+        slug:   c!.slug,
+        title:  c!.title,
+        poster: c!.poster,
+        status: c!.status,
+        type:   c!.typeLabel,
+        score:  c!.score as string | number | undefined,
+        meta:   c!.meta,
+        href:   `/stream/hentai/${c!.slug}`,  // always stream for JAV
+      }));
+  }
 
   return (
     <div className="max-w-screen-xl mx-auto py-5">
@@ -61,7 +79,7 @@ export default function HentaiPage() {
       />
       <SectionRow
         title="JAV Terbaru"
-        items={toItems(jav.data)}
+        items={toJavItems(jav.data)}
         loading={jav.loading}
         error={jav.error}
         contentType="hentai"

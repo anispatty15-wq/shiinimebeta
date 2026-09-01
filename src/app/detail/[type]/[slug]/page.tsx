@@ -83,10 +83,24 @@ export default function DetailPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-muted gap-3 px-4">
         <span className="text-4xl" aria-hidden>😵</span>
-        <p className="text-sm text-center">{error ?? 'Konten tidak ditemukan.'}</p>
-        <button onClick={() => router.back()} className="btn-ghost text-sm mt-2">
-          ← Kembali
-        </button>
+        <p className="text-sm text-center">
+          {error ?? 'Konten tidak ditemukan.'}
+        </p>
+        {contentType === 'hentai' && (
+          <p className="text-xs text-muted text-center max-w-xs">
+            Konten ini mungkin adalah episode langsung (bukan series). Coba buka dari halaman Hentai.
+          </p>
+        )}
+        <div className="flex gap-2">
+          {contentType === 'hentai' && (
+            <Link href={`/stream/hentai/${slug}`} className="btn-primary text-sm">
+              Coba Tonton Langsung
+            </Link>
+          )}
+          <button onClick={() => router.back()} className="btn-ghost text-sm">
+            ← Kembali
+          </button>
+        </div>
       </div>
     );
   }
