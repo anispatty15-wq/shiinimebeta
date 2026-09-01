@@ -214,20 +214,28 @@ export default function DetailPage() {
             </h2>
 
             {contentType === 'comic' ? (
-              /* Chapter list — vertical rows with date */
-              <div className="space-y-1.5">
-                {(visibleItems as typeof chapterList).map((ch) => (
-                  <Link
-                    key={ch.slug}
-                    href={`/read/${ch.slug}?series=${slug}`}
-                    className="flex items-center justify-between px-3.5 py-2.5 rounded-app bg-surface hover:bg-surface-2 border border-border hover:border-violet/40 transition-all"
-                  >
-                    <span className="text-sm font-medium text-primary truncate">{ch.title}</span>
-                    {ch.release_date && (
-                      <span className="text-xs text-muted flex-shrink-0 ml-3">{ch.release_date}</span>
-                    )}
-                  </Link>
-                ))}
+              /* Chapter pills — compact number badges */
+              <div className="flex flex-wrap gap-1.5">
+                {(visibleItems as typeof chapterList).map((ch, idx) => {
+                  // Extract chapter number from title or slug
+                  // e.g. "Chapter 123" → "123"
+                  // e.g. "the-returned-c-rank-tank-chapter-45" → "45"
+                  const src   = ch.title || ch.slug || '';
+                  const nums  = src.match(/\d+(\.\d+)?/g);
+                  const label = nums ? nums[nums.length - 1] : String(idx + 1);
+                  // Build display: "Ch.45" or just "45"
+                  const display = label.includes('.') ? label : `${label}`;
+                  return (
+                    <Link
+                      key={ch.slug}
+                      href={`/read/${ch.slug}?series=${slug}`}
+                      title={ch.title || `Chapter ${label}`}
+                      className="ep-pill min-w-[2.75rem] text-center px-2"
+                    >
+                      {display}
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
               /* Episode number pills — compact, extract number from title */

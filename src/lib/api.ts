@@ -321,10 +321,31 @@ function parseComicDetail(raw: unknown): ComicDetail {
         const c = item as Record<string, unknown>;
         const slug = str(c.slug ?? c.id ?? '');
         if (!slug) return null;
+
+        // Build a clean chapter title:
+        // If API returns a slug-like title (contains hyphens, no spaces),
+        // extract the chapter number instead of showing raw slug.
+        const rawTitle = str(c.title ?? c.name ?? '');
+        const isSlugLike = rawTitle.includes('-') && !rawTitle.includes(' ');
+        let title: string;
+        if (!rawTitle || isSlugLike) {
+          // Try to extract "Chapter N" from slug like "title-chapter-45" or from number fields
+          const chNum = str(c.chapter ?? c.chapter_number ?? c.number ?? '');
+          if (chNum) {
+            title = `Chapter ${chNum}`;
+          } else {
+            const nums = slug.match(/\d+(\.\d+)?/g);
+            const num  = nums ? nums[nums.length - 1] : '';
+            title = num ? `Chapter ${num}` : slug;
+          }
+        } else {
+          title = rawTitle;
+        }
+
         return {
-          title:        str(c.title ?? c.name, `Chapter ${slug}`),
+          title,
           slug,
-          release_date: str(c.release_date ?? c.date ?? c.updatedAt),
+          release_date: str(c.release_date ?? c.date ?? c.updatedAt ?? c.updated_at),
         };
       }
     ),
