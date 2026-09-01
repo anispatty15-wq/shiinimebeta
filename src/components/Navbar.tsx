@@ -12,11 +12,13 @@ import { useSearchSuggest } from '@/hooks/useSearchSuggest';
 import type { ContentType } from '@/types/media';
 
 const DESKTOP_TABS = [
-  { href: '/',               label: 'Anime'  },
-  { href: '/hentai',         label: 'Hentai' },
-  { href: '/comic',          label: 'Komik'  },
-  { href: '/anime/schedule', label: 'Jadwal' },
-  { href: '/anime/browse',   label: 'Filter' },
+  { href: '/',               label: 'Anime'   },
+  { href: '/hentai',         label: 'Hentai'  },
+  { href: '/comic',          label: 'Komik'   },
+  { href: '/anime/schedule', label: 'Jadwal'  },
+  { href: '/anime/browse',   label: 'Filter'  },
+  { href: '/history',        label: 'Riwayat' },
+  { href: '/favorites',      label: 'Favorit' },
 ] as const;
 
 function pathToType(p: string): ContentType {

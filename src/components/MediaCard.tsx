@@ -4,7 +4,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { Heart, Play } from 'lucide-react';
+import { Heart, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getPoster } from '@/lib/api';
 import { useBookmarkToggle } from '@/context/BookmarkContext';
@@ -48,40 +48,64 @@ export interface MediaCardItem {
 }
 
 interface MediaCardProps {
-  item:        MediaCardItem;
-  contentType: ContentType;
-  href:        string;
-  badge?:      string;
-  className?:  string;
+  item?:        MediaCardItem;  // optional when using direct props
+  slug?:        string;
+  title?:       string;
+  poster?:      string;
+  status?:      string;
+  type?:        string;
+  contentType:  ContentType;
+  href:         string;
+  badge?:       string;
+  className?:   string;
+  onRemove?:    () => void;  // for favorites page remove button
 }
 
 export default function MediaCard({
   item,
+  slug: _slug,
+  title: _title,
+  poster: _poster,
+  status: _status,
+  type: _type,
   contentType,
   href,
   badge,
   className,
+  onRemove,
 }: MediaCardProps) {
-  const poster   = getPoster(item as Record<string, unknown>);
+  // Support both item prop (legacy) and direct props (new)
+  const slug   = _slug   ?? item?.slug   ?? '';
+  const title  = _title  ?? item?.title  ?? '';
+  const status = _status ?? item?.status ?? '';
+  const type   = _type   ?? item?.type   ?? '';
+  const rawPoster = _poster ?? getPoster((item as Record<string, unknown>) ?? {});
+  
   const [imgErr, setImgErr] = useState(false);
 
   const bmItem: Omit<BookmarkEntry, 'savedAt'> = {
-    slug:   item.slug,
-    id:     item.id ?? item.slug,
-    title:  item.title,
-    poster,
+    slug,
+    id:     item?.id ?? slug,
+    title,
+    poster: rawPoster,
     type:   contentType,
   };
-  const { bookmarked, toggle } = useBookmarkToggle(bmItem);
+  const { bookmarked, toggle: toggleBookmark } = useBookmarkToggle(bmItem);
 
   const handleBookmark = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    toggle();
+    toggleBookmark();
   };
 
-  const badgeText    = badge ?? item.status ?? item.type ?? '';
-  const badgeVariant = resolveBadge(item.status, item.type);
+  const handleRemove = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onRemove?.();
+  };
+
+  const badgeText    = badge ?? status ?? type ?? '';
+  const badgeVariant = resolveBadge(status, type);
 
   return (
     <Link
@@ -97,10 +121,10 @@ export default function MediaCard({
     >
       {/* ── Poster ── */}
       <div className="relative aspect-[2/3] min-h-[200px] overflow-hidden bg-surface-2 flex-shrink-0">
-        {!imgErr && poster ? (
+        {!imgErr && rawPoster ? (
           <Image
-            src={poster}
-            alt={item.title}
+            src={rawPoster}
+            alt={title}
             fill
             sizes="(max-width: 480px) 140px, (max-width: 768px) 160px, 175px"
             className="object-cover transition-transform duration-500 group-hover:scale-[1.07]"
@@ -121,7 +145,7 @@ export default function MediaCard({
         )}
 
         {/* Score */}
-        {item.score != null && (
+        {item?.score != null && (
           <span className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-black/65 backdrop-blur-sm rounded px-1.5 py-0.5 text-[0.68rem] font-bold text-yellow-400">
             ★ {item.score}
           </span>
@@ -155,8 +179,19 @@ export default function MediaCard({
           />
         </button>
 
+        {/* Remove button (favorites page only) */}
+        {onRemove && (
+          <button
+            onClick={handleRemove}
+            aria-label="Hapus"
+            className="absolute top-2 left-2 z-20 w-7 h-7 rounded-full flex items-center justify-center bg-red-500/90 backdrop-blur-sm text-white hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100"
+          >
+            <X className="w-4 h-4" aria-hidden />
+          </button>
+        )}
+
         {/* Progress bar */}
-        {typeof item.progress === 'number' && item.progress > 0 && (
+        {typeof item?.progress === 'number' && item.progress > 0 && (
           <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/10 z-20">
             <div
               className="h-full bg-cyan transition-[width] duration-300"
@@ -169,12 +204,12 @@ export default function MediaCard({
       {/* ── Info ── */}
       <div className="px-2.5 py-2.5 flex-1">
         <p
-          title={item.title}
+          title={title}
           className="text-[0.82rem] font-semibold text-primary truncate leading-snug"
         >
-          {item.title}
+          {title}
         </p>
-        {item.meta && (
+        {item?.meta && (
           <p className="mt-0.5 text-[0.72rem] text-muted truncate">{item.meta}</p>
         )}
       </div>
