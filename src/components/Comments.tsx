@@ -19,11 +19,12 @@ import {
   collection, addDoc, query, orderBy, limit,
   onSnapshot, serverTimestamp, type Timestamp,
 } from 'firebase/firestore';
-import { MessageCircle, Send, User, LogIn } from 'lucide-react';
+import { MessageCircle, Send, User, LogIn, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { db, FIREBASE_READY } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { getLevelFromXP, XP_COMMENT } from '@/lib/xp';
+import { isCommentAllowed } from '@/lib/wordFilter';
 
 interface Comment {
   id:          string;
@@ -49,6 +50,7 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
   const [text,     setText]     = useState('');
   const [sending,  setSending]  = useState(false);
   const [loaded,   setLoaded]   = useState(false);
+  const [filterErr, setFilterErr] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // ── Listen to Firestore comments in realtime ───────────────
@@ -92,11 +94,19 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
     e.preventDefault();
     if (!text.trim() || !user || !profile || !db || sending) return;
 
+    // Filter kata kasar dan konten terlarang
+    const check = isCommentAllowed(text);
+    if (!check.ok) {
+      setFilterErr(check.reason ?? 'Komentar tidak diizinkan.');
+      return;
+    }
+    setFilterErr(null);
+
     setSending(true);
     const lvl = getLevelFromXP(profile.xp ?? 0);
     try {
       await addDoc(collection(db, 'comments', episodeSlug, 'messages'), {
-        text:        text.trim(),
+        text:        check.cleaned ?? text.trim(),  // use censored version
         uid:         user.uid,
         displayName: profile.displayName,
         photoURL:    profile.photoURL,
@@ -107,7 +117,6 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
         createdAt:   serverTimestamp(),
       });
       setText('');
-      // Award XP for commenting
       await awardXP(XP_COMMENT, 0);
     } catch (err) {
       console.error('[Comments] Error posting comment:', err);
@@ -221,14 +230,24 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
               </div>
             )}
           </div>
-          <div className="flex-1 flex gap-2">
+        <div className="flex-1 flex flex-col gap-1.5">
+          {filterErr && (
+            <div className="flex items-center gap-1.5 text-xs text-red-400 px-1">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
+              <span>{filterErr}</span>
+            </div>
+          )}
+          <div className="flex gap-2">
             <input
               type="text"
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => { setText(e.target.value); if (filterErr) setFilterErr(null); }}
               placeholder="Tulis komentar…"
               maxLength={500}
-              className="flex-1 bg-surface border border-border rounded-app px-3 py-2 text-sm text-primary placeholder:text-muted outline-none focus:border-cyan/60 transition-colors"
+              className={clsx(
+                'flex-1 bg-surface border rounded-app px-3 py-2 text-sm text-primary placeholder:text-muted outline-none transition-colors',
+                filterErr ? 'border-red-400/60' : 'border-border focus:border-cyan/60'
+              )}
             />
             <button
               type="submit"
@@ -244,6 +263,7 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
               <Send className="w-4 h-4" aria-hidden />
             </button>
           </div>
+        </div>
         </form>
       )}
     </section>
