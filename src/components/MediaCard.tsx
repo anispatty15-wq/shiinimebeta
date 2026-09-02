@@ -24,12 +24,21 @@ const BADGE_CLASS: Record<BadgeVariant, string> = {
 
 function resolveBadge(status?: string, type?: string): BadgeVariant {
   const s = (status ?? type ?? '').toLowerCase();
-  if (s.includes('ongoing'))   return 'ongoing';
-  if (s.includes('completed')) return 'completed';
-  if (s.includes('movie'))     return 'movie';
-  if (s.includes('hentai'))    return 'hentai';
+  if (s.includes('ongoing') || s.includes('airing') || s.includes('tayang') || s.includes('berlangsung')) return 'ongoing';
+  if (s.includes('completed') || s.includes('finished') || s.includes('selesai') || s.includes('tamat')) return 'completed';
+  if (s.includes('movie') || s.includes('film'))       return 'movie';
+  if (s.includes('hentai'))                            return 'hentai';
   if (s.includes('comic') || s.includes('manga') || s.includes('manhua') || s.includes('manhwa')) return 'comic';
   return 'default';
+}
+
+// ── Badge label ────────────────────────────────────────────────
+function badgeLabel(status?: string, type?: string): string {
+  const s = (status ?? '').trim();
+  if (s) return s;
+  const t = (type ?? '').trim();
+  if (t) return t;
+  return '';
 }
 
 // ── MediaCard ──────────────────────────────────────────────────
@@ -104,7 +113,7 @@ export default function MediaCard({
     onRemove?.();
   };
 
-  const badgeText    = badge ?? status ?? type ?? '';
+  const badgeText    = badge ?? badgeLabel(status, type);
   const badgeVariant = resolveBadge(status, type);
 
   return (

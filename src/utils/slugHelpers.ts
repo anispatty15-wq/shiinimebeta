@@ -110,7 +110,8 @@ export function normaliseCardItem(
     slug,
     title:     String(item.title ?? item.name ?? ''),
     poster:    String(item.poster ?? item.image ?? item.thumbnail ?? item.cover ?? ''),
-    status:    String(item.status ?? ''),
+    // If it's an episode card and no status, mark as Ongoing
+    status:    String(item.status ?? (isEpisode ? 'Ongoing' : '')),
     typeLabel: String(item.type ?? item.category ?? ''),
     score:     item.score ?? undefined,
     meta,

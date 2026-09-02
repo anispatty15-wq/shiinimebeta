@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { X, Youtube, Bell } from 'lucide-react';
 import { clsx } from 'clsx';
 
-const CHANNEL_URL  = 'https://www.youtube.com/watch?v=r7iv6KPxLQI&list=PLBFDkubfUiBo';
+const CHANNEL_URL  = 'https://www.youtube.com/@4nzzz2003';
 const CHANNEL_NAME = 'AnzzzSenpai';
 const DISMISS_KEY  = 'Anzzzmissed';
 const SHOW_DELAY   = 5_000;
