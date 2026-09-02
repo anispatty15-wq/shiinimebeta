@@ -32,8 +32,10 @@ service cloud.firestore {
       allow create: if isLoggedIn()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.text.size() <= 500;
+      // Allow update only for likes field (any logged-in user can like)
+      allow update: if isLoggedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
       allow delete: if isOwner(resource.data.uid) || isAdmin();
-      allow update: if false;
     }
 
     // Cloud sync — history, bookmarks, watched slugs (owner only)
