@@ -35,6 +35,7 @@ import { useHistory } from '@/context/HistoryContext';
 import { useAuth } from '@/context/AuthContext';
 import { calcWatchXP } from '@/lib/xp';
 import { formatTime } from '@/utils/storage';
+import { markWatched } from '@/utils/watchedSlug';
 import Comments from '@/components/Comments';
 import type {
   AnimeEpisodeData,
@@ -157,6 +158,8 @@ export default function StreamPage() {
     // Check if user has watched this episode before
     if (!savedToHistory.current) {
       savedToHistory.current = true;
+      // Mark as watched locally
+      markWatched(slug);
       const prev = checkVideoResume(slug);
 
       if (prev.shouldResume && prev.positionSeconds > 10) {

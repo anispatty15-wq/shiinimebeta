@@ -33,9 +33,11 @@ import {
 } from 'firebase/auth';
 import {
   doc, getDoc, setDoc, updateDoc, serverTimestamp,
+  onSnapshot,
 } from 'firebase/firestore';
 import { auth, db, googleProvider, FIREBASE_READY } from '@/lib/firebase';
 import { getLevelFromXP } from '@/lib/xp';
+import { pushToCloud, pullFromCloud } from '@/lib/cloudSync';
 
 // ── Types ─────────────────────────────────────────────────────
 export type AdultStatus = 'none' | 'pending' | 'approved' | 'rejected';
@@ -167,12 +169,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (CONFIG_MISSING || !auth) { setLoading(false); return; }
-    const unsub = onAuthStateChanged(auth, async (u) => {
+    let unsubProfile: (() => void) | undefined;
+
+    const unsubAuth = onAuthStateChanged(auth, async (u) => {
       setUser(u);
-      if (u) await syncProfile(u); else setProfile(null);
+      if (u) {
+        // Initial sync
+        await syncProfile(u);
+        // Pull cloud data → merge into localStorage
+        pullFromCloud(u.uid).catch(() => {});
+        // Realtime listener on user doc — keeps XP/level live
+        if (db) {
+          unsubProfile?.();
+          unsubProfile = onSnapshot(doc(db, 'users', u.uid), (snap) => {
+            if (!snap.exists()) return;
+            const d = snap.data();
+            setProfile((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                xp:           Number(d.xp           ?? prev.xp),
+                level:        Number(d.level         ?? prev.level),
+                totalMinutes: Number(d.totalMinutes  ?? prev.totalMinutes),
+              };
+            });
+          });
+        }
+      } else {
+        setProfile(null);
+        unsubProfile?.();
+      }
       setLoading(false);
     });
-    return unsub;
+
+    return () => {
+      unsubAuth();
+      unsubProfile?.();
+    };
   }, [syncProfile]);
 
   const signInWithGoogle = useCallback(async () => {
@@ -189,9 +222,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (!auth) return;
-    try { await firebaseSignOut(auth); setUser(null); setProfile(null); }
-    catch (err) { console.error('[Auth] Sign out error:', err); }
-  }, []);
+    try {
+      // Push local data to cloud before signing out
+      if (user) await pushToCloud(user.uid).catch(() => {});
+      await firebaseSignOut(auth);
+      setUser(null);
+      setProfile(null);
+    } catch (err) { console.error('[Auth] Sign out error:', err); }
+  }, [user]);
 
   // ── Request 18+ — hanya set status 'pending', BUKAN langsung beri role ──
   const requestAdultRole = useCallback(async () => {

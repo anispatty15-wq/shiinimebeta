@@ -12,6 +12,7 @@ import ComicReader from '@/components/ComicReader';
 import ResumeModal from '@/components/ResumeModal';
 import { SkeletonGrid } from '@/components/SkeletonLoader';
 import { useComicProgressSaver } from '@/context/HistoryContext';
+import { markWatched } from '@/utils/watchedSlug';
 import type { ComicChapterData } from '@/types/media';
 
 // ── Inner component (uses useSearchParams → needs Suspense) ───
@@ -46,6 +47,11 @@ function ReadContent() {
         }
       : null
   );
+
+  // Mark chapter as read when page loads
+  useEffect(() => {
+    if (slug) markWatched(slug);
+  }, [slug]);
 
   // ── Resume modal ───────────────────────────────────────────
   const [resumeOpen, setResumeOpen] = useState(false);

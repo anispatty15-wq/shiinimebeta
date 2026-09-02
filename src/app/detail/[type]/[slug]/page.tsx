@@ -5,7 +5,7 @@
 //   type  = 'anime' | 'hentai' | 'comic'
 //   slug  = series slug from API
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -18,6 +18,7 @@ import { AnimeAPI, HentaiAPI, ComicAPI } from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
 import { useBookmarkToggle } from '@/context/BookmarkContext';
 import { SkeletonDetail } from '@/components/SkeletonLoader';
+import { getWatchedSlugs } from '@/utils/watchedSlug';
 import type {
   AnimeDetail, HentaiDetail, ComicDetail, ContentType,
 } from '@/types/media';
@@ -42,6 +43,12 @@ export default function DetailPage() {
   const router         = useRouter();
   const [imgErr,   setImgErr]   = useState(false);
   const [showAll,  setShowAll]  = useState(false);
+  const [watchedSlugs, setWatchedSlugs] = useState<Set<string>>(new Set());
+
+  // Load watched slugs on mount (client-only)
+  useEffect(() => {
+    setWatchedSlugs(getWatchedSlugs());
+  }, []);
 
   const contentType = (type as ContentType) ?? 'anime';
 
@@ -240,16 +247,24 @@ export default function DetailPage() {
                   const src   = ch.title || ch.slug || '';
                   const nums  = src.match(/\d+(\.\d+)?/g);
                   const label = nums ? nums[nums.length - 1] : String(idx + 1);
-                  // Build display: "Ch.45" or just "45"
                   const display = label.includes('.') ? label : `${label}`;
+                  const watched = watchedSlugs.has(ch.slug);
                   return (
                     <Link
                       key={ch.slug}
                       href={`/read/${ch.slug}?series=${slug}`}
-                      title={ch.title || `Chapter ${label}`}
-                      className="ep-pill min-w-[2.75rem] text-center px-2"
+                      title={`${ch.title || `Chapter ${label}`}${watched ? ' ✓ Sudah dibaca' : ''}`}
+                      className={clsx(
+                        'ep-pill min-w-[2.75rem] text-center px-2 relative',
+                        watched && 'bg-violet/20 border-violet/60 text-violet',
+                      )}
                     >
                       {display}
+                      {watched && (
+                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-violet flex items-center justify-center text-[8px] text-bg font-bold leading-none">
+                          ✓
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
@@ -260,14 +275,24 @@ export default function DetailPage() {
                 {(visibleItems as typeof episodeList).map((ep, idx) => {
                   const nums    = ep.title.match(/\d+/g);
                   const epLabel = nums ? nums[nums.length - 1] : String(idx + 1);
+                  const watched = watchedSlugs.has(ep.slug);
                   return (
                     <Link
                       key={ep.slug}
                       href={`/stream/${contentType}/${ep.slug}`}
-                      title={ep.title}
-                      className="ep-pill min-w-[2.75rem] text-center px-2"
+                      title={`${ep.title}${watched ? ' ✓ Sudah ditonton' : ''}`}
+                      className={clsx(
+                        'ep-pill min-w-[2.75rem] text-center px-2 relative',
+                        watched && contentType === 'hentai'  && 'bg-pink/20 border-pink/60 text-pink',
+                        watched && contentType !== 'hentai'  && 'bg-cyan/20 border-cyan/60 text-cyan',
+                      )}
                     >
                       {epLabel}
+                      {watched && (
+                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-cyan flex items-center justify-center text-[8px] text-bg font-bold leading-none">
+                          ✓
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
