@@ -32,7 +32,10 @@ import { useApi } from '@/hooks/useApi';
 import VideoPlayer from '@/components/VideoPlayer';
 import { SkeletonBanner } from '@/components/SkeletonLoader';
 import { useHistory } from '@/context/HistoryContext';
+import { useAuth } from '@/context/AuthContext';
+import { calcWatchXP } from '@/lib/xp';
 import { formatTime } from '@/utils/storage';
+import Comments from '@/components/Comments';
 import type {
   AnimeEpisodeData,
   HentaiEpisodeData,
@@ -138,11 +141,14 @@ export default function StreamPage() {
   // Since we can't access video events from cross-origin iframe,
   // we track elapsed time via a page-visibility-aware interval.
   const { saveWatchProgress, updateWatchPoster, checkVideoResume } = useHistory();
+  const { user, awardXP } = useAuth();
   const savedToHistory    = useRef(false);
-  const elapsedRef        = useRef(0);   // seconds user has been watching
+  const elapsedRef        = useRef(0);
+  const xpAwardedRef      = useRef(0);     // minutes already XP-awarded
   const intervalRef       = useRef<ReturnType<typeof setInterval> | null>(null);
   const [showResume,    setShowResume]   = useState(false);
   const [resumeSeconds, setResumeSeconds] = useState(0);
+  const [xpToast,       setXpToast]      = useState<string | null>(null);
 
   // Initial save + check resume on episode load
   useEffect(() => {
@@ -202,6 +208,21 @@ export default function StreamPage() {
           durationSeconds: 0,
           completed:       false,
         });
+      }
+
+      // Award XP every 60 seconds to logged-in users
+      if (user && elapsedRef.current % 60 === 0 && elapsedRef.current > 0) {
+        const minutesDone = Math.floor(elapsedRef.current / 60);
+        const newMinutes  = minutesDone - xpAwardedRef.current;
+        if (newMinutes > 0) {
+          const isFirst  = xpAwardedRef.current === 0 && minutesDone === 1;
+          const xpGained = calcWatchXP(newMinutes, isFirst);
+          xpAwardedRef.current = minutesDone;
+          awardXP(xpGained, newMinutes).then(() => {
+            setXpToast(`+${xpGained} XP`);
+            setTimeout(() => setXpToast(null), 2500);
+          });
+        }
       }
     }, TICK);
 
@@ -308,6 +329,18 @@ export default function StreamPage() {
                 Mulai dari Awal
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── XP toast notification ── */}
+      {xpToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+          <div className={clsx(
+            'px-4 py-2 rounded-full text-sm font-bold shadow-lg animate-bounce',
+            isHentai ? 'bg-pink text-white' : 'bg-cyan text-bg'
+          )}>
+            ⚡ {xpToast}
           </div>
         </div>
       )}
@@ -460,7 +493,10 @@ export default function StreamPage() {
         </div>
       )}
 
-      {/* ── Dev debug panel (visible always for now to diagnose stream issue) ── */}
+      {/* ── Comments ── */}
+      <Comments episodeSlug={slug ?? ''} contentType={isHentai ? 'hentai' : 'anime'} />
+
+      {/* ── Dev debug panel ── */}
       <div className="px-4 pb-8">
         <details className="text-xs">
           <summary className="cursor-pointer text-muted hover:text-primary transition-colors py-2">

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '@/context/AuthContext';
+import { getXPProgress } from '@/lib/xp';
 
 // ── Adult status badge config ─────────────────────────────────
 const STATUS_CONFIG = {
@@ -25,6 +26,8 @@ export default function ProfilePage() {
   const router = useRouter();
   const [requesting, setRequesting] = useState(false);
   const [ageChecked, setAgeChecked] = useState(false);
+
+  const xpData = profile ? getXPProgress(profile.xp ?? 0) : null;
 
   const handleRequest = async () => {
     if (!ageChecked) { alert('Centang pernyataan terlebih dahulu.'); return; }
@@ -123,6 +126,51 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* XP / Level card */}
+      {xpData && (
+        <div className="rounded-app border border-border bg-surface p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl" aria-hidden>{xpData.current.badge}</span>
+              <div>
+                <p className={`text-sm font-bold ${xpData.current.color}`}>
+                  {xpData.current.name}
+                </p>
+                <p className="text-xs text-muted">Level {xpData.current.level}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-semibold text-primary">{profile?.xp ?? 0} XP</p>
+              <p className="text-[0.65rem] text-muted">
+                {profile?.totalMinutes ?? 0} menit ditonton
+              </p>
+            </div>
+          </div>
+          {/* XP progress bar */}
+          {xpData.current.maxXP > 0 ? (
+            <div>
+              <div className="flex justify-between text-[0.62rem] text-muted mb-1">
+                <span>{xpData.xpInLevel} / {xpData.xpNeeded} XP</span>
+                <span>→ {xpData.current.nextLevel}</span>
+              </div>
+              <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-cyan to-violet transition-all rounded-full"
+                  style={{ width: `${xpData.percent}%` }}
+                />
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-center text-yellow-400 font-semibold">
+              🏆 Level Maksimal!
+            </p>
+          )}
+          <p className="text-[0.62rem] text-muted leading-relaxed">
+            ⚡ +1 XP/menit nonton · +5 XP komentar · +10 XP episode baru
+          </p>
+        </div>
+      )}
 
       {/* Admin shortcut */}
       {isAdmin && (

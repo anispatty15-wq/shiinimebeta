@@ -35,6 +35,7 @@ import {
   doc, getDoc, setDoc, updateDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { auth, db, googleProvider, FIREBASE_READY } from '@/lib/firebase';
+import { getLevelFromXP } from '@/lib/xp';
 
 // ── Types ─────────────────────────────────────────────────────
 export type AdultStatus = 'none' | 'pending' | 'approved' | 'rejected';
@@ -47,6 +48,9 @@ export interface UserProfile {
   roles:        string[];
   adultStatus:  AdultStatus;
   isAdmin:      boolean;
+  xp:           number;
+  level:        number;
+  totalMinutes: number;
 }
 
 interface AuthContextValue {
@@ -59,8 +63,9 @@ interface AuthContextValue {
   configMissing:    boolean;
   signInWithGoogle: () => Promise<void>;
   signOut:          () => Promise<void>;
-  /** Submit 18+ request → sets adultStatus = 'pending' */
   requestAdultRole: () => Promise<void>;
+  /** Award XP to user (called from stream page) */
+  awardXP:          (xp: number, minutes: number) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -82,7 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (CONFIG_MISSING || !db) {
       setProfile({ uid: u.uid, displayName: u.displayName ?? 'User',
         email: u.email ?? '', photoURL: u.photoURL ?? '',
-        roles: ['user'], adultStatus: 'none', isAdmin: false });
+        roles: ['user'], adultStatus: 'none', isAdmin: false,
+        xp: 0, level: 1, totalMinutes: 0 });
       return;
     }
     try {
@@ -134,6 +140,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           roles,
           adultStatus,
           isAdmin,
+          xp:           Number(d.xp           ?? 0),
+          level:        Number(d.level         ?? 1),
+          totalMinutes: Number(d.totalMinutes  ?? 0),
         });
       } else {
         // First login — create doc
@@ -142,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           uid: u.uid, displayName: u.displayName ?? 'User',
           email: u.email ?? '', photoURL: u.photoURL ?? '',
           roles, adultStatus: isAdmin ? 'approved' : 'none', isAdmin,
+          xp: 0, level: 1, totalMinutes: 0,
         };
         await setDoc(userRef, { ...p, createdAt: serverTimestamp() });
         setProfile(p);
@@ -150,7 +160,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('[Auth] Firestore sync error:', err);
       setProfile({ uid: u.uid, displayName: u.displayName ?? 'User',
         email: u.email ?? '', photoURL: u.photoURL ?? '',
-        roles: ['user'], adultStatus: 'none', isAdmin: false });
+        roles: ['user'], adultStatus: 'none', isAdmin: false,
+        xp: 0, level: 1, totalMinutes: 0 });
     }
   }, []);
 
@@ -195,11 +206,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) { console.error('[Auth] Request adult role error:', err); }
   }, [user, adultStatus]);
 
+  // ── Award XP ──────────────────────────────────────────────
+  const awardXP = useCallback(async (xp: number, minutes: number) => {
+    if (!user || !db || xp <= 0) return;
+    try {
+      const newXP       = (profile?.xp ?? 0) + xp;
+      const newMinutes  = (profile?.totalMinutes ?? 0) + minutes;
+      const newLevel    = getLevelFromXP(newXP).level;
+      await updateDoc(doc(db, 'users', user.uid), {
+        xp:           newXP,
+        totalMinutes: newMinutes,
+        level:        newLevel,
+      });
+      setProfile((prev) => prev
+        ? { ...prev, xp: newXP, totalMinutes: newMinutes, level: newLevel }
+        : prev
+      );
+    } catch (err) { console.error('[Auth] Award XP error:', err); }
+  }, [user, profile?.xp, profile?.totalMinutes]);
+
   return (
     <AuthContext.Provider value={{
       user, profile, loading, isAdult, isAdmin,
       adultStatus, configMissing: CONFIG_MISSING,
-      signInWithGoogle, signOut, requestAdultRole,
+      signInWithGoogle, signOut, requestAdultRole, awardXP,
     }}>
       {children}
     </AuthContext.Provider>
