@@ -7,6 +7,7 @@ import { useApi } from '@/hooks/useApi';
 import SectionRow from '@/components/SectionRow';
 import { SkeletonBanner } from '@/components/SkeletonLoader';
 import { normaliseCardItem } from '@/utils/slugHelpers';
+import HeroBanner from '@/components/HeroBanner';
 
 function toItems(raw: unknown, defaultStatus?: string) {
   if (!Array.isArray(raw)) return [];
@@ -33,7 +34,10 @@ export default function AnimePage() {
   const donghua = useApi(useCallback(() => AnimeAPI.getDonghua(), []), []);
 
   return (
-    <div className="max-w-screen-xl mx-auto py-5">
+    <div className="max-w-screen-xl mx-auto py-0">
+      {/* Hero Banner */}
+      <HeroBanner />
+
       {home.loading && (
         <div className="px-4 mb-7"><SkeletonBanner /></div>
       )}
