@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react';
 import { X, Youtube, Bell } from 'lucide-react';
 import { clsx } from 'clsx';
 
-const CHANNEL_URL  = 'https://www.youtube.com/@ShiiiNime';
-const CHANNEL_NAME = 'ShiiiNime';
-const DISMISS_KEY  = 'shiiinime__sub_dismissed';
+const CHANNEL_URL  = 'https://www.youtube.com/watch?v=r7iv6KPxLQI&list=PLBFDkubfUiBo
+const CHANNEL_NAME = 'AnzzzSenpai
+const DISMISS_KEY  = 'Anzzzmissed';
 const SHOW_DELAY   = 5_000;
 const AUTO_HIDE    = 15_000;
 
@@ -47,19 +47,6 @@ export default function SubBanner() {
     <>
       {/* Inject dance keyframes */}
       <style>{`
-        @keyframes sub-dance {
-          0%   { transform: rotate(-15deg) translateY(0) scale(1); }
-          20%  { transform: rotate(5deg)   translateY(-8px) scale(1.05); }
-          40%  { transform: rotate(-10deg) translateY(-2px) scale(0.97); }
-          60%  { transform: rotate(15deg)  translateY(-10px) scale(1.05); }
-          80%  { transform: rotate(-5deg)  translateY(-3px) scale(0.98); }
-          100% { transform: rotate(-15deg) translateY(0) scale(1); }
-        }
-        .sub-dance {
-          animation: sub-dance 0.8s ease-in-out infinite;
-          transform-origin: bottom center;
-          display: inline-block;
-        }
         @keyframes sub-slide-in {
           from { opacity: 0; transform: translateX(-60px) translateY(20px); }
           to   { opacity: 1; transform: translateX(0) translateY(0); }
@@ -81,13 +68,13 @@ export default function SubBanner() {
       >
         {/* Dancing character */}
         <div className="pointer-events-none select-none mb-1" aria-hidden>
-          <span
-            className="sub-dance text-5xl drop-shadow-lg block"
-            role="img"
-            aria-label="dancing character"
-          >
-            🕺
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/character-dance.gif"
+            alt="dancing character"
+            className="w-20 h-20 object-contain drop-shadow-lg"
+            style={{ imageRendering: 'auto' }}
+          />
         </div>
 
         {/* Card */}
