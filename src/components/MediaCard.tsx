@@ -41,6 +41,37 @@ function badgeLabel(status?: string, type?: string): string {
   return '';
 }
 
+// ── NEW badge helper ───────────────────────────────────────────
+/**
+ * Returns true if the anime should show "NEW" badge.
+ * Rules:
+ *   - status must NOT be completed/finished/end/tamat
+ *   - date (if provided) must be within 30 days
+ *   - if no date provided, use isNew flag passed explicitly
+ */
+function shouldShowNew(status?: string, date?: string, isNew?: boolean): boolean {
+  const s = (status ?? '').toLowerCase();
+  // Don't show NEW if completed
+  if (s.includes('completed') || s.includes('finished') || s.includes('tamat') || s.includes('end')) return false;
+
+  // Explicit flag
+  if (isNew === true)  return true;
+  if (isNew === false) return false;
+
+  // Date-based: within 30 days
+  if (date) {
+    try {
+      const d = new Date(date);
+      if (!isNaN(d.getTime())) {
+        const diffDays = (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24);
+        return diffDays <= 30;
+      }
+    } catch { /**/ }
+  }
+
+  return false;
+}
+
 // ── MediaCard ──────────────────────────────────────────────────
 export interface MediaCardItem {
   slug:     string;
@@ -53,7 +84,9 @@ export interface MediaCardItem {
   type?:    string;
   score?:   string | number;
   meta?:    string;
-  progress?: number; // 0–100
+  date?:    string;   // release/update date for NEW badge
+  isNew?:   boolean;  // explicit NEW override
+  progress?: number;
 }
 
 interface MediaCardProps {
@@ -115,6 +148,7 @@ export default function MediaCard({
 
   const badgeText    = badge ?? badgeLabel(status, type);
   const badgeVariant = resolveBadge(status, type);
+  const showNew      = shouldShowNew(status, item?.date, item?.isNew);
 
   return (
     <Link
@@ -157,6 +191,19 @@ export default function MediaCard({
         {item?.score != null && (
           <span className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-black/65 backdrop-blur-sm rounded px-1.5 py-0.5 text-[0.68rem] font-bold text-yellow-400">
             ★ {item.score}
+          </span>
+        )}
+
+        {/* NEW badge — pojok kanan atas, di atas score */}
+        {showNew && (
+          <span className="absolute top-2 right-2 z-20 px-1.5 py-0.5 rounded text-[0.6rem] font-black tracking-wider"
+            style={{
+              background: 'linear-gradient(135deg, #ff0080, #ff4d00)',
+              color: 'white',
+              boxShadow: '0 0 8px rgba(255,0,128,0.6)',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+            }}>
+            NEW
           </span>
         )}
 

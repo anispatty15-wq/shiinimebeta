@@ -89,6 +89,7 @@ export function normaliseCardItem(
   status:    string;
   typeLabel: string;
   score:     unknown;
+  date:      string | undefined;
   meta:      string | undefined;
   href:      string;
   isEpisode: boolean;
@@ -106,16 +107,20 @@ export function normaliseCardItem(
   else if (item.year)  meta = String(item.year);
   else if (item.date)  meta = String(item.date);
 
+  // Extract date for NEW badge logic
+  const rawDate = item.date ?? item.release_date ?? item.updatedAt ?? item.updated_at ?? item.aired ?? null;
+  const dateStr = rawDate ? String(rawDate) : undefined;
+
   return {
     slug,
     title:     String(item.title ?? item.name ?? ''),
     poster:    String(item.poster ?? item.image ?? item.thumbnail ?? item.cover ?? ''),
-    // Status: pakai dari API, atau fallback Ongoing untuk episode
     status:    (item.status && String(item.status) !== 'null' && String(item.status).trim())
                  ? String(item.status)
                  : (isEpisode ? 'Ongoing' : ''),
     typeLabel: String(item.type ?? item.category ?? ''),
     score:     item.score ?? undefined,
+    date:      dateStr,
     meta,
     href,
     isEpisode,

@@ -23,6 +23,7 @@ function toItems(raw: unknown, defaultStatus?: string) {
       type:   c!.typeLabel,
       score:  c!.score as string | number | undefined,
       meta:   c!.meta,
+      date:   c!.date,
       href:   c!.href,
     }));
 }
