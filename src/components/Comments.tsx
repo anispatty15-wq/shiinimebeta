@@ -5,10 +5,10 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
 import {
   collection, addDoc, query, orderBy, limit,
-  onSnapshot, serverTimestamp, updateDoc, doc,
-  arrayUnion, arrayRemove, type Timestamp,
+  onSnapshot, serverTimestamp,
+  type Timestamp,
 } from 'firebase/firestore';
-import { MessageCircle, Send, User, LogIn, Heart, CornerDownRight, X, AlertCircle } from 'lucide-react';
+import { MessageCircle, Send, User, LogIn, CornerDownRight, X, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { db, FIREBASE_READY } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
@@ -30,9 +30,8 @@ interface Comment {
   xp:          number;
   totalMinutes:number;
   isAdmin:     boolean;
-  likes:       string[];   // array of UIDs who liked
-  replyTo?:    string;     // parent comment id
-  replyToName?: string;    // parent commenter name
+  replyTo?:    string;
+  replyToName?: string;
   createdAt:   Timestamp | null;
 }
 
@@ -55,18 +54,14 @@ function Avatar({ photoURL, name, size = 8 }: { photoURL?: string; name: string;
 
 // ── Single comment row ────────────────────────────────────────
 function CommentRow({
-  comment, currentUid, isHentai,
-  onLike, onReply, onProfile,
+  comment, isHentai,
+  onReply, onProfile,
 }: {
   comment:    Comment;
-  currentUid: string | null;
   isHentai:   boolean;
-  onLike:     (id: string, liked: boolean) => void;
   onReply:    (comment: Comment) => void;
   onProfile:  (comment: Comment) => void;
 }) {
-  const liked      = currentUid ? comment.likes.includes(currentUid) : false;
-  const likeCount  = comment.likes.length;
   const accentColor = isHentai ? 'text-pink' : 'text-cyan';
 
   return (
@@ -122,19 +117,6 @@ function CommentRow({
 
         {/* Actions */}
         <div className="flex items-center gap-3 mt-1">
-          {/* Like */}
-          <button
-            onClick={() => onLike(comment.id, liked)}
-            className={clsx(
-              'flex items-center gap-1 text-[0.65rem] transition-colors',
-              liked ? 'text-red-400' : 'text-muted hover:text-red-400'
-            )}
-            aria-label={liked ? 'Batal suka' : 'Suka'}
-          >
-            <Heart className={clsx('w-3.5 h-3.5', liked && 'fill-current')} aria-hidden />
-            {likeCount > 0 && <span>{likeCount}</span>}
-          </button>
-
           {/* Reply */}
           <button
             onClick={() => onReply(comment)}
@@ -202,17 +184,6 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
     if (loaded) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [comments.length, loaded]);
 
-  // ── Like toggle ───────────────────────────────────────────
-  const handleLike = useCallback(async (commentId: string, alreadyLiked: boolean) => {
-    if (!user || !db) return;
-    const ref = doc(db, 'comments', episodeSlug, 'messages', commentId);
-    if (alreadyLiked) {
-      await updateDoc(ref, { likes: arrayRemove(user.uid) });
-    } else {
-      await updateDoc(ref, { likes: arrayUnion(user.uid) });
-    }
-  }, [user, episodeSlug]);
-
   // ── Start reply ───────────────────────────────────────────
   const handleReply = useCallback((comment: Comment) => {
     setReplyTo(comment);
@@ -257,7 +228,6 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
         xp:           profile.xp           ?? 0,
         totalMinutes: profile.totalMinutes  ?? 0,
         isAdmin:      profile.isAdmin       ?? false,
-        likes:        [],
         replyTo:      replyTo?.id     ?? null,
         replyToName:  replyTo?.displayName ?? null,
         createdAt:    serverTimestamp(),
@@ -311,9 +281,7 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
             <CommentRow
               key={c.id}
               comment={c}
-              currentUid={user?.uid ?? null}
               isHentai={isHentai}
-              onLike={handleLike}
               onReply={handleReply}
               onProfile={handleProfile}
             />
