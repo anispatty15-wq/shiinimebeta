@@ -1,9 +1,10 @@
 // src/app/layout.tsx
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import Navbar    from '@/components/Navbar';
-import BottomNav from '@/components/BottomNav';
-import SubBanner from '@/components/SubBanner';
+import Navbar        from '@/components/Navbar';
+import BottomNav     from '@/components/BottomNav';
+import SubBanner     from '@/components/SubBanner';
+import FloatingLinks from '@/components/FloatingLinks';
 import { BookmarkProvider } from '@/context/BookmarkContext';
 import { HistoryProvider }  from '@/context/HistoryContext';
 import { AuthProvider }     from '@/context/AuthContext';
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </main>
                 <BottomNav />
                 <SubBanner />
+                <FloatingLinks />
               </div>
             </BookmarkProvider>
           </HistoryProvider>

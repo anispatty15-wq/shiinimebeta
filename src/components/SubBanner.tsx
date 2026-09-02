@@ -101,7 +101,7 @@ export default function SubBanner() {
           </div>
 
           <p className="text-[0.68rem] text-secondary leading-relaxed mb-3">
-            Subscribe untuk update anime terbaru & konten seru! 🎌✨
+            Subscribe dan dukung developer thanks all
           </p>
 
           <a
