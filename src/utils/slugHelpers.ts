@@ -31,7 +31,8 @@ export function isEpisodeSlug(slug: string): boolean {
 export function resolveHref(
   item: Record<string, unknown>,
   type: ContentType,
-): { slug: string; href: string; isEpisode: boolean } {
+  forceDetail = false,   // ← true = always go to detail page first
+): { slug: string; href: string; isEpisode: boolean; seriesSlug: string } {
   const raw = String(
     item.slug ??
     item.id   ??
@@ -41,20 +42,35 @@ export function resolveHref(
     ''
   );
 
-  if (!raw) return { slug: '', href: '#', isEpisode: false };
+  if (!raw) return { slug: '', href: '#', isEpisode: false, seriesSlug: '' };
 
-  // Comic always goes to detail (chapters are listed inside detail)
+  // Comic always goes to detail
   if (type === 'comic') {
-    return { slug: raw, href: `/detail/comic/${raw}`, isEpisode: false };
+    return { slug: raw, href: `/detail/comic/${raw}`, isEpisode: false, seriesSlug: raw };
   }
 
-  // Detect episode vs series
   const episode = isEpisodeSlug(raw);
-  if (episode) {
-    return { slug: raw, href: `/stream/${type}/${raw}`, isEpisode: true };
+
+  if (episode && !forceDetail) {
+    // Direct stream — used inside drawer / episode list only
+    return { slug: raw, href: `/stream/${type}/${raw}`, isEpisode: true, seriesSlug: '' };
   }
 
-  return { slug: raw, href: `/detail/${type}/${raw}`, isEpisode: false };
+  if (episode && forceDetail) {
+    // Strip episode suffix to get series slug → go to detail
+    const seriesSlug = raw
+      .replace(/(-episode-\d.*$)/i, '')
+      .replace(/(-ep-\d+.*$)/i, '')
+      .replace(/(-eps-\d+.*$)/i, '');
+    return {
+      slug:       raw,
+      href:       `/detail/${type}/${seriesSlug}`,
+      isEpisode:  true,
+      seriesSlug,
+    };
+  }
+
+  return { slug: raw, href: `/detail/${type}/${raw}`, isEpisode: false, seriesSlug: raw };
 }
 
 // ── Card normaliser ────────────────────────────────────────────
@@ -65,6 +81,7 @@ export function resolveHref(
 export function normaliseCardItem(
   raw: unknown,
   type: ContentType,
+  forceDetail = true,   // ← default: always go to detail first
 ): {
   slug:      string;
   title:     string;
@@ -75,11 +92,12 @@ export function normaliseCardItem(
   meta:      string | undefined;
   href:      string;
   isEpisode: boolean;
+  seriesSlug: string;
 } | null {
   if (!raw || typeof raw !== 'object') return null;
   const item = raw as Record<string, unknown>;
 
-  const { slug, href, isEpisode } = resolveHref(item, type);
+  const { slug, href, isEpisode, seriesSlug } = resolveHref(item, type, forceDetail);
   if (!slug) return null;
 
   let meta: string | undefined;
@@ -98,5 +116,6 @@ export function normaliseCardItem(
     meta,
     href,
     isEpisode,
+    seriesSlug,
   };
 }

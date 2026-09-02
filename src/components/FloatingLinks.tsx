@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { X, ExternalLink, MessageCircle, ChevronLeft } from 'lucide-react';
 import { clsx } from 'clsx';
 
-const WUWA_URL = 'tps://wuwatracker.com/id'
+const WUWA_URL = 'https://wuwatracker.com/id'
 const WA_URL   = 'https://chat.whatsapp.com/FRWb2JXmQx14u39x0yhshZ';
 
 type Panel = 'wuwa' | 'wa' | null;
