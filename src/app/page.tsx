@@ -8,7 +8,7 @@ import SectionRow from '@/components/SectionRow';
 import { SkeletonBanner } from '@/components/SkeletonLoader';
 import { normaliseCardItem } from '@/utils/slugHelpers';
 
-function toItems(raw: unknown) {
+function toItems(raw: unknown, defaultStatus?: string) {
   if (!Array.isArray(raw)) return [];
   return raw
     .map((a) => normaliseCardItem(a, 'anime'))
@@ -17,11 +17,12 @@ function toItems(raw: unknown) {
       slug:   c!.slug,
       title:  c!.title,
       poster: c!.poster,
-      status: c!.status,
+      // Use defaultStatus if card has no status (e.g. for "Terbaru" section)
+      status: c!.status || defaultStatus || '',
       type:   c!.typeLabel,
       score:  c!.score as string | number | undefined,
       meta:   c!.meta,
-      href:   c!.href,   // /stream/anime/... or /detail/anime/...
+      href:   c!.href,
     }));
 }
 
@@ -39,7 +40,7 @@ export default function AnimePage() {
 
       <SectionRow
         title="Terbaru & Ongoing"
-        items={toItems(terbaru.data)}
+        items={toItems(terbaru.data, 'Ongoing')}
         loading={terbaru.loading}
         error={terbaru.error}
         contentType="anime"
@@ -59,7 +60,7 @@ export default function AnimePage() {
       />
       <SectionRow
         title="Anime Movie"
-        items={toItems(movies.data)}
+        items={toItems(movies.data, 'Movie')}
         loading={movies.loading}
         error={movies.error}
         contentType="anime"
@@ -69,7 +70,7 @@ export default function AnimePage() {
       />
       <SectionRow
         title="Donghua Terbaru"
-        items={toItems(donghua.data)}
+        items={toItems(donghua.data, 'Ongoing')}
         loading={donghua.loading}
         error={donghua.error}
         contentType="anime"
