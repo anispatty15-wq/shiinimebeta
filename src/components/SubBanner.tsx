@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { X, Youtube, Bell } from 'lucide-react';
 import { clsx } from 'clsx';
 
-const CHANNEL_URL  = 'https://www.youtube.com/watch?v=r7iv6KPxLQI&list=PLBFDkubfUiBo
-const CHANNEL_NAME = 'AnzzzSenpai
+const CHANNEL_URL  = 'https://www.youtube.com/watch?v=r7iv6KPxLQI&list=PLBFDkubfUiBo';
+const CHANNEL_NAME = 'AnzzzSenpai';
 const DISMISS_KEY  = 'Anzzzmissed';
 const SHOW_DELAY   = 5_000;
 const AUTO_HIDE    = 15_000;
@@ -15,7 +15,8 @@ function wasDismissedRecently(): boolean {
   if (typeof window === 'undefined') return true;
   try {
     const ts = Number(localStorage.getItem(DISMISS_KEY) ?? '0');
-    return Date.now() - ts < 7 * 24 * 60 * 60 * 1000;
+    // Muncul lagi setiap 30 menit
+    return Date.now() - ts < 30 * 60 * 1000;
   } catch { return false; }
 }
 
@@ -70,7 +71,7 @@ export default function SubBanner() {
         <div className="pointer-events-none select-none mb-1" aria-hidden>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/character-dance.gif"
+            src="/09b085a6b0b33a9a9c8529a3d2ee1914.gif"
             alt="dancing character"
             className="w-20 h-20 object-contain drop-shadow-lg"
             style={{ imageRendering: 'auto' }}
