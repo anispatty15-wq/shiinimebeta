@@ -6,6 +6,7 @@ import BottomNav     from '@/components/BottomNav';
 import SubBanner     from '@/components/SubBanner';
 import FloatingLinks from '@/components/FloatingLinks';
 import AntiInspect   from '@/components/AntiInspect';
+import PageLoader    from '@/components/PageLoader';
 import { BookmarkProvider } from '@/context/BookmarkContext';
 import { HistoryProvider }  from '@/context/HistoryContext';
 import { AuthProvider }     from '@/context/AuthContext';
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="id" className="dark">
       <body className="bg-bg text-primary antialiased">
         <AntiInspect />
+        <PageLoader />
         <AuthProvider>
           <HistoryProvider>
             <BookmarkProvider>
