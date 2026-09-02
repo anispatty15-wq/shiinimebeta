@@ -16,6 +16,7 @@ const SLIDES = [
   { src: '/home 1.gif', alt: 'Anime character 1' },
   { src: '/home 2.gif', alt: 'Anime character 2' },
   { src: '/home 3.gif', alt: 'Anime character 3' },
+  { src: '/home 4.gif', alt: 'Anime character 4' },
 ];
 
 const INTERVAL = 4_000;
