@@ -8,6 +8,7 @@ import SectionRow from '@/components/SectionRow';
 import { SkeletonBanner } from '@/components/SkeletonLoader';
 import { normaliseCardItem } from '@/utils/slugHelpers';
 import HeroBanner from '@/components/HeroBanner';
+import TopBanner from '@/components/TopBanner';
 
 function toItems(raw: unknown, defaultStatus?: string) {
   if (!Array.isArray(raw)) return [];
@@ -81,16 +82,14 @@ export default function HomePage() {
         </h2>
       </div>
 
-      <SectionRow
-        title="Top Anime"
-        items={toItems(animeHome.data)}
-        loading={animeHome.loading}
-        error={animeHome.error}
-        contentType="anime"
-        basePath="/stream/anime"
-        moreHref="/anime"
-        accent="cyan"
-      />
+      <div className="px-4">
+        <TopBanner
+          title="Top Anime"
+          items={toItems(animeHome.data)}
+          basePath="/stream/anime"
+          accentColor="cyan"
+        />
+      </div>
 
       {/* Donghua Section */}
       <div className="px-4 mb-6 mt-12">
@@ -99,16 +98,14 @@ export default function HomePage() {
         </h2>
       </div>
 
-      <SectionRow
-        title="Top Donghua"
-        items={toItems(donghuaHome.data, 'Ongoing')}
-        loading={donghuaHome.loading}
-        error={donghuaHome.error}
-        contentType="anime"
-        basePath="/stream/anime"
-        moreHref="/donghua"
-        accent="yellow-400"
-      />
+      <div className="px-4">
+        <TopBanner
+          title="Top Donghua"
+          items={toItems(donghuaHome.data, 'Ongoing')}
+          basePath="/stream/anime"
+          accentColor="yellow-400"
+        />
+      </div>
 
       {/* Hentai Section - LOCKED (18+ only) */}
       <div className="px-4 mb-6 mt-12">

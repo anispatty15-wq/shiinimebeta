@@ -7,6 +7,7 @@ import { useApi } from '@/hooks/useApi';
 import SectionRow from '@/components/SectionRow';
 import { SkeletonBanner } from '@/components/SkeletonLoader';
 import { normaliseCardItem } from '@/utils/slugHelpers';
+import TopBanner from '@/components/TopBanner';
 
 function toItems(raw: unknown, defaultStatus?: string) {
   if (!Array.isArray(raw)) return [];
@@ -44,16 +45,14 @@ export default function AnimePage() {
         </h2>
       </div>
 
-      <SectionRow
-        title="Top Anime"
-        items={toItems(home.data)}
-        loading={home.loading}
-        error={home.error}
-        contentType="anime"
-        basePath="/stream/anime"
-        moreHref="/anime/browse"
-        accent="cyan"
-      />
+      <div className="px-4">
+        <TopBanner
+          title="Top Anime"
+          items={toItems(home.data)}
+          basePath="/stream/anime"
+          accentColor="cyan"
+        />
+      </div>
 
       <div className="mt-8">
         <SectionRow

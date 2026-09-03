@@ -7,6 +7,7 @@ import { DonghuaAPI } from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
 import { normaliseCardItem } from '@/utils/slugHelpers';
 import { SkeletonBanner } from '@/components/SkeletonLoader';
+import TopBanner from '@/components/TopBanner';
 
 function toItems(raw: unknown, defaultStatus?: string) {
   if (!Array.isArray(raw)) return [];
@@ -49,7 +50,17 @@ export default function DonghuaPage() {
         </h2>
       </div>
 
-      <div className="max-w-screen-xl mx-auto px-4 space-y-8">
+      <div className="max-w-screen-xl mx-auto px-4">
+        {/* Popular - ini yang ada data */}
+        <TopBanner
+          title="Top Donghua"
+          items={toItems(homeData.data)}
+          basePath="/stream/anime"
+          accentColor="yellow-400"
+        />
+      </div>
+
+      <div className="max-w-screen-xl mx-auto px-4 space-y-8 mt-8">
         {!hasData && !isLoading && (
           <div className="text-center py-12 bg-surface rounded-app border border-border">
             <div className="text-6xl mb-4">🐉</div>
@@ -62,45 +73,29 @@ export default function DonghuaPage() {
           </div>
         )}
 
-        {/* Popular - ini yang ada data */}
+        {/* Latest Updates */}
         <SectionRow
-          title="Top Donghua"
-          items={toItems(homeData.data)}
-          loading={homeData.loading}
-          error={homeData.error}
+          title="Update Terbaru"
+          items={toItems(latestData.data, 'Ongoing')}
+          loading={latestData.loading}
+          error={latestData.error}
           contentType="anime"
           basePath="/stream/anime"
-          moreHref="/donghua/browse"
+          moreHref="/donghua/latest"
           accent="yellow-400"
         />
 
-        {/* Latest Updates */}
-        <div className="mt-8">
-          <SectionRow
-            title="Update Terbaru"
-            items={toItems(latestData.data, 'Ongoing')}
-            loading={latestData.loading}
-            error={latestData.error}
-            contentType="anime"
-            basePath="/stream/anime"
-            moreHref="/donghua/latest"
-            accent="yellow-400"
-          />
-        </div>
-
         {/* Ongoing */}
-        <div className="mt-8">
-          <SectionRow
-            title="Sedang Tayang"
-            items={toItems(ongoingData.data, 'Ongoing')}
-            loading={ongoingData.loading}
-            error={ongoingData.error}
-            contentType="anime"
-            basePath="/stream/anime"
-            moreHref="/donghua/ongoing"
-            accent="yellow-400"
-          />
-        </div>
+        <SectionRow
+          title="Sedang Tayang"
+          items={toItems(ongoingData.data, 'Ongoing')}
+          loading={ongoingData.loading}
+          error={ongoingData.error}
+          contentType="anime"
+          basePath="/stream/anime"
+          moreHref="/donghua/ongoing"
+          accent="yellow-400"
+        />
       </div>
     </div>
   );
