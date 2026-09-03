@@ -14,7 +14,7 @@ import {
   ChevronDown, ChevronUp, Star,
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { AnimeAPI, HentaiAPI, ComicAPI } from '@/lib/api';
+import { AnimeAPI, DonghuaAPI, HentaiAPI, ComicAPI } from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
 import { useBookmarkToggle } from '@/context/BookmarkContext';
 import { SkeletonDetail } from '@/components/SkeletonLoader';
@@ -53,24 +53,26 @@ export default function DetailPage() {
   const contentType = (type as ContentType) ?? 'anime';
 
   // ── Fetch detail based on type ─────────────────────────────
-  const animeFetch  = useApi(useCallback(() => AnimeAPI.getDetail(slug ?? ''),  [slug]), [slug], null, contentType !== 'anime');
-  const hentaiFetch = useApi(useCallback(() => HentaiAPI.getDetail(slug ?? ''), [slug]), [slug], null, contentType !== 'hentai');
-  const comicFetch  = useApi(useCallback(() => ComicAPI.getDetail(slug ?? ''),  [slug]), [slug], null, contentType !== 'comic');
+  const animeFetch   = useApi(useCallback(() => AnimeAPI.getDetail(slug ?? ''),   [slug]), [slug], null, contentType !== 'anime');
+  const donghuaFetch = useApi(useCallback(() => DonghuaAPI.getDetail(slug ?? ''), [slug]), [slug], null, contentType !== 'donghua');
+  const hentaiFetch  = useApi(useCallback(() => HentaiAPI.getDetail(slug ?? ''),  [slug]), [slug], null, contentType !== 'hentai');
+  const comicFetch   = useApi(useCallback(() => ComicAPI.getDetail(slug ?? ''),   [slug]), [slug], null, contentType !== 'comic');
 
-  const loading = animeFetch.loading || hentaiFetch.loading || comicFetch.loading;
-  const error   = animeFetch.error   || hentaiFetch.error   || comicFetch.error;
+  const loading = animeFetch.loading || donghuaFetch.loading || hentaiFetch.loading || comicFetch.loading;
+  const error   = animeFetch.error   || donghuaFetch.error   || hentaiFetch.error   || comicFetch.error;
 
   // ── Type-safe data extraction ──────────────────────────────
-  const animeData  = contentType === 'anime'  ? (animeFetch.data  as AnimeDetail  | null) : null;
-  const hentaiData = contentType === 'hentai' ? (hentaiFetch.data as HentaiDetail | null) : null;
-  const comicData  = contentType === 'comic'  ? (comicFetch.data  as ComicDetail  | null) : null;
+  const animeData   = contentType === 'anime'   ? (animeFetch.data   as AnimeDetail  | null) : null;
+  const donghuaData = contentType === 'donghua' ? (donghuaFetch.data as AnimeDetail  | null) : null; // Donghua uses same structure as anime
+  const hentaiData  = contentType === 'hentai'  ? (hentaiFetch.data  as HentaiDetail | null) : null;
+  const comicData   = contentType === 'comic'   ? (comicFetch.data   as ComicDetail  | null) : null;
 
-  const title    = animeData?.title  ?? hentaiData?.title  ?? comicData?.title  ?? '';
-  const poster   = animeData?.poster ?? hentaiData?.poster ?? comicData?.poster ?? '';
-  const synopsis = animeData?.synopsis ?? hentaiData?.synopsis ?? comicData?.synopsis ?? '';
-  const genres   = animeData?.genres ?? [];
+  const title    = animeData?.title  ?? donghuaData?.title  ?? hentaiData?.title  ?? comicData?.title  ?? '';
+  const poster   = animeData?.poster ?? donghuaData?.poster ?? hentaiData?.poster ?? comicData?.poster ?? '';
+  const synopsis = animeData?.synopsis ?? donghuaData?.synopsis ?? hentaiData?.synopsis ?? comicData?.synopsis ?? '';
+  const genres   = animeData?.genres ?? donghuaData?.genres ?? [];
 
-  const episodeList = animeData?.episode_list  ?? hentaiData?.episode_list ?? [];
+  const episodeList = animeData?.episode_list ?? donghuaData?.episode_list ?? hentaiData?.episode_list ?? [];
   const chapterList = comicData?.chapters ?? [];
 
   const allItems = contentType === 'comic' ? chapterList : episodeList;

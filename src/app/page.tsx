@@ -10,10 +10,10 @@ import { normaliseCardItem } from '@/utils/slugHelpers';
 import HeroBanner from '@/components/HeroBanner';
 import TopBanner from '@/components/TopBanner';
 
-function toItems(raw: unknown, defaultStatus?: string) {
+function toItems(raw: unknown, defaultStatus?: string, contentType: 'anime' | 'donghua' = 'anime') {
   if (!Array.isArray(raw)) return [];
   return raw
-    .map((a) => normaliseCardItem(a, 'anime'))
+    .map((a) => normaliseCardItem(a, contentType))
     .filter(Boolean)
     .map((c) => ({
       slug:   c!.slug,
@@ -101,7 +101,7 @@ export default function HomePage() {
       <div className="px-4">
         <TopBanner
           title="Top Donghua"
-          items={toItems(donghuaHome.data, 'Ongoing')}
+          items={toItems(donghuaHome.data, 'Ongoing', 'donghua')}
           basePath="/stream/anime"
           accentColor="yellow-400"
         />

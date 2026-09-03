@@ -11,7 +11,7 @@ import { SkeletonBanner } from '@/components/SkeletonLoader';
 function toItems(raw: unknown, defaultStatus?: string) {
   if (!Array.isArray(raw)) return [];
   return raw
-    .map((a) => normaliseCardItem(a, 'anime'))
+    .map((a) => normaliseCardItem(a, 'donghua'))
     .filter(Boolean)
     .map((c) => ({
       slug:   c!.slug,
