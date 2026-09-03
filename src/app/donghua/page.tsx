@@ -1,87 +1,42 @@
 // src/app/donghua/page.tsx
+'use client';
+
+import { useCallback } from 'react';
 import { Metadata } from 'next';
 import HeroBanner from '@/components/HeroBanner';
-import MediaGrid from '@/components/MediaGrid';
-import { MediaCard } from '@/types/media';
+import SectionRow from '@/components/SectionRow';
+import { DonghuaAPI } from '@/lib/api';
+import { useApi } from '@/hooks/useApi';
+import { normaliseCardItem } from '@/utils/slugHelpers';
 
-export const metadata: Metadata = {
-  title: 'Donghua',
-  description: 'Nonton donghua (anime China) subtitle Indonesia terbaru',
-};
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://api.shiiinime.my.id';
-
-async function getDonghuaHome() {
-  try {
-    const res = await fetch(`${API_BASE}/anime/donghua/home/1`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json',
-      },
-      next: { revalidate: 3600 } // Cache 1 hour
-    });
-    if (!res.ok) {
-      console.error('Donghua home error:', res.status);
-      return [];
-    }
-    const json = await res.json();
-    return json.data || [];
-  } catch (error) {
-    console.error('Error fetching donghua home:', error);
-    return [];
-  }
+function toItems(raw: unknown, defaultStatus?: string) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((a) => normaliseCardItem(a, 'anime'))
+    .filter(Boolean)
+    .map((c) => ({
+      slug:   c!.slug,
+      title:  c!.title,
+      poster: c!.poster,
+      status: c!.status || defaultStatus || '',
+      type:   c!.typeLabel,
+      score:  c!.score as string | number | undefined,
+      meta:   c!.meta,
+      date:   c!.date,
+      href:   c!.href,
+    }));
 }
 
-async function getDonghuaOngoing() {
-  try {
-    const res = await fetch(`${API_BASE}/anime/donghua/ongoing/1`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json',
-      },
-      next: { revalidate: 1800 } // Cache 30 minutes
-    });
-    if (!res.ok) {
-      console.error('Donghua ongoing error:', res.status);
-      return [];
-    }
-    const json = await res.json();
-    return json.data || [];
-  } catch (error) {
-    console.error('Error fetching donghua ongoing:', error);
-    return [];
-  }
-}
+export default function DonghuaPage() {
+  const latestData = useApi(useCallback(() => DonghuaAPI.getLatest(), []), []);
+  const ongoingData = useApi(useCallback(() => DonghuaAPI.getOngoing(), []), []);
+  const homeData = useApi(useCallback(() => DonghuaAPI.getHome(), []), []);
 
-async function getDonghuaLatest() {
-  try {
-    const res = await fetch(`${API_BASE}/anime/donghua/latest/1`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json',
-      },
-      next: { revalidate: 900 } // Cache 15 minutes
-    });
-    if (!res.ok) {
-      console.error('Donghua latest error:', res.status);
-      return [];
-    }
-    const json = await res.json();
-    return json.data || [];
-  } catch (error) {
-    console.error('Error fetching donghua latest:', error);
-    return [];
-  }
-}
-
-export default async function DonghuaPage() {
-  const [homeData, ongoingData, latestData] = await Promise.all([
-    getDonghuaHome(),
-    getDonghuaOngoing(),
-    getDonghuaLatest(),
-  ]);
-
-  const hasData = homeData.length > 0 || ongoingData.length > 0 || latestData.length > 0;
+  const hasData = (latestData.data && latestData.data.length > 0) ||
+                  (ongoingData.data && ongoingData.data.length > 0) ||
+                  (homeData.data && homeData.data.length > 0);
+  
+  const isLoading = latestData.loading || ongoingData.loading || homeData.loading;
 
   return (
     <div className="min-h-screen pb-20 md:pb-0">
@@ -93,7 +48,7 @@ export default async function DonghuaPage() {
       />
 
       <div className="max-w-screen-xl mx-auto px-4 py-6 space-y-8">
-        {!hasData && (
+        {!hasData && !isLoading && (
           <div className="text-center py-12 bg-surface rounded-app border border-border">
             <div className="text-6xl mb-4">🐉</div>
             <h3 className="text-lg font-bold text-primary mb-2">
@@ -106,52 +61,40 @@ export default async function DonghuaPage() {
         )}
 
         {/* Latest Updates */}
-        {latestData.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-primary">
-                Update Terbaru
-              </h2>
-              <a
-                href="/donghua/latest"
-                className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors"
-              >
-                Lihat Semua →
-              </a>
-            </div>
-            <MediaGrid items={latestData} type="donghua" />
-          </section>
-        )}
+        <SectionRow
+          title="Update Terbaru"
+          items={toItems(latestData.data, 'Ongoing')}
+          loading={latestData.loading}
+          error={latestData.error}
+          contentType="anime"
+          basePath="/stream/anime"
+          moreHref="/donghua/latest"
+          accent="yellow-400"
+        />
 
         {/* Ongoing */}
-        {ongoingData.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-primary">
-                Sedang Tayang
-              </h2>
-              <a
-                href="/donghua/ongoing"
-                className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors"
-              >
-                Lihat Semua →
-              </a>
-            </div>
-            <MediaGrid items={ongoingData} type="donghua" />
-          </section>
-        )}
+        <SectionRow
+          title="Sedang Tayang"
+          items={toItems(ongoingData.data, 'Ongoing')}
+          loading={ongoingData.loading}
+          error={ongoingData.error}
+          contentType="anime"
+          basePath="/stream/anime"
+          moreHref="/donghua/ongoing"
+          accent="yellow-400"
+        />
 
         {/* Popular/Home */}
-        {homeData.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-primary">
-                Populer
-              </h2>
-            </div>
-            <MediaGrid items={homeData} type="donghua" />
-          </section>
-        )}
+        <SectionRow
+          title="Populer"
+          items={toItems(homeData.data)}
+          loading={homeData.loading}
+          error={homeData.error}
+          contentType="anime"
+          basePath="/stream/anime"
+          moreHref="/donghua/browse"
+          accent="yellow-400"
+        />
       </div>
     </div>
   );

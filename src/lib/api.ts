@@ -428,6 +428,22 @@ export const AnimeAPI = {
   getEpisode: (slug: string)     => safeCall((ax) => ax.get(`/anime/animekompi/episode/${slug}`), parseAnimeEpisodeData, FALLBACK_ANIME_EP),
 };
 
+// ── DONGHUA ───────────────────────────────────────────────────
+export const DonghuaAPI = {
+  getHome:     (page = 1) => safeCall((ax) => ax.get('/anime/donghua/home',     { params: { page } }), parseMediaList, FALLBACK_LIST),
+  getOngoing:  (page = 1) => safeCall((ax) => ax.get('/anime/donghua/ongoing',  { params: { page } }), parseMediaList, FALLBACK_LIST),
+  getCompleted:(page = 1) => safeCall((ax) => ax.get('/anime/donghua/completed',{ params: { page } }), parseMediaList, FALLBACK_LIST),
+  getLatest:   (page = 1) => safeCall((ax) => ax.get('/anime/donghua/latest',   { params: { page } }), parseMediaList, FALLBACK_LIST),
+  getSchedule: ()         => safeCall((ax) => ax.get('/anime/donghua/schedule'), (r) => unwrap(r) ?? {}, {}),
+  getGenres:   ()         => safeCall((ax) => ax.get('/anime/donghua/genres'),   parseMediaList, FALLBACK_LIST),
+  getByGenre:  (slug: string, page = 1) => safeCall((ax) => ax.get(`/anime/donghua/genres/${slug}`,  { params: { page } }), parseMediaList, FALLBACK_LIST),
+  getByLetter: (slug: string, page = 1) => safeCall((ax) => ax.get(`/anime/donghua/az-list/${slug}`, { params: { page } }), parseMediaList, FALLBACK_LIST),
+  getBySeason: (year: string)           => safeCall((ax) => ax.get(`/anime/donghua/seasons/${year}`), parseMediaList, FALLBACK_LIST),
+  search:      (q: string, page = 1)    => safeCall((ax) => ax.get(`/anime/donghua/search/${encodeURIComponent(q.trim())}`, { params: { page } }), parseMediaList, FALLBACK_LIST),
+  getDetail:   (slug: string)           => safeCall((ax) => ax.get(`/anime/donghua/detail/${slug}`),  parseAnimeDetail,      FALLBACK_ANIME_DETAIL),
+  getEpisode:  (slug: string)           => safeCall((ax) => ax.get(`/anime/donghua/episode/${slug}`), parseAnimeEpisodeData, FALLBACK_ANIME_EP),
+};
+
 // ── HENTAI ────────────────────────────────────────────────────
 export const HentaiAPI = {
   getHome:        ()           => safeCall((ax) => ax.get('/anime/nekopoi/home'),                                  parseMediaList, FALLBACK_LIST),

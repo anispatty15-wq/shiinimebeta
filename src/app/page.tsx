@@ -2,7 +2,7 @@
 // src/app/page.tsx — Home Page (All Content Types)
 
 import { useCallback } from 'react';
-import { AnimeAPI } from '@/lib/api';
+import { AnimeAPI, DonghuaAPI } from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
 import SectionRow from '@/components/SectionRow';
 import { SkeletonBanner } from '@/components/SkeletonLoader';
@@ -32,8 +32,9 @@ export default function HomePage() {
   const animeTerbaru = useApi(useCallback(() => AnimeAPI.getTerbaru(), []), []);
   const animeHome = useApi(useCallback(() => AnimeAPI.getHome(), []), []);
   
-  // Donghua sections
-  const donghuaTerbaru = useApi(useCallback(() => AnimeAPI.getDonghua(), []), []);
+  // Donghua sections (using new DonghuaAPI)
+  const donghuaLatest = useApi(useCallback(() => DonghuaAPI.getLatest(), []), []);
+  const donghuaHome = useApi(useCallback(() => DonghuaAPI.getHome(), []), []);
   
   // Movies
   const movies = useApi(useCallback(() => AnimeAPI.getMovies(), []), []);
@@ -88,9 +89,20 @@ export default function HomePage() {
 
       <SectionRow
         title="Donghua Terbaru"
-        items={toItems(donghuaTerbaru.data, 'Ongoing')}
-        loading={donghuaTerbaru.loading}
-        error={donghuaTerbaru.error}
+        items={toItems(donghuaLatest.data, 'Ongoing')}
+        loading={donghuaLatest.loading}
+        error={donghuaLatest.error}
+        contentType="anime"
+        basePath="/stream/anime"
+        moreHref="/donghua"
+        accent="yellow-400"
+      />
+
+      <SectionRow
+        title="Donghua Populer"
+        items={toItems(donghuaHome.data)}
+        loading={donghuaHome.loading}
+        error={donghuaHome.error}
         contentType="anime"
         basePath="/stream/anime"
         moreHref="/donghua"
