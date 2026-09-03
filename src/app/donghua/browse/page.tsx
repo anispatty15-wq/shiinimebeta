@@ -7,7 +7,7 @@ import { Search, Filter, Calendar } from 'lucide-react';
 import MediaGrid from '@/components/MediaGrid';
 import { MediaCard } from '@/types/media';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://api.shiiinime.my.id';
+const API_BASE = 'https://www.sankavollerei.web.id';
 
 // A-Z Letters
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');

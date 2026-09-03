@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: 'Jadwal tayang donghua (anime China) terbaru',
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://api.shiiinime.my.id';
+const API_BASE = 'https://www.sankavollerei.web.id';
 
 interface ScheduleItem {
   title: string;
