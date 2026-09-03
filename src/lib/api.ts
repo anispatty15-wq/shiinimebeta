@@ -90,6 +90,18 @@ function unwrap<T>(raw: unknown): T {
   return raw as T;
 }
 
+/** Unwrap Donghua response which has { status, latest_release } structure */
+function unwrapDonghua(raw: unknown): unknown[] {
+  const env = raw as { status: string; latest_release?: unknown[] } | null;
+  if (env && typeof env === 'object') {
+    // Try latest_release first (for donghua)
+    if (Array.isArray(env.latest_release)) return env.latest_release;
+    // Fall back to data field
+    if ('data' in env && Array.isArray(env.data)) return env.data as unknown[];
+  }
+  return Array.isArray(raw) ? raw : [];
+}
+
 /** Safely coerce a value to string */
 function str(v: unknown, fallback = ''): string {
   if (v == null) return fallback;
@@ -395,6 +407,27 @@ function parseMediaList(raw: unknown): MediaCard[] {
   return mapArr(arr, parseMediaCard);
 }
 
+function parseDonghuaList(raw: unknown): MediaCard[] {
+  const arr = unwrapDonghua(raw);
+  return mapArr(arr, (item) => {
+    if (!item || typeof item !== 'object') return null;
+    const o = item as Record<string, unknown>;
+    const slug = str(o.slug ?? o.id ?? '');
+    if (!slug) return null;
+    return {
+      slug,
+      title:   str(o.title ?? o.name, '(Tanpa Judul)'),
+      poster:  str(o.poster ?? o.image ?? o.cover ?? o.thumbnail),
+      type:    str(o.type ?? 'Donghua'),
+      status:  str(o.status),
+      score:   o.score != null ? String(o.score) : undefined,
+      episode: o.current_episode != null ? String(o.current_episode) : (o.episode != null ? String(o.episode) : undefined),
+      chapter: o.chapter != null ? String(o.chapter) : undefined,
+      date:    str(o.date),
+    };
+  });
+}
+
 // ─────────────────────────────────────────────────────────────
 // Public API functions
 // ─────────────────────────────────────────────────────────────
@@ -430,16 +463,16 @@ export const AnimeAPI = {
 
 // ── DONGHUA ───────────────────────────────────────────────────
 export const DonghuaAPI = {
-  getHome:     (page = 1) => safeCall((ax) => ax.get('/anime/donghua/home',     { params: { page } }), parseMediaList, FALLBACK_LIST),
-  getOngoing:  (page = 1) => safeCall((ax) => ax.get('/anime/donghua/ongoing',  { params: { page } }), parseMediaList, FALLBACK_LIST),
-  getCompleted:(page = 1) => safeCall((ax) => ax.get('/anime/donghua/completed',{ params: { page } }), parseMediaList, FALLBACK_LIST),
-  getLatest:   (page = 1) => safeCall((ax) => ax.get('/anime/donghua/latest',   { params: { page } }), parseMediaList, FALLBACK_LIST),
+  getHome:     (page = 1) => safeCall((ax) => ax.get('/anime/donghua/home',     { params: { page } }), parseDonghuaList, FALLBACK_LIST),
+  getOngoing:  (page = 1) => safeCall((ax) => ax.get('/anime/donghua/ongoing',  { params: { page } }), parseDonghuaList, FALLBACK_LIST),
+  getCompleted:(page = 1) => safeCall((ax) => ax.get('/anime/donghua/completed',{ params: { page } }), parseDonghuaList, FALLBACK_LIST),
+  getLatest:   (page = 1) => safeCall((ax) => ax.get('/anime/donghua/latest',   { params: { page } }), parseDonghuaList, FALLBACK_LIST),
   getSchedule: ()         => safeCall((ax) => ax.get('/anime/donghua/schedule'), (r) => unwrap(r) ?? {}, {}),
-  getGenres:   ()         => safeCall((ax) => ax.get('/anime/donghua/genres'),   parseMediaList, FALLBACK_LIST),
-  getByGenre:  (slug: string, page = 1) => safeCall((ax) => ax.get(`/anime/donghua/genres/${slug}`,  { params: { page } }), parseMediaList, FALLBACK_LIST),
-  getByLetter: (slug: string, page = 1) => safeCall((ax) => ax.get(`/anime/donghua/az-list/${slug}`, { params: { page } }), parseMediaList, FALLBACK_LIST),
-  getBySeason: (year: string)           => safeCall((ax) => ax.get(`/anime/donghua/seasons/${year}`), parseMediaList, FALLBACK_LIST),
-  search:      (q: string, page = 1)    => safeCall((ax) => ax.get(`/anime/donghua/search/${encodeURIComponent(q.trim())}`, { params: { page } }), parseMediaList, FALLBACK_LIST),
+  getGenres:   ()         => safeCall((ax) => ax.get('/anime/donghua/genres'),   parseDonghuaList, FALLBACK_LIST),
+  getByGenre:  (slug: string, page = 1) => safeCall((ax) => ax.get(`/anime/donghua/genres/${slug}`,  { params: { page } }), parseDonghuaList, FALLBACK_LIST),
+  getByLetter: (slug: string, page = 1) => safeCall((ax) => ax.get(`/anime/donghua/az-list/${slug}`, { params: { page } }), parseDonghuaList, FALLBACK_LIST),
+  getBySeason: (year: string)           => safeCall((ax) => ax.get(`/anime/donghua/seasons/${year}`), parseDonghuaList, FALLBACK_LIST),
+  search:      (q: string, page = 1)    => safeCall((ax) => ax.get(`/anime/donghua/search/${encodeURIComponent(q.trim())}`, { params: { page } }), parseDonghuaList, FALLBACK_LIST),
   getDetail:   (slug: string)           => safeCall((ax) => ax.get(`/anime/donghua/detail/${slug}`),  parseAnimeDetail,      FALLBACK_ANIME_DETAIL),
   getEpisode:  (slug: string)           => safeCall((ax) => ax.get(`/anime/donghua/episode/${slug}`), parseAnimeEpisodeData, FALLBACK_ANIME_EP),
 };
