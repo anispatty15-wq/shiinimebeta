@@ -265,6 +265,25 @@ export default function MediaCard({
         >
           {title}
         </p>
+        
+        {/* Episode & Date info */}
+        <div className="mt-1 flex items-center gap-2 text-[0.7rem] text-muted">
+          {item?.episode && (
+            <span className="px-1.5 py-0.5 rounded bg-surface-2 border border-border">
+              {item.episode}
+            </span>
+          )}
+          {item?.date && (
+            <span className="truncate">
+              {new Date(item.date).toLocaleDateString('id-ID', { 
+                day: 'numeric', 
+                month: 'short',
+                year: 'numeric'
+              })}
+            </span>
+          )}
+        </div>
+        
         {item?.meta && (
           <p className="mt-0.5 text-[0.72rem] text-muted truncate">{item.meta}</p>
         )}
