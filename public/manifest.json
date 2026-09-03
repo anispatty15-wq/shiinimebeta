@@ -1,12 +1,14 @@
 {
-  "name": "Shiinime Stream BETA",
+  "name": "Shiinime Stream",
   "short_name": "Shiinime",
   "description": "Streaming anime, hentai, dan baca komik online",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0a0a10",
-  "theme_color": "#00d9ff",
+  "background_color": "#0F0F12",
+  "theme_color": "#00E5FF",
   "orientation": "portrait-primary",
+  "prefer_related_applications": false,
   "gcm_sender_id": "103953800507",
   "icons": [
     {
@@ -25,18 +27,40 @@
   "shortcuts": [
     {
       "name": "Anime",
+      "short_name": "Anime",
+      "description": "Lihat anime terbaru",
       "url": "/",
       "icons": [{ "src": "/icon.svg", "sizes": "any" }]
     },
     {
       "name": "Favorit",
+      "short_name": "Favorit",
+      "description": "Anime favorit kamu",
       "url": "/favorites",
       "icons": [{ "src": "/icon.svg", "sizes": "any" }]
     },
     {
       "name": "Notifikasi",
+      "short_name": "Notifikasi",
+      "description": "Lihat notifikasi",
       "url": "/notifications",
       "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+shiiinime",
+      "url": "/?anime=%s"
     }
   ]
 }

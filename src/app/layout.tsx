@@ -9,6 +9,7 @@ import AntiInspect   from '@/components/AntiInspect';
 import PageLoader    from '@/components/PageLoader';
 import NotificationPrompt from '@/components/NotificationPrompt';
 import NotificationToast from '@/components/NotificationToast';
+import InstallPrompt from '@/components/InstallPrompt';
 import { BookmarkProvider } from '@/context/BookmarkContext';
 import { HistoryProvider }  from '@/context/HistoryContext';
 import { AuthProvider }     from '@/context/AuthContext';
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <SubBanner />
                 <FloatingLinks />
                 <NotificationPrompt />
+                <InstallPrompt />
               </div>
             </BookmarkProvider>
           </HistoryProvider>

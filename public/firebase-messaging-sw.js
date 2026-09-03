@@ -82,17 +82,27 @@ self.addEventListener('notificationclick', (event) => {
     url = clickAction || '/';
   }
 
+  // Make URL absolute
+  const fullUrl = new URL(url, self.location.origin).href;
+
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Check if there's already a window open
+    clients.matchAll({ 
+      type: 'window', 
+      includeUncontrolled: true 
+    }).then((clientList) => {
+      // Check if there's already a window open with the same origin
       for (const client of clientList) {
-        if (client.url === url && 'focus' in client) {
-          return client.focus();
+        // Focus existing window and navigate
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+          return client.focus().then(() => {
+            // Navigate to the URL
+            return client.navigate(fullUrl);
+          });
         }
       }
       // If no window is open, open a new one
       if (clients.openWindow) {
-        return clients.openWindow(url);
+        return clients.openWindow(fullUrl);
       }
     })
   );
