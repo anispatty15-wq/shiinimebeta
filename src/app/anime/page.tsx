@@ -7,7 +7,6 @@ import { useApi } from '@/hooks/useApi';
 import SectionRow from '@/components/SectionRow';
 import { SkeletonBanner } from '@/components/SkeletonLoader';
 import { normaliseCardItem } from '@/utils/slugHelpers';
-import HeroBanner from '@/components/HeroBanner';
 
 function toItems(raw: unknown, defaultStatus?: string) {
   if (!Array.isArray(raw)) return [];
@@ -32,17 +31,14 @@ export default function AnimePage() {
   const home = useApi(useCallback(() => AnimeAPI.getHome(), []), []);
 
   return (
-    <div className="max-w-screen-xl mx-auto py-0">
-      {/* Hero Banner */}
-      <HeroBanner title="Anime" subtitle="Nonton anime subtitle Indonesia terbaru" />
-
+    <div className="max-w-screen-xl mx-auto py-0 pb-20 md:pb-0">
       {home.loading && (
-        <div className="px-4 mb-7"><SkeletonBanner /></div>
+        <div className="px-4 pt-6 mb-7"><SkeletonBanner /></div>
       )}
 
-      <div className="px-4 mb-6 mt-6">
-        <h2 className="text-xl font-bold text-primary mb-4">
-          📺 Top Anime
+      <div className="px-4 pt-6 mb-4">
+        <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
+          <span className="text-cyan">📺</span> Anime
         </h2>
       </div>
 

@@ -49,8 +49,8 @@ export default function HomePage() {
   // Anime sections
   const animeHome = useApi(useCallback(() => AnimeAPI.getHome(), []), []);
   
-  // Donghua sections
-  const donghuaLatest = useApi(useCallback(() => DonghuaAPI.getLatest(), []), []);
+  // Donghua sections - use getHome for data
+  const donghuaHome = useApi(useCallback(() => DonghuaAPI.getHome(), []), []);
   
   // Hentai sections
   const hentaiHome = useApi(useCallback(() => HentaiAPI.getHome(), []), []);
@@ -101,9 +101,9 @@ export default function HomePage() {
 
       <SectionRow
         title="Top Donghua"
-        items={toItems(donghuaLatest.data, 'Ongoing')}
-        loading={donghuaLatest.loading}
-        error={donghuaLatest.error}
+        items={toItems(donghuaHome.data, 'Ongoing')}
+        loading={donghuaHome.loading}
+        error={donghuaHome.error}
         contentType="anime"
         basePath="/stream/anime"
         moreHref="/donghua"
