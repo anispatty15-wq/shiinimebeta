@@ -10,6 +10,7 @@ import { clsx } from 'clsx';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useSearchSuggest } from '@/hooks/useSearchSuggest';
 import { useNotificationsList } from '@/hooks/useNotificationsList';
+import { useTypingEffect } from '@/hooks/useTypingEffect';
 import type { ContentType } from '@/types/media';
 
 const NAV_LINKS = [
@@ -280,6 +281,26 @@ function SearchBox({
   query, setQuery, showDrop, setShowDrop,
   suggestions, inputRef, onSubmit, onSelect, autoFocus,
 }: SearchBoxProps) {
+  // Typing effect for placeholder
+  const searchKeywords = [
+    'One Piece...',
+    'Naruto Shippuden...',
+    'Attack on Titan...',
+    'Demon Slayer...',
+    'Jujutsu Kaisen...',
+    'My Hero Academia...',
+    'Spy x Family...',
+    'Chainsaw Man...',
+    'Tokyo Revengers...',
+    'Bleach...',
+    'Dragon Ball...',
+    'Sword Art Online...',
+    'Death Note...',
+    'Fullmetal Alchemist...',
+    'Hunter x Hunter...',
+  ];
+  const typingText = useTypingEffect(searchKeywords, 120, 60, 2000);
+
   return (
     <div className="relative">
       <form onSubmit={onSubmit} role="search">
@@ -296,7 +317,7 @@ function SearchBox({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => suggestions.length > 0 && setShowDrop(true)}
-            placeholder="Cari…"
+            placeholder={`Search ${typingText}`}
             autoComplete="off"
             autoFocus={autoFocus}
             aria-label="Cari konten"
