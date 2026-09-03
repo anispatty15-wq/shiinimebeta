@@ -1,7 +1,7 @@
 // src/app/donghua/browse/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Filter, Calendar } from 'lucide-react';
 import MediaGrid from '@/components/MediaGrid';
@@ -12,7 +12,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://api.shiiinime.my.i
 // A-Z Letters
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
 
-export default function DonghuaBrowsePage() {
+function DonghuaBrowseContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -241,5 +241,17 @@ export default function DonghuaBrowsePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DonghuaBrowsePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen pb-20 md:pb-0 flex items-center justify-center">
+        <div className="inline-block w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <DonghuaBrowseContent />
+    </Suspense>
   );
 }
