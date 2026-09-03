@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 // ── Content type discriminator ────────────────────────────────
-export type ContentType = 'anime' | 'hentai' | 'comic';
+export type ContentType = 'anime' | 'hentai' | 'comic' | 'donghua';
 
 // ─────────────────────────────────────────────────────────────
 // Generic API envelope

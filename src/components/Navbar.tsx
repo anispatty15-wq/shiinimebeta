@@ -15,6 +15,7 @@ import type { ContentType } from '@/types/media';
 
 const NAV_LINKS = [
   { href: '/',               label: 'Anime'   },
+  { href: '/donghua',        label: 'Donghua' },
   { href: '/hentai',         label: 'Hentai'  },
   { href: '/comic',          label: 'Komik'   },
   { href: '/anime/schedule', label: 'Jadwal'  },
@@ -26,8 +27,9 @@ const NAV_LINKS = [
 ] as const;
 
 function pathToType(p: string): ContentType {
-  if (p.startsWith('/comic'))  return 'comic';
-  if (p.startsWith('/hentai')) return 'hentai';
+  if (p.startsWith('/comic'))   return 'comic';
+  if (p.startsWith('/hentai'))  return 'hentai';
+  if (p.startsWith('/donghua')) return 'donghua';
   return 'anime';
 }
 
@@ -332,9 +334,23 @@ function SearchBox({
     'Lookism...',
   ];
 
+  const donghuaKeywords = [
+    'Battle Through the Heavens...',
+    'Soul Land...',
+    'The King\'s Avatar...',
+    'Perfect World...',
+    'Stellar Transformations...',
+    'Tales of Demons and Gods...',
+    'Martial Universe...',
+    'Wu Geng Ji...',
+    'The Daily Life of the Immortal King...',
+    'Scissor Seven...',
+  ];
+
   const searchKeywords = 
     contentType === 'hentai' ? hentaiKeywords :
     contentType === 'comic' ? comicKeywords :
+    contentType === 'donghua' ? donghuaKeywords :
     animeKeywords;
 
   const typingText = useTypingEffect(searchKeywords, 120, 60, 2000);

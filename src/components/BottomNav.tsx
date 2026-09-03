@@ -35,12 +35,23 @@ function ComicIcon({ active }: { active: boolean }) {
   );
 }
 
+function DonghuaIcon({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" className={clsx('w-5 h-5', active ? 'text-yellow-400' : 'text-muted')} fill="currentColor" aria-hidden>
+      {/* Dragon/Chinese style */}
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z"/>
+      <circle cx="9" cy="9" r="1.5"/>
+      <circle cx="15" cy="9" r="1.5"/>
+    </svg>
+  );
+}
+
 const TABS = [
-  { href: '/',               label: 'Anime',   hentai: false, icon: AnimeIcon,  activeColor: 'text-cyan' },
-  { href: '/hentai',         label: 'Hentai',  hentai: true,  icon: HentaiIcon, activeColor: 'text-pink-400' },
-  { href: '/comic',          label: 'Komik',   hentai: false, icon: ComicIcon,  activeColor: 'text-violet-400' },
-  { href: '/anime/schedule', label: 'Jadwal',  hentai: false, icon: null,       activeColor: 'text-cyan' },
-  { href: '/favorites',      label: 'Favorit', hentai: false, icon: null,       activeColor: 'text-pink-400' },
+  { href: '/',               label: 'Anime',   hentai: false, icon: AnimeIcon,   activeColor: 'text-cyan' },
+  { href: '/donghua',        label: 'Donghua', hentai: false, icon: DonghuaIcon, activeColor: 'text-yellow-400' },
+  { href: '/hentai',         label: 'Hentai',  hentai: true,  icon: HentaiIcon,  activeColor: 'text-pink-400' },
+  { href: '/comic',          label: 'Komik',   hentai: false, icon: ComicIcon,   activeColor: 'text-violet-400' },
+  { href: '/favorites',      label: 'Favorit', hentai: false, icon: null,        activeColor: 'text-pink-400' },
 ] as const;
 
 export default function BottomNav() {
