@@ -15,6 +15,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getLevelFromXP, XP_COMMENT } from '@/lib/xp';
 import { isCommentAllowed } from '@/lib/wordFilter';
 import UserProfilePopup, { type PopupUser } from '@/components/UserProfilePopup';
+import { createReplyNotification } from '@/hooks/useCommentNotifier';
 
 // ── Types ─────────────────────────────────────────────────────
 interface Comment {
@@ -228,9 +229,11 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
 
     setSending(true);
     const lvl = getLevelFromXP(profile.xp ?? 0);
+    const trimmedText = check.cleaned ?? text.trim();
+    
     try {
       await addDoc(collection(db, 'comments', episodeSlug, 'messages'), {
-        text:         check.cleaned ?? text.trim(),
+        text:         trimmedText,
         uid:          user.uid,
         displayName:  profile.displayName,
         photoURL:     profile.photoURL,
@@ -245,6 +248,18 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
         replyToText:  replyTo?.text ?? null,
         createdAt:    serverTimestamp(),
       });
+
+      // Create notification if this is a reply
+      if (replyTo?.id) {
+        await createReplyNotification({
+          episodeSlug,
+          replyToCommentId: replyTo.id,
+          replyAuthorId: user.uid,
+          replyAuthorName: profile.displayName,
+          replyText: trimmedText,
+        });
+      }
+
       setText('');
       setReplyTo(null);
       await awardXP(XP_COMMENT, 0);

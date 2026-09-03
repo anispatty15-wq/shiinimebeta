@@ -24,6 +24,10 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
+import { 
+  createFriendRequestNotification,
+  createFriendAcceptedNotification 
+} from './useCommentNotifier';
 
 export interface User {
   uid: string;
@@ -203,7 +207,7 @@ export function useFriends() {
       }
 
       // Create friend request
-      await addDoc(collection(db, 'friendRequests'), {
+      const requestDoc = await addDoc(collection(db, 'friendRequests'), {
         fromUserId: user.uid,
         fromUserName: user.displayName || 'Anonymous',
         fromUserAvatar: user.photoURL || '',
@@ -211,6 +215,15 @@ export function useFriends() {
         status: 'pending',
         createdAt: serverTimestamp(),
       });
+
+      // Create notification for the recipient
+      await createFriendRequestNotification(
+        user.uid,
+        user.displayName || 'Anonymous',
+        user.photoURL || '',
+        toUserId,
+        requestDoc.id
+      );
 
       await loadSentRequests();
       return true;
@@ -257,6 +270,15 @@ export function useFriends() {
         friendId: user.uid,
         createdAt: serverTimestamp(),
       });
+
+      // Create notification for the requester
+      await createFriendAcceptedNotification(
+        user.uid,
+        user.displayName || 'Anonymous',
+        user.photoURL || '',
+        fromUserId,
+        requestId
+      );
 
       await loadPendingRequests();
       await loadFriends();
