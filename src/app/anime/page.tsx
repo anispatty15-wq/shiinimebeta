@@ -29,6 +29,8 @@ function toItems(raw: unknown, defaultStatus?: string) {
 
 export default function AnimePage() {
   const home = useApi(useCallback(() => AnimeAPI.getHome(), []), []);
+  const terbaru = useApi(useCallback(() => AnimeAPI.getTerbaru(), []), []);
+  const movies = useApi(useCallback(() => AnimeAPI.getMovies(), []), []);
 
   return (
     <div className="max-w-screen-xl mx-auto py-0 pb-20 md:pb-0">
@@ -52,6 +54,32 @@ export default function AnimePage() {
         moreHref="/anime/browse"
         accent="cyan"
       />
+
+      <div className="mt-8">
+        <SectionRow
+          title="Anime Terbaru"
+          items={toItems(terbaru.data, 'Ongoing')}
+          loading={terbaru.loading}
+          error={terbaru.error}
+          contentType="anime"
+          basePath="/stream/anime"
+          moreHref="/anime/terbaru"
+          accent="cyan"
+        />
+      </div>
+
+      <div className="mt-8">
+        <SectionRow
+          title="Anime Movie"
+          items={toItems(movies.data, 'Movie')}
+          loading={movies.loading}
+          error={movies.error}
+          contentType="anime"
+          basePath="/stream/anime"
+          moreHref="/anime/movie"
+          accent="pink"
+        />
+      </div>
     </div>
   );
 }

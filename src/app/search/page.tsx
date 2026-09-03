@@ -5,20 +5,22 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, X } from 'lucide-react';
 import { clsx } from 'clsx';
-import { AnimeAPI, HentaiAPI, ComicAPI, toArray } from '@/lib/api';
+import { AnimeAPI, DonghuaAPI, HentaiAPI, ComicAPI, toArray } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
 import MediaCard from '@/components/MediaCard';
 import { SkeletonGrid } from '@/components/SkeletonLoader';
 import type { ContentType } from '@/types/media';
 
-type Tab = ContentType;
+type Tab = ContentType | 'donghua';
 const TABS: { label: string; value: Tab }[] = [
-  { label: 'Anime',  value: 'anime'  },
-  { label: 'Hentai', value: 'hentai' },
-  { label: 'Komik',  value: 'comic'  },
+  { label: 'Anime',   value: 'anime'   },
+  { label: 'Donghua', value: 'donghua' },
+  { label: 'Hentai',  value: 'hentai'  },
+  { label: 'Komik',   value: 'comic'   },
 ];
 
 function basePath(type: Tab): string {
+  if (type === 'donghua') return '/donghua';
   return `/${type}`;
 }
 
@@ -50,6 +52,9 @@ function SearchContent() {
       let raw: unknown[] = [];
       if (t === 'anime') {
         const r = await AnimeAPI.search(q, 1);
+        raw = toArray(r.data as Parameters<typeof toArray>[0]);
+      } else if (t === 'donghua') {
+        const r = await DonghuaAPI.search(q, 1);
         raw = toArray(r.data as Parameters<typeof toArray>[0]);
       } else if (t === 'hentai') {
         const r = await HentaiAPI.search(q, 1);
@@ -157,7 +162,7 @@ function SearchContent() {
               <MediaCard
                 key={item.slug}
                 item={item}
-                contentType={tab}
+                contentType={tab === 'donghua' ? 'anime' : tab}
                 href={`${basePath(tab)}/${item.slug}`}
               />
             ))}
