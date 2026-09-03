@@ -56,7 +56,7 @@ export default function HomePage() {
   const hentaiHome = useApi(useCallback(() => HentaiAPI.getHome(), []), []);
   
   // Comic sections
-  const comicHome = useApi(useCallback(() => ComicAPI.getHome(), []), []);
+  const comicPopular = useApi(useCallback(() => ComicAPI.getPopular(), []), []);
   const comicLatest = useApi(useCallback(() => ComicAPI.getLatest(), []), []);
   
   // Movies
@@ -75,7 +75,7 @@ export default function HomePage() {
       )}
 
       {/* Anime Section */}
-      <div className="px-4 mb-6">
+      <div className="px-4 mb-6 mt-6">
         <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
           <span className="text-cyan">📺</span> Anime
         </h2>
@@ -117,7 +117,7 @@ export default function HomePage() {
         </h2>
       </div>
 
-      <div className="relative px-4">
+      <div className="relative px-4 mb-8">
         {/* Blurred content behind */}
         <div className="blur-md pointer-events-none">
           <SectionRow
@@ -163,25 +163,27 @@ export default function HomePage() {
 
       <SectionRow
         title="Komik Populer"
-        items={toComicItems(comicHome.data)}
-        loading={comicHome.loading}
-        error={comicHome.error}
+        items={toComicItems(comicPopular.data)}
+        loading={comicPopular.loading}
+        error={comicPopular.error}
         contentType="comic"
         basePath="/read/comic"
         moreHref="/comic"
         accent="violet"
       />
 
-      <SectionRow
-        title="Komik Terbaru"
-        items={toComicItems(comicLatest.data)}
-        loading={comicLatest.loading}
-        error={comicLatest.error}
-        contentType="comic"
-        basePath="/read/comic"
-        moreHref="/comic"
-        accent="violet"
-      />
+      <div className="mt-8">
+        <SectionRow
+          title="Komik Terbaru"
+          items={toComicItems(comicLatest.data)}
+          loading={comicLatest.loading}
+          error={comicLatest.error}
+          contentType="comic"
+          basePath="/read/comic"
+          moreHref="/comic"
+          accent="violet"
+        />
+      </div>
 
       {/* Movies Section */}
       <div className="px-4 mb-6 mt-12">
@@ -190,16 +192,18 @@ export default function HomePage() {
         </h2>
       </div>
 
-      <SectionRow
-        title="Top Movie"
-        items={toItems(movies.data, 'Movie')}
-        loading={movies.loading}
-        error={movies.error}
-        contentType="anime"
-        basePath="/stream/anime"
-        moreHref="/anime/movie"
-        accent="pink"
-      />
+      <div className="mb-20">
+        <SectionRow
+          title="Top Movie"
+          items={toItems(movies.data, 'Movie')}
+          loading={movies.loading}
+          error={movies.error}
+          contentType="anime"
+          basePath="/stream/anime"
+          moreHref="/anime/movie"
+          accent="pink"
+        />
+      </div>
     </div>
   );
 }
