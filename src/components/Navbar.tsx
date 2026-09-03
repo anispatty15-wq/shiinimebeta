@@ -281,8 +281,19 @@ function SearchBox({
   query, setQuery, showDrop, setShowDrop,
   suggestions, inputRef, onSubmit, onSelect, autoFocus,
 }: SearchBoxProps) {
-  // Typing effect for placeholder
-  const searchKeywords = [
+  const pathname = usePathname();
+  
+  // Determine content type based on current path
+  const getContentType = (): ContentType => {
+    if (pathname.startsWith('/comic')) return 'comic';
+    if (pathname.startsWith('/hentai')) return 'hentai';
+    return 'anime';
+  };
+
+  const contentType = getContentType();
+
+  // Different keywords based on content type
+  const animeKeywords = [
     'One Piece...',
     'Naruto Shippuden...',
     'Attack on Titan...',
@@ -293,12 +304,39 @@ function SearchBox({
     'Chainsaw Man...',
     'Tokyo Revengers...',
     'Bleach...',
-    'Dragon Ball...',
-    'Sword Art Online...',
-    'Death Note...',
-    'Fullmetal Alchemist...',
-    'Hunter x Hunter...',
   ];
+
+  const hentaiKeywords = [
+    'Overflow...',
+    'Mankitsu Happening...',
+    'Discipline...',
+    'Euphoria...',
+    'Boku to Misaki-sensei...',
+    'Oni Chichi...',
+    'Helter Skelter...',
+    'Resort Boin...',
+    'Tsun Tsun Maid...',
+    'Kanojo x Kanojo...',
+  ];
+
+  const comicKeywords = [
+    'Solo Leveling...',
+    'Tower of God...',
+    'The Beginning After The End...',
+    'Omniscient Reader...',
+    'Nano Machine...',
+    'Return of the Mount Hua Sect...',
+    'Eleceed...',
+    'The God of High School...',
+    'Noblesse...',
+    'Lookism...',
+  ];
+
+  const searchKeywords = 
+    contentType === 'hentai' ? hentaiKeywords :
+    contentType === 'comic' ? comicKeywords :
+    animeKeywords;
+
   const typingText = useTypingEffect(searchKeywords, 120, 60, 2000);
 
   return (
