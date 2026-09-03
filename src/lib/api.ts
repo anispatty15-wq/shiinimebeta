@@ -140,13 +140,17 @@ function parseMediaCard(raw: unknown): MediaCard | null {
   const o = raw as Record<string, unknown>;
   const slug = str(o.slug ?? o.id ?? '');
   if (!slug) return null;
+  
+  // Try multiple score field names
+  const scoreValue = o.score ?? o.rating ?? o.mal_score ?? o.popularity ?? o.rank;
+  
   return {
     slug,
     title:   str(o.title ?? o.name, '(Tanpa Judul)'),
     poster:  str(o.poster ?? o.image ?? o.cover ?? o.thumbnail),
     type:    str(o.type),
     status:  str(o.status),
-    score:   o.score != null ? String(o.score) : undefined,
+    score:   scoreValue != null ? String(scoreValue) : undefined,
     episode: o.episode != null ? String(o.episode) : undefined,
     chapter: o.chapter != null ? String(o.chapter) : undefined,
     date:    str(o.date),
@@ -198,12 +202,12 @@ function parseAnimeEpisodeData(raw: unknown): AnimeEpisodeData {
       if (!item || typeof item !== 'object') return null;
       const s = item as Record<string, unknown>;
 
-      // If item has a nested servers/links array, flatten it
+      // If item has a nested servers/links array, flatten ALL of them
       const nestedArr = s.servers ?? s.links ?? s.sources ?? s.urls;
       if (Array.isArray(nestedArr) && nestedArr.length > 0) {
-        // Return first nested item (will be flattened below)
         const quality = str(s.quality ?? s.resolution ?? s.name ?? '');
-        return nestedArr.map((n) => {
+        // Map all nested servers and return them (will be flattened)
+        const nested = nestedArr.map((n) => {
           if (!n || typeof n !== 'object') return null;
           const ni = n as Record<string, unknown>;
           const url = str(ni.url ?? ni.link ?? ni.src ?? ni.iframe ?? ni.embed ?? ni.file);
@@ -212,7 +216,8 @@ function parseAnimeEpisodeData(raw: unknown): AnimeEpisodeData {
             name: str(ni.name ?? ni.server ?? ni.host, quality || 'Server'),
             url,
           };
-        }).filter(Boolean)[0] as StreamServer | null;
+        }).filter(Boolean) as StreamServer[];
+        return nested.length > 0 ? nested : null;
       }
 
       const url = str(s.url ?? s.link ?? s.src ?? s.iframe ?? s.embed ?? s.file ?? s.streamUrl);
@@ -221,7 +226,7 @@ function parseAnimeEpisodeData(raw: unknown): AnimeEpisodeData {
         name: str(s.name ?? s.server ?? s.host ?? s.label, 'Server'),
         url,
       };
-    }).filter((s): s is StreamServer => s !== null);
+    }).flat().filter((s): s is StreamServer => s !== null);
   }
 
   // 2. Quality-grouped servers: { qualities:[{name,servers:[{name,url}]}] }
@@ -414,13 +419,17 @@ function parseDonghuaList(raw: unknown): MediaCard[] {
     const o = item as Record<string, unknown>;
     const slug = str(o.slug ?? o.id ?? '');
     if (!slug) return null;
+    
+    // Try multiple score field names
+    const scoreValue = o.score ?? o.rating ?? o.mal_score ?? o.popularity ?? o.rank;
+    
     return {
       slug,
       title:   str(o.title ?? o.name, '(Tanpa Judul)'),
       poster:  str(o.poster ?? o.image ?? o.cover ?? o.thumbnail),
       type:    str(o.type ?? 'Donghua'),
       status:  str(o.status),
-      score:   o.score != null ? String(o.score) : undefined,
+      score:   scoreValue != null ? String(scoreValue) : undefined,
       episode: o.current_episode != null ? String(o.current_episode) : (o.episode != null ? String(o.episode) : undefined),
       chapter: o.chapter != null ? String(o.chapter) : undefined,
       date:    str(o.date),

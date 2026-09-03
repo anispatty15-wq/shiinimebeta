@@ -32,14 +32,19 @@ export default function TopBanner({
   const [currentIndex, setCurrentIndex] = useState(0);
   
   // Sort by score descending and take top 10
-  const topItems = [...items]
-    .filter(item => item.score && parseFloat(String(item.score)) > 0)
-    .sort((a, b) => {
-      const scoreA = parseFloat(String(a.score || 0));
-      const scoreB = parseFloat(String(b.score || 0));
-      return scoreB - scoreA;
-    })
-    .slice(0, 10);
+  // If no items have scores, just take first 10 items as-is
+  const hasScores = items.some(item => item.score && parseFloat(String(item.score)) > 0);
+  
+  const topItems = hasScores
+    ? [...items]
+        .filter(item => item.score && parseFloat(String(item.score)) > 0)
+        .sort((a, b) => {
+          const scoreA = parseFloat(String(a.score || 0));
+          const scoreB = parseFloat(String(b.score || 0));
+          return scoreB - scoreA;
+        })
+        .slice(0, 10)
+    : items.slice(0, 10); // Fallback: just show first 10 without filtering
 
   if (topItems.length === 0) return null;
 
