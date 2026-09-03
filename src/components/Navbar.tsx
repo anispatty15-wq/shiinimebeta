@@ -14,7 +14,8 @@ import { useTypingEffect } from '@/hooks/useTypingEffect';
 import type { ContentType } from '@/types/media';
 
 const NAV_LINKS = [
-  { href: '/',               label: 'Anime'   },
+  { href: '/',               label: 'Home'    },
+  { href: '/anime',          label: 'Anime'   },
   { href: '/donghua',        label: 'Donghua' },
   { href: '/hentai',         label: 'Hentai'  },
   { href: '/comic',          label: 'Komik'   },

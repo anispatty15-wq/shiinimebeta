@@ -47,11 +47,11 @@ function DonghuaIcon({ active }: { active: boolean }) {
 }
 
 const TABS = [
-  { href: '/',               label: 'Anime',   hentai: false, icon: AnimeIcon,   activeColor: 'text-cyan' },
+  { href: '/',               label: 'Home',    hentai: false, icon: null,        activeColor: 'text-cyan' },
+  { href: '/anime',          label: 'Anime',   hentai: false, icon: AnimeIcon,   activeColor: 'text-cyan' },
   { href: '/donghua',        label: 'Donghua', hentai: false, icon: DonghuaIcon, activeColor: 'text-yellow-400' },
   { href: '/hentai',         label: 'Hentai',  hentai: true,  icon: HentaiIcon,  activeColor: 'text-pink-400' },
   { href: '/comic',          label: 'Komik',   hentai: false, icon: ComicIcon,   activeColor: 'text-violet-400' },
-  { href: '/favorites',      label: 'Favorit', hentai: false, icon: null,        activeColor: 'text-pink-400' },
 ] as const;
 
 export default function BottomNav() {
