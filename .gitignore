@@ -42,3 +42,14 @@ next-env.d.ts
 # PWA
 public/sw.js
 public/workbox-*.js
+
+# Capacitor
+android/
+ios/
+.capacitor/
+
+# APK Build
+*.apk
+*.aab
+*.keystore
+keystore.properties

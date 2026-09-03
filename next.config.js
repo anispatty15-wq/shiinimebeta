@@ -10,6 +10,10 @@ const withPWA = require('next-pwa')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'export', // Enable static export untuk Capacitor
+  images: {
+    unoptimized: true, // Required untuk static export
+  },
 
   typescript: { ignoreBuildErrors: true },
   eslint:     { ignoreDuringBuilds: true },
