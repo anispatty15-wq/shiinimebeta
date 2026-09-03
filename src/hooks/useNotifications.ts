@@ -30,6 +30,18 @@ export function useNotifications() {
   // Check if notifications are supported
   useEffect(() => {
     const checkSupport = () => {
+      // Check if running in Median app
+      const isMedianApp = typeof window !== 'undefined' && 
+                         (window as any).ShiiinimeMedian?.isMedianApp();
+      
+      if (isMedianApp) {
+        // Median app always supports notifications
+        setIsSupported(true);
+        setPermission('default'); // Will be checked later
+        return;
+      }
+      
+      // Regular web browser check
       const supported = 
         typeof window !== 'undefined' &&
         'Notification' in window &&
@@ -54,6 +66,30 @@ export function useNotifications() {
     }
 
     try {
+      // Check if running in Median app
+      const isMedianApp = typeof window !== 'undefined' && 
+                         (window as any).ShiiinimeMedian?.isMedianApp();
+      
+      if (isMedianApp) {
+        // Use Median's notification API
+        return new Promise((resolve) => {
+          (window as any).ShiiinimeMedian.requestNotificationPermission((granted: boolean) => {
+            setPermission(granted ? 'granted' : 'denied');
+            if (granted) {
+              // Get Median FCM token
+              const medianToken = (window as any).ShiiinimeMedian.getFCMToken();
+              if (medianToken) {
+                setFcmToken(medianToken);
+                // Save to Firebase
+                saveFCMTokenToBackend(medianToken);
+              }
+            }
+            resolve(granted);
+          });
+        });
+      }
+      
+      // Regular web browser flow
       const result = await Notification.requestPermission();
       setPermission(result);
       
@@ -77,6 +113,34 @@ export function useNotifications() {
     }
 
     try {
+      // Check if running in Median app
+      const isMedianApp = typeof window !== 'undefined' && 
+                         (window as any).ShiiinimeMedian?.isMedianApp();
+      
+      if (isMedianApp) {
+        // Get token from Median
+        const medianToken = (window as any).ShiiinimeMedian.getFCMToken();
+        if (medianToken) {
+          console.log('FCM Token from Median:', medianToken);
+          setFcmToken(medianToken);
+          await saveFCMTokenToBackend(medianToken);
+          return medianToken;
+        }
+        
+        // Token not available yet, listen for event
+        return new Promise((resolve) => {
+          window.addEventListener('medianFCMToken', (event: any) => {
+            const token = event.detail?.token;
+            if (token) {
+              setFcmToken(token);
+              saveFCMTokenToBackend(token);
+              resolve(token);
+            }
+          }, { once: true });
+        });
+      }
+
+      // Regular web browser flow
       // Register service worker first
       const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       console.log('Service Worker registered:', registration);
@@ -95,14 +159,7 @@ export function useNotifications() {
       if (token) {
         console.log('FCM Token obtained:', token);
         setFcmToken(token);
-
-        // Send token to backend
-        const functions = getFunctions(app);
-        const updateToken = httpsCallable(functions, 'updateFCMToken');
-        
-        await updateToken({ fcmToken: token });
-        console.log('FCM token saved to backend');
-
+        await saveFCMTokenToBackend(token);
         return token;
       }
 
@@ -112,6 +169,18 @@ export function useNotifications() {
       return null;
     }
   }, [isSupported, user]);
+
+  // Helper to save FCM token to backend
+  const saveFCMTokenToBackend = async (token: string) => {
+    try {
+      const functions = getFunctions(app);
+      const updateToken = httpsCallable(functions, 'updateFCMToken');
+      await updateToken({ fcmToken: token });
+      console.log('FCM token saved to backend');
+    } catch (error) {
+      console.error('Error saving FCM token to backend:', error);
+    }
+  };
 
   // Listen to foreground messages
   useEffect(() => {
