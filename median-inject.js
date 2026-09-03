@@ -163,18 +163,55 @@
   // 4. OAUTH CALLBACK HANDLING
   // ============================================================================
 
-  // Listen for OAuth callbacks
+  // Detect OAuth redirect back to app
+  window.addEventListener('load', function() {
+    const url = window.location.href;
+    const hash = window.location.hash;
+    
+    // Check if it's Firebase Auth callback
+    if (url.includes('__/auth/handler') || url.includes('firebaseapp.com/__/auth')) {
+      console.log('🔐 OAuth callback detected, processing...');
+      
+      // Show loading indicator
+      document.body.style.backgroundColor = '#0F0F12';
+      const loader = document.createElement('div');
+      loader.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#00E5FF;font-size:16px;text-align:center;';
+      loader.innerHTML = '<div style="width:40px;height:40px;border:4px solid #00E5FF;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div><div>Logging in...</div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
+      document.body.appendChild(loader);
+      
+      // Wait for Firebase to process auth
+      setTimeout(function() {
+        // Redirect back to home or previous page
+        const returnUrl = sessionStorage.getItem('auth_return_url') || '/';
+        sessionStorage.removeItem('auth_return_url');
+        
+        console.log('✅ Auth processed, redirecting to:', returnUrl);
+        window.location.replace(returnUrl);
+      }, 2000);
+      
+      return;
+    }
+    
+    // Save current URL before OAuth (for return after login)
+    if (!url.includes('__/auth/') && !sessionStorage.getItem('auth_return_url')) {
+      sessionStorage.setItem('auth_return_url', window.location.pathname);
+    }
+  });
+
+  // Listen for OAuth callbacks via postMessage
   window.addEventListener('message', function(event) {
     console.log('📨 Message received:', event);
     
     // Check if it's OAuth callback
-    if (event.data && event.data.type === 'oauth-callback') {
-      console.log('✅ OAuth callback received');
+    if (event.data && (event.data.type === 'oauth-callback' || event.data.type === 'firebaseAuthCallback')) {
+      console.log('✅ OAuth callback received via postMessage');
       
       // Reload to complete auth flow
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      setTimeout(function() {
+        const returnUrl = sessionStorage.getItem('auth_return_url') || '/';
+        sessionStorage.removeItem('auth_return_url');
+        window.location.replace(returnUrl);
+      }, 1000);
     }
   });
 

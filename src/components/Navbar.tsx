@@ -92,10 +92,19 @@ export default function Navbar() {
         {/* Logo — always visible, shrink-0 */}
         <Link
           href="/"
-          className="flex items-center gap-1 flex-shrink-0 font-bold text-[1.05rem] tracking-tight"
+          className="flex items-center gap-2 flex-shrink-0 font-bold text-[1.05rem] tracking-tight"
         >
-          <span className="text-primary">Shiiinime</span>
-          <span className="text-cyan ml-1">Stream</span>
+          <Image 
+            src="/logo.png" 
+            alt="Shiiinime Logo" 
+            width={32} 
+            height={32}
+            className="flex-shrink-0"
+          />
+          <div className="flex items-center gap-1">
+            <span className="text-primary">Shiiinime</span>
+            <span className="text-cyan ml-1">Stream</span>
+          </div>
         </Link>
 
         {/* Desktop nav tabs */}

@@ -10,6 +10,7 @@ import PageLoader    from '@/components/PageLoader';
 import NotificationPrompt from '@/components/NotificationPrompt';
 import NotificationToast from '@/components/NotificationToast';
 import InstallPrompt from '@/components/InstallPrompt';
+import OAuthHandler from '@/components/OAuthHandler';
 import { BookmarkProvider } from '@/context/BookmarkContext';
 import { HistoryProvider }  from '@/context/HistoryContext';
 import { AuthProvider }     from '@/context/AuthContext';
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-bg text-primary antialiased">
         <AntiInspect />
         <PageLoader />
+        <OAuthHandler />
         <AuthProvider>
           <HistoryProvider>
             <BookmarkProvider>

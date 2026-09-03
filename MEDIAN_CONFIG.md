@@ -353,6 +353,70 @@ Background: #0F0F12
 3. **Enable JavaScript Bridge** untuk window.open()
 4. **Check OAuth Redirect URLs** sudah benar
 
+### Login Stuck/White Screen Setelah Pencet Masuk
+
+**Problem:** Setelah login Google berhasil, muncul white screen dan tidak kembali ke app.
+
+**Root Cause:** OAuth redirect tidak properly handled oleh Median WebView.
+
+**Solusi:**
+
+#### Option 1: Update JavaScript Injection
+
+Pastikan JavaScript code dari `median-inject.js` sudah di-inject ke Median:
+
+**Advanced** > **JavaScript Code** - paste seluruh isi `median-inject.js`
+
+Code ini akan:
+- ✅ Detect OAuth callback URL
+- ✅ Show loading indicator (tidak white screen)
+- ✅ Auto redirect kembali ke app
+
+#### Option 2: Configure Redirect URLs di Median
+
+**Navigation** > **OAuth Settings**:
+
+```
+OAuth Callback Handling: Custom
+Callback URL Pattern: __/auth/handler
+Action: Stay in WebView
+Post-Callback Action: Reload Page
+```
+
+#### Option 3: Add Custom URL Handling
+
+**Navigation** > **URL Handling**:
+
+```
+Pattern: *__/auth/handler*
+Handling: Stay in WebView
+Loading Screen: Show custom loading (background #0F0F12, spinner #00E5FF)
+After Load: Navigate to /
+```
+
+#### Option 4: Firebase Auth Configuration
+
+Di Firebase Console > Authentication > Settings:
+
+**Authorized domains:**
+- Add: `shiiinimebeta.vercel.app`
+- Add: `median.co` (untuk testing)
+- Add: `localhost` (untuk testing)
+
+**Authorized redirect URIs** (di Google Cloud Console):
+- `https://shiiinimebeta.vercel.app/__/auth/handler`
+- `https://shiiinimeauth.firebaseapp.com/__/auth/handler`
+- `com.shiiinime.app://__/auth/handler` (untuk deep link)
+
+#### Option 5: Test di Browser First
+
+Sebelum test di Median, pastikan login works di browser:
+
+1. Buka website di Chrome Android
+2. Try login Google
+3. Harus berhasil tanpa white screen
+4. If works di browser, then issue is di Median config
+
 ### Notifikasi Tidak Muncul
 
 **Cek:**
