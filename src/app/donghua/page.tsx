@@ -7,7 +7,6 @@ import { DonghuaAPI } from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
 import { normaliseCardItem } from '@/utils/slugHelpers';
 import { SkeletonBanner } from '@/components/SkeletonLoader';
-import TopBanner from '@/components/TopBanner';
 
 function toItems(raw: unknown, defaultStatus?: string) {
   if (!Array.isArray(raw)) return [];
@@ -28,15 +27,13 @@ function toItems(raw: unknown, defaultStatus?: string) {
 }
 
 export default function DonghuaPage() {
-  const homeData = useApi(useCallback(() => DonghuaAPI.getHome(), []), []);
-  const latestData = useApi(useCallback(() => DonghuaAPI.getLatest(), []), []);
   const ongoingData = useApi(useCallback(() => DonghuaAPI.getOngoing(), []), []);
+  const latestData = useApi(useCallback(() => DonghuaAPI.getLatest(), []), []);
 
-  const hasData = (homeData.data && homeData.data.length > 0) ||
-                  (latestData.data && latestData.data.length > 0) ||
-                  (ongoingData.data && ongoingData.data.length > 0);
+  const hasData = (ongoingData.data && ongoingData.data.length > 0) ||
+                  (latestData.data && latestData.data.length > 0);
   
-  const isLoading = homeData.loading || latestData.loading || ongoingData.loading;
+  const isLoading = ongoingData.loading || latestData.loading;
 
   return (
     <div className="min-h-screen pb-20 md:pb-0">
@@ -50,17 +47,7 @@ export default function DonghuaPage() {
         </h2>
       </div>
 
-      <div className="max-w-screen-xl mx-auto px-4">
-        {/* Popular - ini yang ada data */}
-        <TopBanner
-          title="Top Donghua"
-          items={toItems(homeData.data)}
-          basePath="/stream/anime"
-          accentColor="yellow-400"
-        />
-      </div>
-
-      <div className="max-w-screen-xl mx-auto px-4 space-y-8 mt-8">
+      <div className="max-w-screen-xl mx-auto px-4 space-y-8">
         {!hasData && !isLoading && (
           <div className="text-center py-12 bg-surface rounded-app border border-border">
             <div className="text-6xl mb-4">🐉</div>
@@ -73,6 +60,18 @@ export default function DonghuaPage() {
           </div>
         )}
 
+        {/* Ongoing */}
+        <SectionRow
+          title="Donghua Ongoing"
+          items={toItems(ongoingData.data, 'Ongoing')}
+          loading={ongoingData.loading}
+          error={ongoingData.error}
+          contentType="anime"
+          basePath="/stream/anime"
+          moreHref="/donghua/ongoing"
+          accent="yellow-400"
+        />
+
         {/* Latest Updates */}
         <SectionRow
           title="Update Terbaru"
@@ -82,18 +81,6 @@ export default function DonghuaPage() {
           contentType="anime"
           basePath="/stream/anime"
           moreHref="/donghua/latest"
-          accent="yellow-400"
-        />
-
-        {/* Ongoing */}
-        <SectionRow
-          title="Sedang Tayang"
-          items={toItems(ongoingData.data, 'Ongoing')}
-          loading={ongoingData.loading}
-          error={ongoingData.error}
-          contentType="anime"
-          basePath="/stream/anime"
-          moreHref="/donghua/ongoing"
           accent="yellow-400"
         />
       </div>
