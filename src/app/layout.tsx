@@ -19,7 +19,14 @@ export const metadata: Metadata = {
   title:       { default: 'ShiiiNime', template: '%s | ShiiiNime' },
   description: 'Streaming anime, hentai & baca komik online.',
   manifest:    '/manifest.json',
-  icons: { icon: [{ url: '/icon.svg', type: 'image/svg+xml' }, '/favicon.ico'], apple: '/icon.svg' },
+  icons: { 
+    icon: [
+      { url: '/logo.png', type: 'image/png', sizes: '512x512' },
+      { url: '/icon.svg', type: 'image/svg+xml' }
+    ], 
+    apple: '/logo.png',
+    shortcut: '/logo.png'
+  },
   keywords:    ['anime', 'streaming', 'manga', 'komik', 'manhwa'],
 };
 
