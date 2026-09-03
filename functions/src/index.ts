@@ -149,38 +149,47 @@ export const onNewEpisode = functions.firestore
 // ============================================================================
 
 /**
- * Trigger ketika ada reply ke komentar user
- * Path: comments/{commentId}/replies/{replyId}
+ * Trigger ketika ada reply (comment dengan replyTo field)
+ * Path: comments/{episodeSlug}/messages/{commentId}
  */
 export const onCommentReply = functions.firestore
-  .document('comments/{commentId}/replies/{replyId}')
+  .document('comments/{episodeSlug}/messages/{commentId}')
   .onCreate(async (snap, context) => {
-    const { commentId, replyId } = context.params;
-    const replyData = snap.data();
+    const { episodeSlug, commentId } = context.params;
+    const commentData = snap.data();
 
     try {
-      // Get original comment
-      const commentDoc = await db.collection('comments').doc(commentId).get();
-      if (!commentDoc.exists) {
-        console.log('Comment not found:', commentId);
+      // Check if this is a reply (has replyTo field)
+      const replyToId = commentData?.replyTo;
+      if (!replyToId) {
+        console.log('Not a reply, skipping notification');
         return null;
       }
 
-      const commentData = commentDoc.data();
-      const originalAuthorId = commentData?.userId;
-      const replyAuthorId = replyData?.userId;
+      const replyAuthorId = commentData?.uid;
+      const replyAuthorName = commentData?.displayName || 'Seseorang';
+      const replyText = commentData?.text || '';
+
+      // Get original comment to find the author
+      const originalCommentRef = db.collection('comments').doc(episodeSlug).collection('messages').doc(replyToId);
+      const originalCommentSnap = await originalCommentRef.get();
+
+      if (!originalCommentSnap.exists) {
+        console.log('Original comment not found:', replyToId);
+        return null;
+      }
+
+      const originalCommentData = originalCommentSnap.data();
+      const originalAuthorId = originalCommentData?.uid;
 
       // Don't notify if replying to own comment
       if (originalAuthorId === replyAuthorId) {
+        console.log('User replying to own comment, skipping');
         return null;
       }
 
-      // Get reply author info
-      const replyAuthorDoc = await db.collection('users').doc(replyAuthorId).get();
-      const replyAuthorName = replyAuthorDoc.data()?.displayName || 'Seseorang';
-      const replyText = replyData?.text || '';
-      const animeId = commentData?.animeId;
-      const animeTitle = commentData?.animeTitle || 'anime';
+      // Get episode/anime info (from episodeSlug or comment data)
+      const animeTitle = 'anime'; // You can enhance this
 
       // Get original author's FCM token
       const originalAuthorDoc = await db.collection('users').doc(originalAuthorId).get();
@@ -194,8 +203,8 @@ export const onCommentReply = functions.firestore
         body: replyText.length > 100 ? `${replyText.substring(0, 100)}...` : replyText,
         data: {
           commentId,
-          replyId,
-          animeId,
+          replyId: commentId,
+          episodeSlug,
           animeTitle,
           replyAuthorId,
           replyAuthorName,
@@ -203,6 +212,8 @@ export const onCommentReply = functions.firestore
         read: false,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
+
+      console.log(`Notification saved for user ${originalAuthorId}`);
 
       // Send push notification
       if (fcmToken) {
@@ -213,16 +224,18 @@ export const onCommentReply = functions.firestore
           },
           data: {
             type: 'comment_reply',
-            commentId,
-            replyId,
-            animeId: animeId || '',
-            click_action: `/anime/${animeId}?comment=${commentId}`,
+            commentId: replyToId,
+            replyId: commentId,
+            episodeSlug: episodeSlug || '',
+            click_action: `/stream/${episodeSlug}?comment=${replyToId}`,
           },
           token: fcmToken,
         };
 
         await messaging.send(message);
         console.log(`Sent comment reply notification to user ${originalAuthorId}`);
+      } else {
+        console.log(`No FCM token for user ${originalAuthorId}`);
       }
 
       return null;
