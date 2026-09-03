@@ -32,6 +32,7 @@ interface Comment {
   isAdmin:     boolean;
   replyTo?:    string;
   replyToName?: string;
+  replyToText?: string;
   createdAt:   Timestamp | null;
 }
 
@@ -104,11 +105,21 @@ function CommentRow({
           )}
         </div>
 
-        {/* Reply-to label */}
+        {/* Reply-to preview */}
         {comment.replyTo && comment.replyToName && (
-          <div className={clsx('flex items-center gap-1 text-[0.65rem] mb-0.5', accentColor)}>
-            <CornerDownRight className="w-3 h-3" aria-hidden />
-            <span>Membalas @{comment.replyToName}</span>
+          <div className={clsx(
+            'mb-1.5 p-2 rounded border-l-2 bg-surface/50',
+            isHentai ? 'border-pink/50' : 'border-cyan/50'
+          )}>
+            <div className={clsx('flex items-center gap-1 text-[0.65rem] mb-0.5', accentColor)}>
+              <CornerDownRight className="w-3 h-3" aria-hidden />
+              <span className="font-semibold">@{comment.replyToName}</span>
+            </div>
+            {comment.replyToText && (
+              <p className="text-xs text-muted line-clamp-2 pl-4">
+                {comment.replyToText}
+              </p>
+            )}
           </div>
         )}
 
@@ -171,6 +182,7 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
           likes:        Array.isArray(data.likes) ? data.likes : [],
           replyTo:      data.replyTo      ?? null,
           replyToName:  data.replyToName  ?? null,
+          replyToText:  data.replyToText  ?? null,
           createdAt:    data.createdAt    ?? null,
         };
       });
@@ -230,6 +242,7 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
         isAdmin:      profile.isAdmin       ?? false,
         replyTo:      replyTo?.id     ?? null,
         replyToName:  replyTo?.displayName ?? null,
+        replyToText:  replyTo?.text ?? null,
         createdAt:    serverTimestamp(),
       });
       setText('');
@@ -289,18 +302,29 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
           <div ref={bottomRef} />
         </div>
 
-        {/* Reply indicator */}
+        {/* Reply preview with quoted text */}
         {replyTo && (
           <div className={clsx(
-            'flex items-center gap-2 px-3 py-1.5 mb-2 rounded-app text-xs',
-            isHentai ? 'bg-pink/10 border border-pink/20' : 'bg-cyan/10 border border-cyan/20'
+            'flex items-start gap-2 px-3 py-2 mb-2 rounded-app border',
+            isHentai ? 'bg-pink/5 border-pink/20' : 'bg-cyan/5 border-cyan/20'
           )}>
-            <CornerDownRight className="w-3.5 h-3.5 text-muted flex-shrink-0" aria-hidden />
-            <span className="flex-1 text-secondary truncate">
-              Membalas <strong className="text-primary">@{replyTo.displayName}</strong>: {replyTo.text.slice(0, 40)}{replyTo.text.length > 40 ? '…' : ''}
-            </span>
-            <button onClick={() => setReplyTo(null)} className="text-muted hover:text-primary flex-shrink-0" aria-label="Batal balas">
-              <X className="w-3.5 h-3.5" aria-hidden />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-1">
+                <CornerDownRight className={clsx('w-3.5 h-3.5 flex-shrink-0', isHentai ? 'text-pink' : 'text-cyan')} aria-hidden />
+                <span className="text-xs font-semibold text-primary">
+                  Membalas @{replyTo.displayName}
+                </span>
+              </div>
+              <p className="text-xs text-secondary line-clamp-2 pl-5">
+                "{replyTo.text}"
+              </p>
+            </div>
+            <button 
+              onClick={() => setReplyTo(null)} 
+              className="text-muted hover:text-primary flex-shrink-0 mt-0.5" 
+              aria-label="Batal balas"
+            >
+              <X className="w-4 h-4" aria-hidden />
             </button>
           </div>
         )}

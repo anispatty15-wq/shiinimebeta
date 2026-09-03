@@ -7,6 +7,8 @@ import SubBanner     from '@/components/SubBanner';
 import FloatingLinks from '@/components/FloatingLinks';
 import AntiInspect   from '@/components/AntiInspect';
 import PageLoader    from '@/components/PageLoader';
+import NotificationPrompt from '@/components/NotificationPrompt';
+import NotificationToast from '@/components/NotificationToast';
 import { BookmarkProvider } from '@/context/BookmarkContext';
 import { HistoryProvider }  from '@/context/HistoryContext';
 import { AuthProvider }     from '@/context/AuthContext';
@@ -38,12 +40,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <BookmarkProvider>
               <div className="flex flex-col min-h-screen w-full">
                 <Navbar />
+                <NotificationToast />
                 <main className="flex-1 app-shell w-full">
                   {children}
                 </main>
                 <BottomNav />
                 <SubBanner />
                 <FloatingLinks />
+                <NotificationPrompt />
               </div>
             </BookmarkProvider>
           </HistoryProvider>

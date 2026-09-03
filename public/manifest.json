@@ -1,5 +1,5 @@
 {
-  "name": "Shiinime Stream BETA"
+  "name": "Shiinime Stream BETA",
   "short_name": "Shiinime",
   "description": "Streaming anime, hentai, dan baca komik online",
   "start_url": "/",
@@ -7,12 +7,13 @@
   "background_color": "#0a0a10",
   "theme_color": "#00d9ff",
   "orientation": "portrait-primary",
+  "gcm_sender_id": "103953800507",
   "icons": [
     {
       "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/favicon.ico",
@@ -30,6 +31,11 @@
     {
       "name": "Favorit",
       "url": "/favorites",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Notifikasi",
+      "url": "/notifications",
       "icons": [{ "src": "/icon.svg", "sizes": "any" }]
     }
   ]

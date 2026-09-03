@@ -4,11 +4,12 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Search, Menu, X, User, Heart, History } from 'lucide-react';
+import { Search, Menu, X, User, Heart, History, Bell } from 'lucide-react';
 import Image from 'next/image';
 import { clsx } from 'clsx';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useSearchSuggest } from '@/hooks/useSearchSuggest';
+import { useNotificationsList } from '@/hooks/useNotificationsList';
 import type { ContentType } from '@/types/media';
 
 const NAV_LINKS = [
@@ -17,6 +18,8 @@ const NAV_LINKS = [
   { href: '/comic',          label: 'Komik'   },
   { href: '/anime/schedule', label: 'Jadwal'  },
   { href: '/anime/browse',   label: 'Filter'  },
+  { href: '/friends',        label: 'Teman'   },
+  { href: '/notifications',  label: 'Notifikasi' },
   { href: '/history',        label: 'Riwayat' },
   { href: '/favorites',      label: 'Favorit' },
 ] as const;
@@ -40,6 +43,7 @@ export default function Navbar() {
 
   const type = pathToType(pathname);
   const { suggestions } = useSearchSuggest(query, type);
+  const { unreadCount } = useNotificationsList();
 
   useEffect(() => {
     setShowDrop(suggestions.length > 0 && query.length >= 2);
@@ -80,10 +84,10 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur-xl border-b border-border">
+    <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur-xl border-b border-border pt-safe">
 
       {/* ── Main bar ── */}
-      <div className="max-w-screen-xl mx-auto px-4 h-14 flex items-center gap-2">
+      <div className="max-w-screen-xl mx-auto px-4 h-14 flex items-center gap-2 px-safe">
 
         {/* Logo — always visible, shrink-0 */}
         <Link
@@ -132,6 +136,20 @@ export default function Navbar() {
 
         {/* Mobile action icons */}
         <div className="md:hidden flex items-center gap-1">
+          {/* Notifications icon */}
+          <Link
+            href="/notifications"
+            aria-label="Notifikasi"
+            className="w-8 h-8 flex items-center justify-center rounded-app text-secondary hover:text-primary relative"
+          >
+            <Bell className="w-4.5 h-4.5" aria-hidden />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center text-[0.6rem] font-bold bg-pink-500 text-white rounded-full">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </Link>
+
           {/* Search icon — expands search bar */}
           <button
             onClick={() => { setShowSearch((v) => !v); setMobileOpen(false); }}
@@ -164,6 +182,19 @@ export default function Navbar() {
         </div>
 
         {/* Desktop profile icon */}
+        <Link
+          href="/notifications"
+          aria-label="Notifikasi"
+          className="hidden md:flex w-8 h-8 items-center justify-center rounded-app bg-surface border border-border text-secondary hover:text-primary transition-all flex-shrink-0 relative"
+        >
+          <Bell className="w-4 h-4" aria-hidden />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[0.65rem] font-bold bg-pink-500 text-white rounded-full">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Link>
+
         <Link
           href="/profile"
           aria-label="Profil"
