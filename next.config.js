@@ -10,10 +10,8 @@ const withPWA = require('next-pwa')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'export', // Enable static export untuk Capacitor
-  images: {
-    unoptimized: true, // Required untuk static export
-  },
+  // Conditional static export untuk Capacitor build
+  ...(process.env.CAPACITOR_BUILD === 'true' && { output: 'export' }),
 
   typescript: { ignoreBuildErrors: true },
   eslint:     { ignoreDuringBuilds: true },
@@ -27,6 +25,8 @@ const nextConfig = {
     imageSizes:      [16, 32, 64, 96, 128, 160, 200],
     formats:         ['image/avif', 'image/webp'],
     minimumCacheTTL: 3600,
+    // Unoptimized only for Capacitor builds
+    unoptimized: process.env.CAPACITOR_BUILD === 'true',
   },
 
   async headers() {
