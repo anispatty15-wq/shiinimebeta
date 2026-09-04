@@ -3,10 +3,11 @@
 // Search anime using Jikan API (MyAnimeList data)
 
 import { useState, useEffect } from 'react';
-import { Search, TrendingUp, Calendar, Star, Filter } from 'lucide-react';
+import { Search, TrendingUp, Calendar, Star, Filter, Shuffle, Grid } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { clsx } from 'clsx';
+import { useRouter } from 'next/navigation';
 
 interface JikanAnime {
   mal_id: number;
@@ -31,18 +32,24 @@ interface JikanAnime {
 }
 
 export default function JikanSearchPage() {
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<JikanAnime[]>([]);
   const [recommendations, setRecommendations] = useState<JikanAnime[]>([]);
   const [upcoming, setUpcoming] = useState<JikanAnime[]>([]);
+  const [seasonal, setSeasonal] = useState<JikanAnime[]>([]);
+  const [genres, setGenres] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'search' | 'upcoming' | 'recommendations'>('upcoming');
+  const [activeTab, setActiveTab] = useState<'search' | 'upcoming' | 'recommendations' | 'seasonal' | 'genres'>('upcoming');
   const [typeFilter, setTypeFilter] = useState<string>('');
+  const [selectedGenre, setSelectedGenre] = useState<string>('');
 
-  // Fetch upcoming anime on mount
+  // Fetch data on mount
   useEffect(() => {
     fetchUpcoming();
     fetchRecommendations();
+    fetchSeasonal();
+    fetchGenres();
   }, []);
 
   const fetchUpcoming = async () => {
@@ -57,11 +64,61 @@ export default function JikanSearchPage() {
 
   const fetchRecommendations = async () => {
     try {
-      const res = await fetch('https://api.jikan.moe/v4/top/anime?limit=12');
+      const res = await fetch('https://api.jikan.moe/v4/top/anime?limit=24');
       const data = await res.json();
       setRecommendations(data.data || []);
     } catch (err) {
       console.error('Error fetching recommendations:', err);
+    }
+  };
+
+  const fetchSeasonal = async () => {
+    try {
+      const res = await fetch('https://api.jikan.moe/v4/seasons/now?limit=24');
+      const data = await res.json();
+      setSeasonal(data.data || []);
+    } catch (err) {
+      console.error('Error fetching seasonal:', err);
+    }
+  };
+
+  const fetchGenres = async () => {
+    try {
+      const res = await fetch('https://api.jikan.moe/v4/genres/anime');
+      const data = await res.json();
+      setGenres(data.data || []);
+    } catch (err) {
+      console.error('Error fetching genres:', err);
+    }
+  };
+
+  const fetchByGenre = async (genreId: string) => {
+    setLoading(true);
+    setActiveTab('genres');
+    try {
+      const res = await fetch(`https://api.jikan.moe/v4/anime?genres=${genreId}&limit=24`);
+      const data = await res.json();
+      setResults(data.data || []);
+    } catch (err) {
+      console.error('Error fetching by genre:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchRandom = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('https://api.jikan.moe/v4/random/anime');
+      const data = await res.json();
+      if (data.data) {
+        // Redirect to detail page
+        window.open(`https://myanimelist.net/anime/${data.data.mal_id}`, '_blank');
+      }
+    } catch (err) {
+      console.error('Error fetching random:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -90,10 +147,8 @@ export default function JikanSearchPage() {
   };
 
   const AnimeCard = ({ anime }: { anime: JikanAnime }) => (
-    <a
-      href={`https://myanimelist.net/anime/${anime.mal_id}`}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      href={`/anime/jikan/${anime.mal_id}`}
       className="bg-surface border border-border rounded-app overflow-hidden hover:border-cyan/40 transition-all group"
     >
       <div className="aspect-[2/3] relative bg-surface-2">
@@ -129,7 +184,7 @@ export default function JikanSearchPage() {
           </p>
         )}
       </div>
-    </a>
+    </Link>
   );
 
   return (
@@ -190,11 +245,11 @@ export default function JikanSearchPage() {
         </form>
 
         {/* Tabs */}
-        <div className="flex items-center gap-2 mb-6 border-b border-border">
+        <div className="flex items-center gap-2 mb-6 border-b border-border overflow-x-auto">
           <button
             onClick={() => setActiveTab('upcoming')}
             className={clsx(
-              'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
+              'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap',
               activeTab === 'upcoming'
                 ? 'border-cyan text-cyan'
                 : 'border-transparent text-secondary hover:text-primary'
@@ -204,9 +259,21 @@ export default function JikanSearchPage() {
             Upcoming
           </button>
           <button
+            onClick={() => setActiveTab('seasonal')}
+            className={clsx(
+              'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap',
+              activeTab === 'seasonal'
+                ? 'border-cyan text-cyan'
+                : 'border-transparent text-secondary hover:text-primary'
+            )}
+          >
+            <Calendar className="w-4 h-4" />
+            This Season
+          </button>
+          <button
             onClick={() => setActiveTab('recommendations')}
             className={clsx(
-              'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
+              'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap',
               activeTab === 'recommendations'
                 ? 'border-cyan text-cyan'
                 : 'border-transparent text-secondary hover:text-primary'
@@ -215,23 +282,66 @@ export default function JikanSearchPage() {
             <TrendingUp className="w-4 h-4" />
             Top Anime
           </button>
-          {results.length > 0 && (
+          <button
+            onClick={() => setActiveTab('genres')}
+            className={clsx(
+              'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap',
+              activeTab === 'genres'
+                ? 'border-cyan text-cyan'
+                : 'border-transparent text-secondary hover:text-primary'
+            )}
+          >
+            <Grid className="w-4 h-4" />
+            Genres
+          </button>
+          {results.length > 0 && activeTab === 'search' && (
             <button
               onClick={() => setActiveTab('search')}
               className={clsx(
-                'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
+                'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap',
                 activeTab === 'search'
                   ? 'border-cyan text-cyan'
                   : 'border-transparent text-secondary hover:text-primary'
               )}
             >
               <Search className="w-4 h-4" />
-              Search Results ({results.length})
+              Results ({results.length})
             </button>
           )}
+          <div className="flex-1" />
+          <button
+            onClick={fetchRandom}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-violet hover:text-violet/80 transition-colors whitespace-nowrap"
+          >
+            <Shuffle className="w-4 h-4" />
+            Random
+          </button>
         </div>
 
         {/* Content */}
+        {activeTab === 'genres' && !loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-6">
+            {genres.map((genre) => (
+              <button
+                key={genre.mal_id}
+                onClick={() => {
+                  setSelectedGenre(genre.mal_id);
+                  fetchByGenre(genre.mal_id);
+                }}
+                className={clsx(
+                  'px-4 py-3 rounded-app text-sm font-medium transition-all',
+                  selectedGenre === genre.mal_id
+                    ? 'bg-cyan text-bg'
+                    : 'bg-surface border border-border text-secondary hover:border-cyan/40 hover:text-primary'
+                )}
+              >
+                {genre.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
@@ -245,11 +355,15 @@ export default function JikanSearchPage() {
               <AnimeCard key={anime.mal_id} anime={anime} />
             ))}
 
+            {activeTab === 'seasonal' && seasonal.map((anime) => (
+              <AnimeCard key={anime.mal_id} anime={anime} />
+            ))}
+
             {activeTab === 'recommendations' && recommendations.map((anime) => (
               <AnimeCard key={anime.mal_id} anime={anime} />
             ))}
 
-            {activeTab === 'search' && results.map((anime) => (
+            {(activeTab === 'search' || activeTab === 'genres') && results.map((anime) => (
               <AnimeCard key={anime.mal_id} anime={anime} />
             ))}
           </div>
