@@ -227,76 +227,88 @@ export default function Navbar() {
 
         {/* Profile Dropdown */}
         <div className="hidden md:block relative">
-          <button
-            onClick={() => setShowProfileMenu(!showProfileMenu)}
-            aria-label="Profil"
-            className="flex w-8 h-8 items-center justify-center rounded-app bg-surface border border-border text-secondary hover:text-primary transition-all flex-shrink-0"
-          >
-            <User className="w-4 h-4" aria-hidden />
-          </button>
-
-          {showProfileMenu && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-app shadow-lg py-2 z-50">
-              <Link
-                href="/profile"
-                onClick={() => setShowProfileMenu(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-secondary hover:text-primary hover:bg-surface-2 transition-colors"
-              >
-                <User className="w-4 h-4" />
-                My Profile
-              </Link>
-              
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  onClick={() => setShowProfileMenu(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-violet hover:text-violet/80 hover:bg-violet/10 transition-colors"
-                >
-                  <Shield className="w-4 h-4" />
-                  Admin Dashboard
-                </Link>
-              )}
-
-              <Link
-                href="/history"
-                onClick={() => setShowProfileMenu(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-secondary hover:text-primary hover:bg-surface-2 transition-colors"
-              >
-                <Clock className="w-4 h-4" />
-                History
-              </Link>
-
-              <Link
-                href="/bookmarks"
-                onClick={() => setShowProfileMenu(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-secondary hover:text-primary hover:bg-surface-2 transition-colors"
-              >
-                <Heart className="w-4 h-4" />
-                Bookmarks
-              </Link>
-
-              <div className="border-t border-border my-1" />
-
+          {user ? (
+            <>
               <button
-                onClick={() => {
-                  setShowProfileMenu(false);
-                  // Logout via Firebase
-                  import('@/lib/firebase').then(({ auth }) => {
-                    import('firebase/auth').then(({ signOut }) => {
-                      signOut(auth).then(() => {
-                        window.location.href = '/';
-                      });
-                    });
-                  });
-                }}
-                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                aria-label="Profil"
+                className="flex w-8 h-8 items-center justify-center rounded-app bg-surface border border-border text-secondary hover:text-primary transition-all flex-shrink-0"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Logout
+                <User className="w-4 h-4" aria-hidden />
               </button>
-            </div>
+
+              {showProfileMenu && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-app shadow-lg py-2 z-50">
+                  <Link
+                    href="/profile"
+                    onClick={() => setShowProfileMenu(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-secondary hover:text-primary hover:bg-surface-2 transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    My Profile
+                  </Link>
+                  
+                  {isAdmin && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-violet hover:text-violet/80 hover:bg-violet/10 transition-colors"
+                    >
+                      <Shield className="w-4 h-4" />
+                      Admin Dashboard
+                    </Link>
+                  )}
+
+                  <Link
+                    href="/history"
+                    onClick={() => setShowProfileMenu(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-secondary hover:text-primary hover:bg-surface-2 transition-colors"
+                  >
+                    <Clock className="w-4 h-4" />
+                    History
+                  </Link>
+
+                  <Link
+                    href="/bookmarks"
+                    onClick={() => setShowProfileMenu(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-secondary hover:text-primary hover:bg-surface-2 transition-colors"
+                  >
+                    <Heart className="w-4 h-4" />
+                    Bookmarks
+                  </Link>
+
+                  <div className="border-t border-border my-1" />
+
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      // Logout via Firebase
+                      import('@/lib/firebase').then(({ auth }) => {
+                        import('firebase/auth').then(({ signOut }) => {
+                          signOut(auth).then(() => {
+                            window.location.href = '/';
+                          });
+                        });
+                      });
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Logout
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <Link
+              href="/profile"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-app bg-cyan text-bg text-sm font-semibold hover:brightness-110 transition-all"
+            >
+              <User className="w-4 h-4" />
+              Login
+            </Link>
           )}
         </div>
       </div>
