@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ArrowLeft, Star, Calendar, Tv, Play, Users, MessageCircle, ExternalLink } from 'lucide-react';
 import { clsx } from 'clsx';
+import * as JikanAPI from '@/lib/jikan';
 
 interface AnimeDetail {
   mal_id: number;
@@ -118,75 +119,39 @@ export default function JikanDetailPage() {
   }, [id]);
 
   const fetchAnimeDetail = async () => {
-    try {
-      const res = await fetch(`https://api.jikan.moe/v4/anime/${id}/full`);
-      const data = await res.json();
-      setAnime(data.data);
-    } catch (err) {
-      console.error('Error fetching anime:', err);
-    } finally {
-      setLoading(false);
-    }
+    const data = await JikanAPI.getAnimeById(id);
+    setAnime(data?.data || null);
+    setLoading(false);
   };
 
   const fetchCharacters = async () => {
-    try {
-      const res = await fetch(`https://api.jikan.moe/v4/anime/${id}/characters`);
-      const data = await res.json();
-      setCharacters((data.data || []).slice(0, 12));
-    } catch (err) {
-      console.error('Error fetching characters:', err);
-    }
+    const data = await JikanAPI.getAnimeCharacters(id);
+    setCharacters((data?.data || []).slice(0, 12));
   };
 
   const fetchStaff = async () => {
-    try {
-      const res = await fetch(`https://api.jikan.moe/v4/anime/${id}/staff`);
-      const data = await res.json();
-      setStaff((data.data || []).slice(0, 12));
-    } catch (err) {
-      console.error('Error fetching staff:', err);
-    }
+    const data = await JikanAPI.getAnimeStaff(id);
+    setStaff((data?.data || []).slice(0, 12));
   };
 
   const fetchEpisodes = async () => {
-    try {
-      const res = await fetch(`https://api.jikan.moe/v4/anime/${id}/episodes?page=1`);
-      const data = await res.json();
-      setEpisodes((data.data || []).slice(0, 20));
-    } catch (err) {
-      console.error('Error fetching episodes:', err);
-    }
+    const data = await JikanAPI.getAnimeEpisodes(id);
+    setEpisodes((data?.data || []).slice(0, 20));
   };
 
   const fetchNews = async () => {
-    try {
-      const res = await fetch(`https://api.jikan.moe/v4/anime/${id}/news`);
-      const data = await res.json();
-      setNews((data.data || []).slice(0, 6));
-    } catch (err) {
-      console.error('Error fetching news:', err);
-    }
+    const data = await JikanAPI.getAnimeNews(id);
+    setNews((data?.data || []).slice(0, 6));
   };
 
   const fetchReviews = async () => {
-    try {
-      const res = await fetch(`https://api.jikan.moe/v4/anime/${id}/reviews`);
-      const data = await res.json();
-      setReviews((data.data || []).slice(0, 5));
-    } catch (err) {
-      console.error('Error fetching reviews:', err);
-    }
+    const data = await JikanAPI.getAnimeReviews(id);
+    setReviews((data?.data || []).slice(0, 5));
   };
 
   const fetchRecommendations = async () => {
-    try {
-      const res = await fetch(`https://api.jikan.moe/v4/anime/${id}/recommendations`);
-      const data = await res.json();
-      setRecommendations((data.data || []).slice(0, 12));
-    } catch (err) {
-      console.error('Error fetching recommendations:', err);
-    }
+    const data = await JikanAPI.getAnimeRecommendations(id);
+    setRecommendations((data?.data || []).slice(0, 12));
   };
 
   if (loading) {

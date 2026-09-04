@@ -8,6 +8,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 import { useRouter } from 'next/navigation';
+import * as JikanAPI from '@/lib/jikan';
 
 interface JikanAnime {
   mal_id: number;
@@ -53,73 +54,40 @@ export default function JikanSearchPage() {
   }, []);
 
   const fetchUpcoming = async () => {
-    try {
-      const res = await fetch('https://api.jikan.moe/v4/seasons/upcoming?limit=24');
-      const data = await res.json();
-      setUpcoming(data.data || []);
-    } catch (err) {
-      console.error('Error fetching upcoming:', err);
-    }
+    const data = await JikanAPI.getUpcomingAnime(24);
+    setUpcoming(data?.data || []);
   };
 
   const fetchRecommendations = async () => {
-    try {
-      const res = await fetch('https://api.jikan.moe/v4/top/anime?limit=24');
-      const data = await res.json();
-      setRecommendations(data.data || []);
-    } catch (err) {
-      console.error('Error fetching recommendations:', err);
-    }
+    const data = await JikanAPI.getTopAnime(24);
+    setRecommendations(data?.data || []);
   };
 
   const fetchSeasonal = async () => {
-    try {
-      const res = await fetch('https://api.jikan.moe/v4/seasons/now?limit=24');
-      const data = await res.json();
-      setSeasonal(data.data || []);
-    } catch (err) {
-      console.error('Error fetching seasonal:', err);
-    }
+    const data = await JikanAPI.getCurrentSeasonAnime(24);
+    setSeasonal(data?.data || []);
   };
 
   const fetchGenres = async () => {
-    try {
-      const res = await fetch('https://api.jikan.moe/v4/genres/anime');
-      const data = await res.json();
-      setGenres(data.data || []);
-    } catch (err) {
-      console.error('Error fetching genres:', err);
-    }
+    const data = await JikanAPI.getAnimeGenres();
+    setGenres(data?.data || []);
   };
 
   const fetchByGenre = async (genreId: string) => {
     setLoading(true);
     setActiveTab('genres');
-    try {
-      const res = await fetch(`https://api.jikan.moe/v4/anime?genres=${genreId}&limit=24`);
-      const data = await res.json();
-      setResults(data.data || []);
-    } catch (err) {
-      console.error('Error fetching by genre:', err);
-    } finally {
-      setLoading(false);
-    }
+    const data = await JikanAPI.getAnimeByGenre(genreId, 24);
+    setResults(data?.data || []);
+    setLoading(false);
   };
 
   const fetchRandom = async () => {
     setLoading(true);
-    try {
-      const res = await fetch('https://api.jikan.moe/v4/random/anime');
-      const data = await res.json();
-      if (data.data) {
-        // Redirect to detail page
-        window.open(`https://myanimelist.net/anime/${data.data.mal_id}`, '_blank');
-      }
-    } catch (err) {
-      console.error('Error fetching random:', err);
-    } finally {
-      setLoading(false);
+    const data = await JikanAPI.getRandomAnime();
+    if (data?.data) {
+      window.open(`https://myanimelist.net/anime/${data.data.mal_id}`, '_blank');
     }
+    setLoading(false);
   };
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -129,21 +97,9 @@ export default function JikanSearchPage() {
     setLoading(true);
     setActiveTab('search');
 
-    try {
-      let url = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(query)}&limit=24`;
-      if (typeFilter) {
-        url += `&type=${typeFilter}`;
-      }
-      
-      const res = await fetch(url);
-      const data = await res.json();
-      setResults(data.data || []);
-    } catch (err) {
-      console.error('Error searching:', err);
-      alert('Error searching anime. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    const data = await JikanAPI.searchAnime(query, { type: typeFilter });
+    setResults(data?.data || []);
+    setLoading(false);
   };
 
   const AnimeCard = ({ anime }: { anime: JikanAnime }) => (
