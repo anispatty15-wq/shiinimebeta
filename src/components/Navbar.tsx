@@ -42,7 +42,16 @@ export default function Navbar() {
 
   // Debug admin status
   useEffect(() => {
-    console.log('[Navbar] Admin status:', { isAdmin, userUid: user?.uid });
+    console.log('%c[Navbar] Admin status', 'color: #00ff00; font-weight: bold; font-size: 16px;', { 
+      isAdmin, 
+      userUid: user?.uid,
+      userEmail: user?.email 
+    });
+    
+    // Show alert if admin (for debugging)
+    if (isAdmin) {
+      console.log('%c🛡️ ADMIN MODE ACTIVE!', 'color: #ff00ff; font-weight: bold; font-size: 20px; background: yellow;');
+    }
   }, [isAdmin, user]);
 
   const [query,      setQuery]      = useState('');
