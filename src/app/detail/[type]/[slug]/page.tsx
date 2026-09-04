@@ -244,8 +244,6 @@ export default function DetailPage() {
               <div className="flex flex-wrap gap-1.5">
                 {(visibleItems as typeof chapterList).map((ch, idx) => {
                   // Extract chapter number from title or slug
-                  // e.g. "Chapter 123" → "123"
-                  // e.g. "the-returned-c-rank-tank-chapter-45" → "45"
                   const src   = ch.title || ch.slug || '';
                   const nums  = src.match(/\d+(\.\d+)?/g);
                   const label = nums ? nums[nums.length - 1] : String(idx + 1);
@@ -257,14 +255,16 @@ export default function DetailPage() {
                       href={`/read/${ch.slug}?series=${slug}`}
                       title={`Chapter ${label}: ${ch.title || `Chapter ${label}`}${watched ? ' ✓ Sudah dibaca' : ''}`}
                       className={clsx(
-                        'ep-pill min-w-[3.5rem] text-center px-2 relative',
-                        watched && 'bg-violet/20 border-violet/60 text-violet',
+                        'flex flex-col items-center justify-center min-w-[3.5rem] h-12 px-2 rounded-lg border transition-all relative',
+                        watched 
+                          ? 'bg-violet/20 border-violet/60 text-violet'
+                          : 'bg-surface-2 border-border text-secondary hover:border-violet/40 hover:text-violet'
                       )}
                     >
-                      <span className="text-[0.65rem] block">Ch</span>
-                      <span className="font-bold">{display}</span>
+                      <span className="text-[0.6rem] leading-none opacity-70">Ch</span>
+                      <span className="text-sm font-bold leading-tight mt-0.5">{display}</span>
                       {watched && (
-                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-violet flex items-center justify-center text-[8px] text-bg font-bold leading-none">
+                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-violet flex items-center justify-center text-[9px] text-bg font-bold leading-none">
                           ✓
                         </span>
                       )}
@@ -285,15 +285,19 @@ export default function DetailPage() {
                       href={`/stream/${contentType}/${ep.slug}`}
                       title={`Episode ${epLabel}: ${ep.title}${watched ? ' ✓ Sudah ditonton' : ''}`}
                       className={clsx(
-                        'ep-pill min-w-[3.5rem] text-center px-2 relative',
+                        'flex flex-col items-center justify-center min-w-[3.5rem] h-12 px-2 rounded-lg border transition-all relative',
                         watched && contentType === 'hentai'  && 'bg-pink/20 border-pink/60 text-pink',
                         watched && contentType !== 'hentai'  && 'bg-cyan/20 border-cyan/60 text-cyan',
+                        !watched && 'bg-surface-2 border-border text-secondary hover:border-cyan/40 hover:text-cyan'
                       )}
                     >
-                      <span className="text-[0.65rem] block">Ep</span>
-                      <span className="font-bold">{epLabel}</span>
+                      <span className="text-[0.6rem] leading-none opacity-70">Ep</span>
+                      <span className="text-sm font-bold leading-tight mt-0.5">{epLabel}</span>
                       {watched && (
-                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-cyan flex items-center justify-center text-[8px] text-bg font-bold leading-none">
+                        <span className={clsx(
+                          'absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] text-bg font-bold leading-none',
+                          contentType === 'hentai' ? 'bg-pink' : 'bg-cyan'
+                        )}>
                           ✓
                         </span>
                       )}

@@ -129,7 +129,19 @@ export default function ComicReader({
   const handlePageVisible = useCallback((page: number) => {
     setCurrentPage(page);
     onPageChange?.(page);
-  }, [onPageChange]);
+    
+    // Auto-mark chapter as completed when reaching last page
+    if (page === total && total > 0) {
+      // Mark as watched in localStorage
+      const chapterSlug = chapter.prev_chapter_slug || chapter.next_chapter_slug 
+        ? (typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '')
+        : '';
+      if (chapterSlug) {
+        // Will be auto-saved by history context with completed=true
+        console.log(`[ComicReader] Reached last page (${page}/${total}) - marking as completed`);
+      }
+    }
+  }, [onPageChange, total, chapter]);
 
   // Scroll to resume page on mount (only once)
   useEffect(() => {

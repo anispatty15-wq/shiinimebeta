@@ -248,7 +248,14 @@ export function useComicProgressSaver(meta: ComicMeta | null) {
     (page: number) => {
       if (!meta?.slug || page < 1) return;
       setCurrentPageState(page);
+      
+      // Clear existing timer
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      
+      // If last page, save immediately. Otherwise debounce
+      const isLastPage = page >= meta.totalPages;
+      const delay = isLastPage ? 500 : 2000; // Fast save on completion
+      
       saveTimerRef.current = setTimeout(() => {
         saveReadProgress({
           slug:         meta.slug,
@@ -258,9 +265,16 @@ export function useComicProgressSaver(meta: ComicMeta | null) {
           poster:       meta.poster       ?? '',
           lastPage:     page,
           totalPages:   meta.totalPages,
-          completed:    page >= meta.totalPages,
+          completed:    isLastPage,
         });
-      }, 2000);
+        
+        // Also mark as watched immediately on completion
+        if (isLastPage) {
+          const { markWatched } = require('@/utils/watchedSlug');
+          markWatched(meta.slug);
+          console.log(`[ComicProgress] ✅ Marked chapter ${meta.slug} as completed`);
+        }
+      }, delay);
     },
     [meta, saveReadProgress]
   );
