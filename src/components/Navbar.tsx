@@ -51,6 +51,11 @@ export default function Navbar() {
     // Show alert if admin (for debugging)
     if (isAdmin) {
       console.log('%c🛡️ ADMIN MODE ACTIVE!', 'color: #ff00ff; font-weight: bold; font-size: 20px; background: yellow;');
+    } else if (user) {
+      console.warn('%c⚠️ Logged in but NOT admin', 'color: orange; font-weight: bold;', {
+        uid: user.uid,
+        email: user.email
+      });
     }
   }, [isAdmin, user]);
 
@@ -232,9 +237,14 @@ export default function Navbar() {
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 aria-label="Profil"
-                className="flex w-8 h-8 items-center justify-center rounded-app bg-surface border border-border text-secondary hover:text-primary transition-all flex-shrink-0"
+                className={clsx(
+                  'flex w-8 h-8 items-center justify-center rounded-app border transition-all flex-shrink-0',
+                  isAdmin 
+                    ? 'bg-violet/10 border-violet/40 text-violet hover:bg-violet/20' 
+                    : 'bg-surface border-border text-secondary hover:text-primary'
+                )}
               >
-                <User className="w-4 h-4" aria-hidden />
+                {isAdmin ? <Shield className="w-4 h-4" /> : <User className="w-4 h-4" />}
               </button>
 
               {showProfileMenu && (
