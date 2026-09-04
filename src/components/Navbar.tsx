@@ -38,7 +38,12 @@ function pathToType(p: string): ContentType {
 export default function Navbar() {
   const pathname = usePathname();
   const router   = useRouter();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
+
+  // Debug admin status
+  useEffect(() => {
+    console.log('[Navbar] Admin status:', { isAdmin, userUid: user?.uid });
+  }, [isAdmin, user]);
 
   const [query,      setQuery]      = useState('');
   const [showDrop,   setShowDrop]   = useState(false);
@@ -303,6 +308,17 @@ export default function Navbar() {
               </Link>
             );
           })}
+          
+          {/* Admin Dashboard Link - Mobile */}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="px-3 py-2.5 rounded-app text-sm font-medium text-violet hover:text-violet/80 hover:bg-violet/10 transition-colors flex items-center gap-1.5 col-span-2 border border-violet/30"
+            >
+              <Shield className="w-4 h-4" aria-hidden /> Admin Dashboard
+            </Link>
+          )}
+          
           <Link
             href="/profile"
             className="px-3 py-2.5 rounded-app text-sm font-medium text-secondary hover:text-primary hover:bg-surface transition-colors flex items-center gap-1.5 col-span-2"
