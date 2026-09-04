@@ -8,13 +8,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   User, Shield, Clock, Star, Heart, MessageCircle,
-  UserPlus, TrendingUp, ArrowLeft, Users, Award
+  UserPlus, TrendingUp, ArrowLeft, Users, Award, UserCheck, UserX
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { getLevelFromXP, getXPProgress } from '@/lib/xp';
+import { useFriendSystem } from '@/hooks/useFriendSystem';
 
 interface UserProfile {
   uid: string;
@@ -34,10 +35,18 @@ export default function ProfilePage() {
   const { user: currentUser } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'friends'>('none');
   const [isFollowing, setIsFollowing] = useState(false);
 
   const isOwnProfile = currentUser?.uid === uid;
+
+  // Real friend system
+  const { 
+    status: friendStatus, 
+    loading: friendLoading,
+    sendRequest,
+    acceptRequest,
+    removeFriend
+  } = useFriendSystem(uid);
 
   useEffect(() => {
     if (!uid) return;
@@ -78,8 +87,19 @@ export default function ProfilePage() {
       alert('Login dulu untuk add friend!');
       return;
     }
-    setFriendStatus('pending');
-    alert(`Friend request sent to ${profile?.displayName}`);
+    sendRequest();
+  };
+
+  const handleAcceptFriend = () => {
+    if (!currentUser) return;
+    acceptRequest();
+  };
+
+  const handleRemoveFriend = () => {
+    if (!currentUser) return;
+    if (confirm(`Remove ${profile?.displayName} dari friend list?`)) {
+      removeFriend();
+    }
   };
 
   const handleFollow = () => {
@@ -95,7 +115,7 @@ export default function ProfilePage() {
       alert('Login dulu untuk chat!');
       return;
     }
-    alert(`Chat feature coming soon! (with ${profile?.displayName})`);
+    router.push(`/chat/${uid}`);
   };
 
   if (loading) {
@@ -202,21 +222,49 @@ export default function ProfilePage() {
             {/* Action buttons - only show if not own profile */}
             {!isOwnProfile && currentUser && (
               <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  onClick={handleAddFriend}
-                  disabled={friendStatus !== 'none'}
-                  className={clsx(
-                    'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all',
-                    friendStatus === 'none'
-                      ? 'bg-cyan text-bg hover:brightness-110'
-                      : friendStatus === 'pending'
-                      ? 'bg-yellow-400/10 border border-yellow-400/30 text-yellow-400 cursor-not-allowed'
-                      : 'bg-green-500/10 border border-green-500/30 text-green-400 cursor-not-allowed'
-                  )}
-                >
-                  <UserPlus className="w-4 h-4" />
-                  {friendStatus === 'none' ? 'Add Friend' : friendStatus === 'pending' ? 'Pending' : 'Friends'}
-                </button>
+                {/* Friend button with status */}
+                {friendStatus === 'none' && (
+                  <button
+                    onClick={handleAddFriend}
+                    disabled={friendLoading}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-cyan text-bg hover:brightness-110 disabled:opacity-50"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Add Friend
+                  </button>
+                )}
+
+                {friendStatus === 'pending' && (
+                  <button
+                    disabled
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-yellow-400/10 border border-yellow-400/30 text-yellow-400 cursor-not-allowed"
+                  >
+                    <Clock className="w-4 h-4" />
+                    Pending
+                  </button>
+                )}
+
+                {friendStatus === 'incoming' && (
+                  <button
+                    onClick={handleAcceptFriend}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 transition-all"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    Accept Request
+                  </button>
+                )}
+
+                {friendStatus === 'friends' && (
+                  <button
+                    onClick={handleRemoveFriend}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all group"
+                  >
+                    <UserCheck className="w-4 h-4 group-hover:hidden" />
+                    <UserX className="w-4 h-4 hidden group-hover:block" />
+                    <span className="group-hover:hidden">Friends</span>
+                    <span className="hidden group-hover:inline">Remove</span>
+                  </button>
+                )}
 
                 <button
                   onClick={handleFollow}
