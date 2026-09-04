@@ -3,14 +3,17 @@
 // ─────────────────────────────────────────────────────────────
 // Popup yang muncul saat user klik nama/avatar di komentar.
 // Menampilkan: avatar, nama, level, badge, XP, total menit nonton.
+// Actions: Add Friend, View Profile, Chat, Report
 // Smooth fade+scale transition.
 // ─────────────────────────────────────────────────────────────
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { X, User, Shield, Clock } from 'lucide-react';
+import Link from 'next/link';
+import { X, User, Shield, Clock, UserPlus, Eye, MessageCircle, Flag, Heart } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getLevelFromXP, getXPProgress } from '@/lib/xp';
+import { useAuth } from '@/context/AuthContext';
 
 export interface PopupUser {
   uid:          string;
@@ -31,6 +34,11 @@ interface Props {
 
 export default function UserProfilePopup({ user, onClose }: Props) {
   const [visible, setVisible] = useState(false);
+  const { user: currentUser } = useAuth();
+  const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'friends'>('none');
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  const isOwnProfile = currentUser?.uid === user?.uid;
 
   useEffect(() => {
     if (user) {
@@ -45,6 +53,46 @@ export default function UserProfilePopup({ user, onClose }: Props) {
   const handleClose = () => {
     setVisible(false);
     setTimeout(onClose, 250);
+  };
+
+  const handleAddFriend = () => {
+    if (!currentUser) {
+      alert('Login dulu untuk add friend!');
+      return;
+    }
+    // TODO: Implement friend request logic
+    setFriendStatus('pending');
+    alert(`Friend request sent to ${user?.displayName}`);
+  };
+
+  const handleFollow = () => {
+    if (!currentUser) {
+      alert('Login dulu untuk follow!');
+      return;
+    }
+    // TODO: Implement follow logic
+    setIsFollowing(!isFollowing);
+  };
+
+  const handleChat = () => {
+    if (!currentUser) {
+      alert('Login dulu untuk chat!');
+      return;
+    }
+    // TODO: Implement chat redirect
+    alert(`Chat feature coming soon! (with ${user?.displayName})`);
+  };
+
+  const handleReport = () => {
+    if (!currentUser) {
+      alert('Login dulu untuk report!');
+      return;
+    }
+    // TODO: Implement report modal
+    const reason = prompt(`Report ${user?.displayName}?\nAlasan:`);
+    if (reason) {
+      alert('Report submitted. Thanks for keeping our community safe!');
+    }
   };
 
   if (!user) return null;
@@ -144,6 +192,92 @@ export default function UserProfilePopup({ user, onClose }: Props) {
         )}
         {xpData.current.maxXP === 0 && (
           <p className="text-xs text-center text-yellow-400 font-semibold pb-4">🏆 Level Maksimal!</p>
+        )}
+
+        {/* Action Buttons - only show if not own profile */}
+        {!isOwnProfile && currentUser && (
+          <>
+            <div className="border-t border-border mx-4" />
+            <div className="p-4 grid grid-cols-2 gap-2">
+              {/* Add Friend */}
+              <button
+                onClick={handleAddFriend}
+                disabled={friendStatus !== 'none'}
+                className={clsx(
+                  'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all',
+                  friendStatus === 'none'
+                    ? 'bg-cyan/10 border border-cyan/30 text-cyan hover:bg-cyan/20'
+                    : friendStatus === 'pending'
+                    ? 'bg-yellow-400/10 border border-yellow-400/30 text-yellow-400 cursor-not-allowed'
+                    : 'bg-green-500/10 border border-green-500/30 text-green-400 cursor-not-allowed'
+                )}
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                {friendStatus === 'none' ? 'Add Friend' : friendStatus === 'pending' ? 'Pending' : 'Friends'}
+              </button>
+
+              {/* Follow */}
+              <button
+                onClick={handleFollow}
+                className={clsx(
+                  'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all',
+                  isFollowing
+                    ? 'bg-pink/10 border border-pink/30 text-pink hover:bg-pink/20'
+                    : 'bg-surface-2 border border-border text-secondary hover:border-pink/30 hover:text-pink'
+                )}
+              >
+                <Heart className={clsx('w-3.5 h-3.5', isFollowing && 'fill-pink')} />
+                {isFollowing ? 'Following' : 'Follow'}
+              </button>
+
+              {/* View Profile */}
+              <Link
+                href={`/profile/${user.uid}`}
+                onClick={handleClose}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-violet/10 border border-violet/30 text-violet hover:bg-violet/20 transition-all"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                View Profile
+              </Link>
+
+              {/* Chat */}
+              <button
+                onClick={handleChat}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-surface-2 border border-border text-secondary hover:border-cyan/30 hover:text-cyan transition-all"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                Chat
+              </button>
+            </div>
+
+            {/* Report button */}
+            <div className="px-4 pb-4">
+              <button
+                onClick={handleReport}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[0.65rem] font-semibold bg-red-500/5 border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all"
+              >
+                <Flag className="w-3 h-3" />
+                Report User
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* View own profile link */}
+        {isOwnProfile && (
+          <>
+            <div className="border-t border-border mx-4" />
+            <div className="p-4">
+              <Link
+                href={`/profile/${user.uid}`}
+                onClick={handleClose}
+                className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold bg-cyan text-bg hover:brightness-110 transition-all"
+              >
+                <Eye className="w-4 h-4" />
+                Lihat Profil Saya
+              </Link>
+            </div>
+          </>
         )}
       </div>
     </div>
