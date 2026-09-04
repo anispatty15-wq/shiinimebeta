@@ -10,10 +10,12 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { X, User, Shield, Clock, UserPlus, Eye, MessageCircle, Flag, Heart } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { X, User, Shield, Clock, UserPlus, Eye, MessageCircle, Flag, Heart, UserCheck, UserX } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getLevelFromXP, getXPProgress } from '@/lib/xp';
 import { useAuth } from '@/context/AuthContext';
+import { useFriendSystem } from '@/hooks/useFriendSystem';
 
 export interface PopupUser {
   uid:          string;
@@ -35,14 +37,16 @@ interface Props {
 export default function UserProfilePopup({ user, onClose }: Props) {
   const [visible, setVisible] = useState(false);
   const { user: currentUser } = useAuth();
-  const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'friends'>('none');
+  const router = useRouter();
   const [isFollowing, setIsFollowing] = useState(false);
 
   const isOwnProfile = currentUser?.uid === user?.uid;
+  
+  // Real friend system
+  const { status: friendStatus, loading: friendLoading, sendRequest, acceptRequest, removeFriend } = useFriendSystem(user?.uid);
 
   useEffect(() => {
     if (user) {
-      // Small delay so CSS transition plays
       const t = setTimeout(() => setVisible(true), 10);
       return () => clearTimeout(t);
     } else {
@@ -60,9 +64,19 @@ export default function UserProfilePopup({ user, onClose }: Props) {
       alert('Login dulu untuk add friend!');
       return;
     }
-    // TODO: Implement friend request logic
-    setFriendStatus('pending');
-    alert(`Friend request sent to ${user?.displayName}`);
+    sendRequest();
+  };
+
+  const handleAcceptFriend = () => {
+    if (!currentUser) return;
+    acceptRequest();
+  };
+
+  const handleRemoveFriend = () => {
+    if (!currentUser) return;
+    if (confirm(`Remove ${user?.displayName} dari friend list?`)) {
+      removeFriend();
+    }
   };
 
   const handleFollow = () => {
@@ -70,7 +84,6 @@ export default function UserProfilePopup({ user, onClose }: Props) {
       alert('Login dulu untuk follow!');
       return;
     }
-    // TODO: Implement follow logic
     setIsFollowing(!isFollowing);
   };
 
@@ -79,8 +92,9 @@ export default function UserProfilePopup({ user, onClose }: Props) {
       alert('Login dulu untuk chat!');
       return;
     }
-    // TODO: Implement chat redirect
-    alert(`Chat feature coming soon! (with ${user?.displayName})`);
+    // Redirect to chat page
+    router.push(`/chat/${user?.uid}`);
+    handleClose();
   };
 
   const handleReport = () => {
@@ -88,7 +102,6 @@ export default function UserProfilePopup({ user, onClose }: Props) {
       alert('Login dulu untuk report!');
       return;
     }
-    // TODO: Implement report modal
     const reason = prompt(`Report ${user?.displayName}?\nAlasan:`);
     if (reason) {
       alert('Report submitted. Thanks for keeping our community safe!');
@@ -199,22 +212,49 @@ export default function UserProfilePopup({ user, onClose }: Props) {
           <>
             <div className="border-t border-border mx-4" />
             <div className="p-4 grid grid-cols-2 gap-2">
-              {/* Add Friend */}
-              <button
-                onClick={handleAddFriend}
-                disabled={friendStatus !== 'none'}
-                className={clsx(
-                  'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all',
-                  friendStatus === 'none'
-                    ? 'bg-cyan/10 border border-cyan/30 text-cyan hover:bg-cyan/20'
-                    : friendStatus === 'pending'
-                    ? 'bg-yellow-400/10 border border-yellow-400/30 text-yellow-400 cursor-not-allowed'
-                    : 'bg-green-500/10 border border-green-500/30 text-green-400 cursor-not-allowed'
-                )}
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                {friendStatus === 'none' ? 'Add Friend' : friendStatus === 'pending' ? 'Pending' : 'Friends'}
-              </button>
+              {/* Add Friend / Friends Status */}
+              {friendStatus === 'none' && (
+                <button
+                  onClick={handleAddFriend}
+                  disabled={friendLoading}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-cyan/10 border border-cyan/30 text-cyan hover:bg-cyan/20 disabled:opacity-50"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  Add Friend
+                </button>
+              )}
+
+              {friendStatus === 'pending' && (
+                <button
+                  disabled
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-yellow-400/10 border border-yellow-400/30 text-yellow-400 cursor-not-allowed"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  Pending
+                </button>
+              )}
+
+              {friendStatus === 'incoming' && (
+                <button
+                  onClick={handleAcceptFriend}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 transition-all"
+                >
+                  <UserCheck className="w-3.5 h-3.5" />
+                  Accept
+                </button>
+              )}
+
+              {friendStatus === 'friends' && (
+                <button
+                  onClick={handleRemoveFriend}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all group"
+                >
+                  <UserCheck className="w-3.5 h-3.5 group-hover:hidden" />
+                  <UserX className="w-3.5 h-3.5 hidden group-hover:block" />
+                  <span className="group-hover:hidden">Friends</span>
+                  <span className="hidden group-hover:inline">Remove</span>
+                </button>
+              )}
 
               {/* Follow */}
               <button
