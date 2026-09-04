@@ -2,12 +2,12 @@
 // Jikan API helper with rate limiting
 
 const JIKAN_BASE_URL = 'https://api.jikan.moe/v4';
-const RATE_LIMIT_DELAY = 1000; // 1 second between requests
+const RATE_LIMIT_DELAY = 1500; // 1.5 seconds between requests (Jikan allows ~3 req/sec but we play it safe)
 
 let lastRequestTime = 0;
 
 /**
- * Fetch data from Jikan API with rate limiting
+ * Fetch data from Jikan API with rate limiting and retry logic
  */
 async function fetchJikan<T>(endpoint: string, retries = 3): Promise<T | null> {
   try {
@@ -15,39 +15,50 @@ async function fetchJikan<T>(endpoint: string, retries = 3): Promise<T | null> {
     const now = Date.now();
     const timeSinceLastRequest = now - lastRequestTime;
     if (timeSinceLastRequest < RATE_LIMIT_DELAY) {
-      await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY - timeSinceLastRequest));
+      const waitTime = RATE_LIMIT_DELAY - timeSinceLastRequest;
+      console.log(`[Jikan] ⏳ Waiting ${waitTime}ms for rate limit...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
     }
     
     lastRequestTime = Date.now();
 
     const url = `${JIKAN_BASE_URL}${endpoint}`;
-    console.log('[Jikan] Fetching:', url);
+    console.log('[Jikan] 🔍 Fetching:', url);
 
     const response = await fetch(url, {
       headers: {
         'Accept': 'application/json',
       },
+      cache: 'no-store', // Don't cache during development
     });
 
     if (!response.ok) {
       if (response.status === 429 && retries > 0) {
-        // Rate limited - wait and retry
-        console.warn('[Jikan] Rate limited, retrying...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Rate limited - wait longer and retry
+        console.warn(`[Jikan] ⚠️ Rate limited (429), waiting 3s before retry (${retries} attempts left)...`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
         return fetchJikan<T>(endpoint, retries - 1);
       }
+      
+      if (response.status === 404) {
+        console.warn(`[Jikan] ⚠️ Not found (404): ${endpoint}`);
+        return null;
+      }
+      
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log(`[Jikan] ✅ Success:`, endpoint, `(${data?.data?.length || 'N/A'} items)`);
     return data;
   } catch (error) {
-    console.error('[Jikan] Error:', endpoint, error);
+    console.error('[Jikan] ❌ Error:', endpoint, error);
     if (retries > 0) {
-      console.log('[Jikan] Retrying...', retries, 'attempts left');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log(`[Jikan] 🔄 Retrying... (${retries} attempts left)`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
       return fetchJikan<T>(endpoint, retries - 1);
     }
+    console.error('[Jikan] ❌ All retries failed for:', endpoint);
     return null;
   }
 }
