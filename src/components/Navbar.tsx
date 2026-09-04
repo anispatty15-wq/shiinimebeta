@@ -15,17 +15,18 @@ import type { ContentType } from '@/types/media';
 import { useAuth } from '@/context/AuthContext';
 
 const NAV_LINKS = [
-  { href: '/',               label: 'Home'    },
-  { href: '/anime',          label: 'Anime'   },
-  { href: '/donghua',        label: 'Donghua' },
-  { href: '/hentai',         label: 'Hentai'  },
-  { href: '/comic',          label: 'Komik'   },
-  { href: '/anime/schedule', label: 'Jadwal'  },
-  { href: '/anime/browse',   label: 'Filter'  },
-  { href: '/friends',        label: 'Teman'   },
-  { href: '/notifications',  label: 'Notifikasi' },
-  { href: '/history',        label: 'Riwayat' },
-  { href: '/favorites',      label: 'Favorit' },
+  { href: '/',                    label: 'Home'    },
+  { href: '/anime',               label: 'Anime'   },
+  { href: '/donghua',             label: 'Donghua' },
+  { href: '/hentai',              label: 'Hentai'  },
+  { href: '/comic',               label: 'Komik'   },
+  { href: '/anime/schedule',      label: 'Jadwal'  },
+  { href: '/anime/browse',        label: 'Filter'  },
+  { href: '/anime/search-jikan',  label: 'Jikan'   },
+  { href: '/friends',             label: 'Teman'   },
+  { href: '/notifications',       label: 'Notifikasi' },
+  { href: '/history',             label: 'Riwayat' },
+  { href: '/favorites',           label: 'Favorit' },
 ] as const;
 
 function pathToType(p: string): ContentType {
