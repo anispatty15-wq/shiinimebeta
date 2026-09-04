@@ -274,6 +274,28 @@ export default function Navbar() {
                 <Heart className="w-4 h-4" />
                 Bookmarks
               </Link>
+
+              <div className="border-t border-border my-1" />
+
+              <button
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  // Logout via Firebase
+                  import('@/lib/firebase').then(({ auth }) => {
+                    import('firebase/auth').then(({ signOut }) => {
+                      signOut(auth).then(() => {
+                        window.location.href = '/';
+                      });
+                    });
+                  });
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
             </div>
           )}
         </div>

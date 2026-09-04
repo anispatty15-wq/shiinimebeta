@@ -291,12 +291,26 @@ export default function ProfilePage() {
 
             {/* Edit profile button for own profile */}
             {isOwnProfile && (
-              <Link
-                href="/settings"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-cyan text-bg hover:brightness-110 transition-all"
-              >
-                Edit Profile
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/settings"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-cyan text-bg hover:brightness-110 transition-all"
+                >
+                  Edit Profile
+                </Link>
+                <button
+                  onClick={() => {
+                    import('@/lib/firebase').then(({ auth }) => {
+                      import('firebase/auth').then(({ signOut }) => {
+                        signOut(auth).then(() => router.push('/'));
+                      });
+                    });
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-surface-2 border border-border text-secondary hover:text-red-400 hover:border-red-400/40 transition-all"
+                >
+                  Logout
+                </button>
+              </div>
             )}
           </div>
         </div>
