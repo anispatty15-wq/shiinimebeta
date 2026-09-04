@@ -45,16 +45,21 @@ export default function Navbar() {
     console.log('%c[Navbar] Admin status', 'color: #00ff00; font-weight: bold; font-size: 16px;', { 
       isAdmin, 
       userUid: user?.uid,
-      userEmail: user?.email 
+      userEmail: user?.email,
+      timestamp: new Date().toISOString()
     });
     
     // Show alert if admin (for debugging)
-    if (isAdmin) {
-      console.log('%c🛡️ ADMIN MODE ACTIVE!', 'color: #ff00ff; font-weight: bold; font-size: 20px; background: yellow;');
-    } else if (user) {
-      console.warn('%c⚠️ Logged in but NOT admin', 'color: orange; font-weight: bold;', {
+    if (isAdmin && user) {
+      console.log('%c🛡️ ADMIN MODE ACTIVE!', 'color: #ff00ff; font-weight: bold; font-size: 20px; background: yellow;', {
         uid: user.uid,
         email: user.email
+      });
+    } else if (user && !isAdmin) {
+      console.warn('%c⚠️ Logged in but NOT admin', 'color: orange; font-weight: bold;', {
+        uid: user.uid,
+        email: user.email,
+        expectedAdminUid: 'tjG4P99RoxigBJlK4dUJrAnZxAk2'
       });
     }
   }, [isAdmin, user]);
@@ -258,7 +263,8 @@ export default function Navbar() {
                     My Profile
                   </Link>
                   
-                  {isAdmin && (
+                  {/* Debug: Always show admin link for testing */}
+                  {isAdmin ? (
                     <Link
                       href="/admin"
                       onClick={() => setShowProfileMenu(false)}
@@ -267,6 +273,10 @@ export default function Navbar() {
                       <Shield className="w-4 h-4" />
                       Admin Dashboard
                     </Link>
+                  ) : (
+                    <div className="px-4 py-1 text-xs text-muted italic">
+                      {user?.uid === 'tjG4P99RoxigBJlK4dUJrAnZxAk2' ? '⏳ Loading admin...' : null}
+                    </div>
                   )}
 
                   <Link
