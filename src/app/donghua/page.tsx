@@ -30,59 +30,70 @@ export default function DonghuaPage() {
   const ongoingData = useApi(useCallback(() => DonghuaAPI.getOngoing(), []), []);
   const latestData = useApi(useCallback(() => DonghuaAPI.getLatest(), []), []);
 
-  const hasData = (ongoingData.data && ongoingData.data.length > 0) ||
-                  (latestData.data && latestData.data.length > 0);
-  
-  const isLoading = ongoingData.loading || latestData.loading;
-
   return (
     <div className="min-h-screen pb-20 md:pb-0">
-      {isLoading && (
-        <div className="px-4 pt-6 mb-7"><SkeletonBanner /></div>
-      )}
-
       <div className="max-w-screen-xl mx-auto px-4 pt-6 pb-4">
         <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
           <span className="text-yellow-400">🐉</span> Donghua
         </h2>
       </div>
 
-      <div className="max-w-screen-xl mx-auto px-4 space-y-8">
-        {!hasData && !isLoading && (
-          <div className="text-center py-12 bg-surface rounded-app border border-border">
-            <div className="text-6xl mb-4">🐉</div>
-            <h3 className="text-lg font-bold text-primary mb-2">
-              Donghua Segera Hadir!
-            </h3>
-            <p className="text-secondary text-sm">
-              API donghua sedang dalam pengembangan. Data akan muncul setelah API tersedia.
-            </p>
+      <div className="max-w-screen-xl mx-auto px-4">
+        {/* Coming Soon Banner */}
+        <div className="mb-12 p-8 md:p-12 rounded-app bg-gradient-to-br from-yellow-400/5 via-surface to-surface border border-yellow-400/20 text-center">
+          <div className="w-20 h-20 rounded-full bg-yellow-400/10 border-2 border-yellow-400/30 flex items-center justify-center mx-auto mb-6">
+            <span className="text-5xl">🐉</span>
           </div>
-        )}
+          <h3 className="text-2xl md:text-3xl font-bold text-primary mb-3">
+            Donghua Segera Hadir!
+          </h3>
+          <p className="text-base text-secondary max-w-md mx-auto mb-6">
+            Kami sedang menyiapkan koleksi Donghua terbaik untukmu. Fitur ini akan segera diluncurkan dalam waktu dekat.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted">
+            <span className="px-3 py-1.5 rounded-full bg-surface border border-border">
+              🎬 Ribuan judul
+            </span>
+            <span className="px-3 py-1.5 rounded-full bg-surface border border-border">
+              ⚡ Update harian
+            </span>
+            <span className="px-3 py-1.5 rounded-full bg-surface border border-border">
+              🌟 Kualitas HD
+            </span>
+          </div>
+        </div>
 
-        {/* Ongoing */}
-        <SectionRow
-          title="Donghua Ongoing"
-          items={toItems(ongoingData.data, 'Ongoing')}
-          loading={ongoingData.loading}
-          error={ongoingData.error}
-          contentType="anime"
-          basePath="/stream/anime"
-          moreHref="/donghua/ongoing"
-          accent="yellow-400"
-        />
+        {/* Preview sections - blurred */}
+        <div className="space-y-8 relative">
+          {/* Blur overlay */}
+          <div className="absolute inset-0 z-10 backdrop-blur-sm bg-background/30 pointer-events-none rounded-app" />
+          
+          <div className="opacity-40">
+            <SectionRow
+              title="Donghua Ongoing"
+              items={toItems(ongoingData.data, 'Ongoing')}
+              loading={ongoingData.loading}
+              error={ongoingData.error}
+              contentType="anime"
+              basePath="/stream/anime"
+              moreHref="/donghua/ongoing"
+              accent="yellow-400"
+            />
+          </div>
 
-        {/* Latest Updates */}
-        <SectionRow
-          title="Update Terbaru"
-          items={toItems(latestData.data, 'Ongoing')}
-          loading={latestData.loading}
-          error={latestData.error}
-          contentType="anime"
-          basePath="/stream/anime"
-          moreHref="/donghua/latest"
-          accent="yellow-400"
-        />
+          <div className="opacity-40">
+            <SectionRow
+              title="Update Terbaru"
+              items={toItems(latestData.data, 'Ongoing')}
+              loading={latestData.loading}
+              error={latestData.error}
+              contentType="anime"
+              basePath="/stream/anime"
+              moreHref="/donghua/latest"
+              accent="yellow-400"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -91,20 +91,44 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Donghua Section */}
+      {/* Donghua Section - LOCKED (Coming Soon) */}
       <div className="px-4 mb-6 mt-12">
         <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
           <span className="text-yellow-400">🐉</span> Donghua
         </h2>
       </div>
 
-      <div className="px-4">
-        <TopBanner
-          title="Top Donghua"
-          items={toItems(donghuaHome.data, 'Ongoing', 'donghua')}
-          basePath="/stream/anime"
-          accentColor="yellow-400"
-        />
+      <div className="relative px-4 mb-8">
+        {/* Blurred content behind */}
+        <div className="blur-md pointer-events-none">
+          <TopBanner
+            title="Top Donghua"
+            items={toItems(donghuaHome.data, 'Ongoing', 'donghua').slice(0, 6)}
+            basePath="/stream/anime"
+            accentColor="yellow-400"
+          />
+        </div>
+        
+        {/* Lock overlay */}
+        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-app border border-yellow-400/20">
+          <div className="text-center max-w-sm px-4">
+            <div className="w-16 h-16 rounded-full bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">🐉</span>
+            </div>
+            <h3 className="text-lg font-bold text-primary mb-2">
+              Donghua Coming Soon
+            </h3>
+            <p className="text-sm text-secondary mb-4">
+              Konten Donghua sedang dalam pengembangan dan akan segera hadir!
+            </p>
+            <a
+              href="/donghua"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-app bg-yellow-400 text-bg font-semibold text-sm hover:brightness-110 transition-all"
+            >
+              🔔 Info Donghua
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* Hentai Section - LOCKED (18+ only) */}
