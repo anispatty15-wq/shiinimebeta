@@ -174,6 +174,7 @@ export default function ComicReader({
             <Link
               href={`/detail/comic/${seriesSlug}`}
               aria-label="Kembali ke detail"
+              title="Kembali ke detail series"
               className="w-8 h-8 flex items-center justify-center rounded-app bg-surface border border-border text-secondary hover:text-primary transition-colors flex-shrink-0"
             >
               <ChevronLeft className="w-4 h-4" aria-hidden />
@@ -183,9 +184,10 @@ export default function ComicReader({
             <Link
               href={`/read/${chapter.prev_chapter_slug}?series=${seriesSlug}`}
               aria-label="Chapter sebelumnya"
-              className="w-8 h-8 flex items-center justify-center rounded-app bg-surface border border-border text-secondary hover:text-primary transition-colors flex-shrink-0"
+              title="Chapter sebelumnya"
+              className="w-8 h-8 flex items-center justify-center rounded-app bg-violet/15 border border-violet/30 text-violet hover:bg-violet hover:text-white transition-all flex-shrink-0"
             >
-              <ChevronLeft className="w-4 h-4 -translate-x-0.5" aria-hidden />
+              <ChevronLeft className="w-4 h-4 font-bold" aria-hidden />
             </Link>
           )}
           <p className="text-xs font-semibold text-primary truncate max-w-[140px]">
@@ -195,9 +197,10 @@ export default function ComicReader({
             <Link
               href={`/read/${chapter.next_chapter_slug}?series=${seriesSlug}`}
               aria-label="Chapter berikutnya"
-              className="w-8 h-8 flex items-center justify-center rounded-app bg-surface border border-border text-secondary hover:text-primary transition-colors flex-shrink-0"
+              title="Chapter berikutnya"
+              className="w-8 h-8 flex items-center justify-center rounded-app bg-violet border border-violet text-white hover:brightness-110 transition-all flex-shrink-0"
             >
-              <ChevronRight className="w-4 h-4 translate-x-0.5" aria-hidden />
+              <ChevronRight className="w-4 h-4 font-bold" aria-hidden />
             </Link>
           )}
         </div>
@@ -270,20 +273,36 @@ export default function ComicReader({
         {chapter.prev_chapter_slug ? (
           <Link
             href={`/read/${chapter.prev_chapter_slug}?series=${seriesSlug}`}
-            className="btn-ghost text-sm flex items-center gap-1.5"
+            className="btn-ghost text-sm flex items-center gap-2 px-4 py-2.5"
           >
-            <ChevronLeft className="w-4 h-4" aria-hidden /> Chapter Sebelumnya
+            <ChevronLeft className="w-4 h-4" aria-hidden /> 
+            <span className="hidden xs:inline">Chapter Sebelumnya</span>
+            <span className="xs:hidden">← Prev</span>
           </Link>
-        ) : <span />}
+        ) : <div className="w-32" />}
+        
+        {seriesSlug && (
+          <Link
+            href={`/detail/comic/${seriesSlug}`}
+            className="btn-ghost text-xs flex items-center justify-center"
+          >
+            Series Info
+          </Link>
+        )}
+        
         {chapter.next_chapter_slug ? (
           <Link
             href={`/read/${chapter.next_chapter_slug}?series=${seriesSlug}`}
-            className="btn-violet text-sm flex items-center gap-1.5"
+            className="btn-violet text-sm flex items-center gap-2 px-4 py-2.5"
           >
-            Chapter Berikutnya <ChevronRight className="w-4 h-4" aria-hidden />
+            <span className="hidden xs:inline">Chapter Berikutnya</span>
+            <span className="xs:hidden">Next →</span>
+            <ChevronRight className="w-4 h-4" aria-hidden />
           </Link>
         ) : (
-          <span className="text-xs text-muted self-center">— Ini chapter terakhir —</span>
+          <div className="w-32 flex items-center justify-center">
+            <span className="text-xs text-muted">Chapter terakhir</span>
+          </div>
         )}
       </div>
     </>

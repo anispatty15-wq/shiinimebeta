@@ -400,9 +400,15 @@ export default function StreamPage() {
             <Link
               href={`/stream/${type}/${prevSlug}`}
               aria-label="Episode sebelumnya"
-              className="w-8 h-8 flex items-center justify-center rounded-app bg-surface border border-border text-secondary hover:text-primary transition-colors"
+              title="Episode sebelumnya"
+              className={clsx(
+                'w-8 h-8 flex items-center justify-center rounded-app border transition-all',
+                isHentai
+                  ? 'bg-pink/15 border-pink/30 text-pink hover:bg-pink hover:text-white'
+                  : 'bg-cyan/15 border-cyan/30 text-cyan hover:bg-cyan hover:text-bg'
+              )}
             >
-              <ChevronLeft className="w-4 h-4" aria-hidden />
+              <ChevronLeft className="w-4 h-4 font-bold" aria-hidden />
             </Link>
           )}
 
@@ -411,14 +417,15 @@ export default function StreamPage() {
             <Link
               href={`/stream/${type}/${nextSlug}`}
               aria-label="Episode berikutnya"
+              title="Episode berikutnya"
               className={clsx(
-                'w-8 h-8 flex items-center justify-center rounded-app transition-colors font-bold',
+                'w-8 h-8 flex items-center justify-center rounded-app transition-all font-bold shadow-glow',
                 isHentai
-                  ? 'bg-pink-500 text-white hover:brightness-110'
-                  : 'bg-cyan text-bg hover:brightness-110'
+                  ? 'bg-pink text-white hover:brightness-110 shadow-pink/50'
+                  : 'bg-cyan text-bg hover:brightness-110 shadow-cyan/50'
               )}
             >
-              <ChevronRight className="w-4 h-4" aria-hidden />
+              <ChevronRight className="w-4 h-4 font-bold" aria-hidden />
             </Link>
           )}
 

@@ -255,13 +255,14 @@ export default function DetailPage() {
                     <Link
                       key={ch.slug}
                       href={`/read/${ch.slug}?series=${slug}`}
-                      title={`${ch.title || `Chapter ${label}`}${watched ? ' ✓ Sudah dibaca' : ''}`}
+                      title={`Chapter ${label}: ${ch.title || `Chapter ${label}`}${watched ? ' ✓ Sudah dibaca' : ''}`}
                       className={clsx(
-                        'ep-pill min-w-[2.75rem] text-center px-2 relative',
+                        'ep-pill min-w-[3.5rem] text-center px-2 relative',
                         watched && 'bg-violet/20 border-violet/60 text-violet',
                       )}
                     >
-                      {display}
+                      <span className="text-[0.65rem] block">Ch</span>
+                      <span className="font-bold">{display}</span>
                       {watched && (
                         <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-violet flex items-center justify-center text-[8px] text-bg font-bold leading-none">
                           ✓
@@ -282,14 +283,15 @@ export default function DetailPage() {
                     <Link
                       key={ep.slug}
                       href={`/stream/${contentType}/${ep.slug}`}
-                      title={`${ep.title}${watched ? ' ✓ Sudah ditonton' : ''}`}
+                      title={`Episode ${epLabel}: ${ep.title}${watched ? ' ✓ Sudah ditonton' : ''}`}
                       className={clsx(
-                        'ep-pill min-w-[2.75rem] text-center px-2 relative',
+                        'ep-pill min-w-[3.5rem] text-center px-2 relative',
                         watched && contentType === 'hentai'  && 'bg-pink/20 border-pink/60 text-pink',
                         watched && contentType !== 'hentai'  && 'bg-cyan/20 border-cyan/60 text-cyan',
                       )}
                     >
-                      {epLabel}
+                      <span className="text-[0.65rem] block">Ep</span>
+                      <span className="font-bold">{epLabel}</span>
                       {watched && (
                         <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-cyan flex items-center justify-center text-[8px] text-bg font-bold leading-none">
                           ✓

@@ -456,7 +456,7 @@ export default function JikanDetailPage() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-surface border border-border rounded-app hover:border-cyan/40 transition-all"
                   >
-                    <span className="text-xs sm:text-sm font-bold text-cyan flex-shrink-0">#{ep.episode}</span>
+                    <span className="text-xs sm:text-sm font-bold text-cyan flex-shrink-0">Episode {ep.episode}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs sm:text-sm font-medium text-primary line-clamp-1">{ep.title}</p>
                       {ep.aired && (
