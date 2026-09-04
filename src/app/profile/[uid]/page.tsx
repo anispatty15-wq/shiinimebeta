@@ -47,6 +47,21 @@ export default function ProfilePage() {
         const userDoc = await getDoc(doc(db, 'users', uid));
         if (userDoc.exists()) {
           setProfile({ uid, ...userDoc.data() } as UserProfile);
+        } else {
+          // User document doesn't exist yet - try to create it from auth
+          // This handles the case where user logged in but document not created
+          console.warn(`User document not found for ${uid}, checking auth...`);
+          
+          // If viewing own profile, we can create the document
+          if (currentUser?.uid === uid) {
+            // Document will be created by AuthContext, wait and retry
+            setTimeout(async () => {
+              const retry = await getDoc(doc(db, 'users', uid));
+              if (retry.exists()) {
+                setProfile({ uid, ...retry.data() } as UserProfile);
+              }
+            }, 1000);
+          }
         }
       } catch (err) {
         console.error('Error fetching profile:', err);
@@ -56,7 +71,7 @@ export default function ProfilePage() {
     };
 
     fetchProfile();
-  }, [uid]);
+  }, [uid, currentUser]);
 
   const handleAddFriend = () => {
     if (!currentUser) {
@@ -89,6 +104,7 @@ export default function ProfilePage() {
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-cyan border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-sm text-muted">Loading profile...</p>
+          <p className="text-xs text-muted/60 mt-1">Tunggu sebentar...</p>
         </div>
       </div>
     );
@@ -97,17 +113,32 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md px-4">
           <User className="w-16 h-16 text-muted mx-auto mb-4" />
           <h2 className="text-xl font-bold text-primary mb-2">User Not Found</h2>
-          <p className="text-sm text-secondary mb-6">Profile ini tidak ditemukan atau sudah dihapus.</p>
-          <button
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan text-bg font-semibold hover:brightness-110 transition-all"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Kembali
-          </button>
+          <p className="text-sm text-secondary mb-2">
+            Profile ini tidak ditemukan atau sedang dimuat.
+          </p>
+          {currentUser?.uid === uid && (
+            <p className="text-xs text-yellow-400 mb-6">
+              ℹ️ Jika ini profil kamu, coba refresh halaman atau login ulang.
+            </p>
+          )}
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={() => router.back()}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-2 border border-border text-secondary hover:text-primary transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Kembali
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan text-bg font-semibold hover:brightness-110 transition-all"
+            >
+              🔄 Refresh
+            </button>
+          </div>
         </div>
       </div>
     );

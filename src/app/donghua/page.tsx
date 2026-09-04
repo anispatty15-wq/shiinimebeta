@@ -48,7 +48,7 @@ export default function DonghuaPage() {
             Donghua Segera Hadir!
           </h3>
           <p className="text-base text-secondary max-w-md mx-auto mb-6">
-            developer sedang menyiapkan Donghua untukmu. Fitur ini akan segera diluncurkan dalam waktu dekat.
+            developer sedang menyiapkan Donghua untukmu. donghua akan segera hadir dalam waktu dekat.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted">
             <span className="px-3 py-1.5 rounded-full bg-surface border border-border">
