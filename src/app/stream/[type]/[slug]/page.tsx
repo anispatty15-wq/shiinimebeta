@@ -503,6 +503,56 @@ export default function StreamPage() {
         </div>
       )}
 
+      {/* ── Bottom Episode Navigation ── */}
+      {(prevSlug || nextSlug) && (
+        <div className="flex gap-3 justify-center py-6 px-4 border-y border-border bg-surface/30">
+          {prevSlug ? (
+            <Link
+              href={`/stream/${type}/${prevSlug}`}
+              className={clsx(
+                'flex items-center gap-2 px-4 py-2.5 rounded-app text-sm font-semibold border transition-all',
+                isHentai 
+                  ? 'bg-surface border-pink/30 text-pink hover:bg-pink/10'
+                  : 'bg-surface border-cyan/30 text-cyan hover:bg-cyan/10'
+              )}
+            >
+              <ChevronLeft className="w-4 h-4" aria-hidden />
+              <span className="hidden xs:inline">Episode Sebelumnya</span>
+              <span className="xs:hidden">← Prev</span>
+            </Link>
+          ) : <div className="w-32" />}
+
+          {seriesSlug && (
+            <Link
+              href={`/detail/${type}/${seriesSlug}`}
+              className="btn-ghost text-xs flex items-center justify-center px-3"
+            >
+              Series Info
+            </Link>
+          )}
+
+          {nextSlug ? (
+            <Link
+              href={`/stream/${type}/${nextSlug}`}
+              className={clsx(
+                'flex items-center gap-2 px-4 py-2.5 rounded-app text-sm font-semibold transition-all shadow-lg',
+                isHentai
+                  ? 'bg-pink text-white hover:brightness-110 shadow-pink/30'
+                  : 'bg-cyan text-bg hover:brightness-110 shadow-cyan/30'
+              )}
+            >
+              <span className="hidden xs:inline">Episode Berikutnya</span>
+              <span className="xs:hidden">Next →</span>
+              <ChevronRight className="w-4 h-4" aria-hidden />
+            </Link>
+          ) : (
+            <div className="w-32 flex items-center justify-center">
+              <span className="text-xs text-muted">Episode terakhir</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Comments ── */}
       <Comments episodeSlug={slug ?? ''} contentType={isHentai ? 'hentai' : 'anime'} />
 
