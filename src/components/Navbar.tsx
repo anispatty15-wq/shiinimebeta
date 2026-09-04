@@ -38,7 +38,7 @@ function pathToType(p: string): ContentType {
 export default function Navbar() {
   const pathname = usePathname();
   const router   = useRouter();
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, signInWithGoogle } = useAuth();
 
   // Debug admin status
   useEffect(() => {
@@ -302,13 +302,13 @@ export default function Navbar() {
               )}
             </>
           ) : (
-            <Link
-              href="/profile"
+            <button
+              onClick={signInWithGoogle}
               className="flex items-center gap-2 px-3 py-1.5 rounded-app bg-cyan text-bg text-sm font-semibold hover:brightness-110 transition-all"
             >
               <User className="w-4 h-4" />
               Login
-            </Link>
+            </button>
           )}
         </div>
       </div>
@@ -362,12 +362,21 @@ export default function Navbar() {
             </Link>
           )}
           
-          <Link
-            href="/profile"
-            className="px-3 py-2.5 rounded-app text-sm font-medium text-secondary hover:text-primary hover:bg-surface transition-colors flex items-center gap-1.5 col-span-2"
-          >
-            <User className="w-4 h-4" aria-hidden /> Profil / Login
-          </Link>
+          {user ? (
+            <Link
+              href="/profile"
+              className="px-3 py-2.5 rounded-app text-sm font-medium text-secondary hover:text-primary hover:bg-surface transition-colors flex items-center gap-1.5 col-span-2"
+            >
+              <User className="w-4 h-4" aria-hidden /> Profil
+            </Link>
+          ) : (
+            <button
+              onClick={signInWithGoogle}
+              className="px-3 py-2.5 rounded-app text-sm font-medium bg-cyan text-bg hover:brightness-110 transition-all flex items-center justify-center gap-1.5 col-span-2"
+            >
+              <User className="w-4 h-4" aria-hidden /> Login dengan Google
+            </button>
+          )}
         </nav>
       )}
     </header>
