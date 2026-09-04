@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Search, Menu, X, User, Heart, History, Bell } from 'lucide-react';
+import { Search, Menu, X, User, Heart, History, Bell, Shield, Clock } from 'lucide-react';
 import Image from 'next/image';
 import { clsx } from 'clsx';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -12,6 +12,7 @@ import { useSearchSuggest } from '@/hooks/useSearchSuggest';
 import { useNotificationsList } from '@/hooks/useNotificationsList';
 import { useTypingEffect } from '@/hooks/useTypingEffect';
 import type { ContentType } from '@/types/media';
+import { useAuth } from '@/context/AuthContext';
 
 const NAV_LINKS = [
   { href: '/',               label: 'Home'    },
@@ -37,11 +38,13 @@ function pathToType(p: string): ContentType {
 export default function Navbar() {
   const pathname = usePathname();
   const router   = useRouter();
+  const { isAdmin } = useAuth();
 
   const [query,      setQuery]      = useState('');
   const [showDrop,   setShowDrop]   = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false); // mobile search expand
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const wrapRef  = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -208,13 +211,58 @@ export default function Navbar() {
           )}
         </Link>
 
-        <Link
-          href="/profile"
-          aria-label="Profil"
-          className="hidden md:flex w-8 h-8 items-center justify-center rounded-app bg-surface border border-border text-secondary hover:text-primary transition-all flex-shrink-0"
-        >
-          <User className="w-4 h-4" aria-hidden />
-        </Link>
+        {/* Profile Dropdown */}
+        <div className="hidden md:block relative">
+          <button
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            aria-label="Profil"
+            className="flex w-8 h-8 items-center justify-center rounded-app bg-surface border border-border text-secondary hover:text-primary transition-all flex-shrink-0"
+          >
+            <User className="w-4 h-4" aria-hidden />
+          </button>
+
+          {showProfileMenu && (
+            <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-app shadow-lg py-2 z-50">
+              <Link
+                href="/profile"
+                onClick={() => setShowProfileMenu(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-secondary hover:text-primary hover:bg-surface-2 transition-colors"
+              >
+                <User className="w-4 h-4" />
+                My Profile
+              </Link>
+              
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={() => setShowProfileMenu(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-violet hover:text-violet/80 hover:bg-violet/10 transition-colors"
+                >
+                  <Shield className="w-4 h-4" />
+                  Admin Dashboard
+                </Link>
+              )}
+
+              <Link
+                href="/history"
+                onClick={() => setShowProfileMenu(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-secondary hover:text-primary hover:bg-surface-2 transition-colors"
+              >
+                <Clock className="w-4 h-4" />
+                History
+              </Link>
+
+              <Link
+                href="/bookmarks"
+                onClick={() => setShowProfileMenu(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-secondary hover:text-primary hover:bg-surface-2 transition-colors"
+              >
+                <Heart className="w-4 h-4" />
+                Bookmarks
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Mobile search bar (expands below header) ── */}

@@ -1,53 +1,37 @@
 'use client';
 // src/app/profile/page.tsx
+// Redirect to /profile/[uid] page
 
-import { useState } from 'react';
-import Image from 'next/image';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import {
-  LogIn, LogOut, User, ShieldCheck, ShieldAlert,
-  Clock, X, History, Heart, Shield,
-} from 'lucide-react';
-import { clsx } from 'clsx';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getXPProgress } from '@/lib/xp';
 
-// ── Adult status badge config ─────────────────────────────────
-const STATUS_CONFIG = {
-  none:     { text: 'Belum mengajukan',   color: 'bg-surface-2 border-border text-muted',                  icon: '🔒' },
-  pending:  { text: 'Menunggu persetujuan', color: 'bg-yellow-400/15 border-yellow-400/40 text-yellow-400', icon: '⏳' },
-  approved: { text: 'Disetujui',           color: 'bg-green-400/15 border-green-400/40 text-green-400',    icon: '✅' },
-  rejected: { text: 'Ditolak admin',       color: 'bg-red-400/15 border-red-400/40 text-red-400',          icon: '✗'  },
-};
-
-export default function ProfilePage() {
-  const { user, profile, loading, isAdult, isAdmin, adultStatus, configMissing, signInWithGoogle, signOut, requestAdultRole } = useAuth();
+export default function ProfileRedirect() {
+  const { user, loading } = useAuth();
   const router = useRouter();
-  const [requesting, setRequesting] = useState(false);
-  const [ageChecked, setAgeChecked] = useState(false);
 
-  const xpData = profile ? getXPProgress(profile.xp ?? 0) : null;
+  useEffect(() => {
+    if (loading) return;
+    
+    if (user) {
+      // Redirect to own profile
+      router.replace(`/profile/${user.uid}`);
+    } else {
+      // Not logged in - redirect to home
+      router.replace('/');
+    }
+  }, [user, loading, router]);
 
-  const handleRequest = async () => {
-    if (!ageChecked) { alert('Centang pernyataan terlebih dahulu.'); return; }
-    setRequesting(true);
-    await requestAdultRole();
-    setRequesting(false);
-  };
-
-  if (loading) {
-    return (
-      <div className="max-w-xs mx-auto px-4 pt-16 space-y-3">
-        <div className="h-16 w-16 rounded-full bg-surface animate-pulse mx-auto" />
-        <div className="h-5 bg-surface animate-pulse rounded mx-auto w-40" />
-        <div className="h-4 bg-surface animate-pulse rounded mx-auto w-28" />
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-8 h-8 text-cyan animate-spin mx-auto mb-4" />
+        <p className="text-sm text-muted">Loading profile...</p>
       </div>
-    );
-  }
-
-  // ── Not logged in ─────────────────────────────────────────
-  if (!user) {
+    </div>
+  );
+}
     return (
       <div className="max-w-sm mx-auto px-4 pt-16 pb-10 text-center space-y-6">
         <div className="w-20 h-20 rounded-full bg-surface border border-border flex items-center justify-center mx-auto">

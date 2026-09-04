@@ -55,7 +55,7 @@ export default function DonghuaPage() {
               🎬 Ribuan judul
             </span>
             <span className="px-3 py-1.5 rounded-full bg-surface border border-border">
-              ⚡ Update harian
+              ⚡ Update harian 
             </span>
             <span className="px-3 py-1.5 rounded-full bg-surface border border-border">
               🌟 Kualitas HD
