@@ -104,12 +104,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const userSnap  = snap.status      === 'fulfilled' ? snap.value      : null;
       const adminDoc  = adminSnap.status === 'fulfilled' ? adminSnap.value : null;
-      const isAdmin   = adminDoc?.exists() ?? false;
+      
+      // Check admin with better error handling
+      let isAdmin = false;
+      if (adminSnap.status === 'fulfilled' && adminDoc) {
+        isAdmin = adminDoc.exists();
+      } else if (adminSnap.status === 'rejected') {
+        console.warn('[AuthContext] Admin check failed:', adminSnap.reason);
+        // Try direct check as fallback
+        try {
+          const directAdminCheck = await getDoc(adminRef);
+          isAdmin = directAdminCheck.exists();
+        } catch (fallbackError) {
+          console.error('[AuthContext] Fallback admin check also failed:', fallbackError);
+        }
+      }
 
       // Debug logs
       console.log('[AuthContext] Admin check:', { 
         uid: u.uid, 
-        adminDocExists: adminDoc?.exists(), 
+        adminDocExists: adminDoc?.exists() ?? false, 
         isAdmin,
         adminData: adminDoc?.data(),
         userSnapStatus: snap.status,
