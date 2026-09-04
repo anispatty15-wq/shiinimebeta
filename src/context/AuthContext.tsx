@@ -106,11 +106,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const adminDoc  = adminSnap.status === 'fulfilled' ? adminSnap.value : null;
       const isAdmin   = adminDoc?.exists() ?? false;
 
+      // Debug logs
       console.log('[AuthContext] Admin check:', { 
         uid: u.uid, 
         adminDocExists: adminDoc?.exists(), 
         isAdmin,
-        adminData: adminDoc?.data()
+        adminData: adminDoc?.data(),
+        userSnapStatus: snap.status,
+        adminSnapStatus: adminSnap.status,
+        adminError: adminSnap.status === 'rejected' ? adminSnap.reason : null
       });
 
       if (userSnap?.exists()) {
