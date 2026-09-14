@@ -4,7 +4,8 @@
 
 import { useEffect, useState } from 'react';
 import { useDebounce } from './useDebounce';
-import { AnimeAPI, ComicAPI, DonghuaAPI, HentaiAPI, toArray } from '@/lib/api';
+import { ComicAPI, DonghuaAPI, HentaiAPI, toArray } from '@/lib/api';
+import { AnimeAPI as CatalogAnimeAPI, MaidComicAPI } from '@/lib/apiClient';
 import type { ContentType } from '@/types/media';
 
 export interface SuggestionItem {
@@ -14,7 +15,7 @@ export interface SuggestionItem {
   sub?:    string;
 }
 
-export function useSearchSuggest(query: string, type: ContentType = 'anime') {
+export function useSearchSuggest(query: string, type: ContentType | 'maid' = 'anime') {
   const dq = useDebounce(query.trim(), 400);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [loading,     setLoading]     = useState(false);
@@ -32,7 +33,11 @@ export function useSearchSuggest(query: string, type: ContentType = 'anime') {
       try {
         let raw: unknown[] = [];
 
-        if (type === 'comic') {
+        if (type === 'maid') {
+          const r = await MaidComicAPI.search(dq, 1);
+          const result = r.data;
+          raw = Array.isArray(result) ? result : (result && typeof result === 'object' && Array.isArray(result.data) ? result.data : []);
+        } else if (type === 'comic') {
           const r = await ComicAPI.search(dq);
           raw = toArray(r.data as Parameters<typeof toArray>[0]);
         } else if (type === 'hentai') {
@@ -42,8 +47,8 @@ export function useSearchSuggest(query: string, type: ContentType = 'anime') {
           const r = await DonghuaAPI.search(dq, 1);
           raw = toArray(r.data as Parameters<typeof toArray>[0]);
         } else {
-          const r = await AnimeAPI.suggest(dq);
-          raw = Array.isArray(r.data) ? r.data : [];
+          const r = await CatalogAnimeAPI.searchCatalog(dq);
+          raw = toArray(r.data as Parameters<typeof toArray>[0]);
         }
 
         if (cancelled) return;

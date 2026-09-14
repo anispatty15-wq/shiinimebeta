@@ -19,7 +19,7 @@ export default function MaidComicNav() {
           </Link>
         ))}
       </div>
-      <ContentSearch type="comic" submitPath="/maid/search" placeholder="Cari Maid Comic..." />
+      <ContentSearch type="comic" suggestionType="maid" submitPath="/maid/search" placeholder="Cari Maid Comic..." />
     </div>
   );
 }

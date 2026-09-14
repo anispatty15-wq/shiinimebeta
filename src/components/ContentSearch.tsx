@@ -10,14 +10,15 @@ interface ContentSearchProps {
   type: ContentType;
   placeholder: string;
   submitPath?: string;
+  suggestionType?: ContentType | 'maid';
 }
 
-export default function ContentSearch({ type, placeholder, submitPath }: ContentSearchProps) {
+export default function ContentSearch({ type, placeholder, submitPath, suggestionType }: ContentSearchProps) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const { suggestions, loading } = useSearchSuggest(query, type);
+  const { suggestions, loading } = useSearchSuggest(query, suggestionType ?? type);
 
   useEffect(() => {
     const close = (event: MouseEvent) => {
@@ -67,7 +68,15 @@ export default function ContentSearch({ type, placeholder, submitPath }: Content
             <button
               key={item.slug}
               type="button"
-              onClick={() => router.push(type === 'donghua' ? `/detail/donghua/${item.slug}` : `/${type}/${item.slug}`)}
+              onClick={() => router.push(
+                type === 'donghua'
+                  ? `/detail/donghua/${item.slug}`
+                  : type === 'anime'
+                    ? `/anime/anime/${item.slug}`
+                    : type === 'comic'
+                      ? `/detail/comic/${item.slug}`
+                      : `/hentai/${item.slug}`
+              )}
               className="flex w-full items-center gap-3 border-b border-white/5 px-4 py-3 text-left transition last:border-0 hover:bg-white/10"
             >
               {item.poster ? (

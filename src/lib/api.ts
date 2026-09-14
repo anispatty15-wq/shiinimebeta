@@ -451,23 +451,23 @@ const FALLBACK_CHAPTER: ComicChapterData   = { title: '', images: [], prev_chapt
 
 // ── ANIME ─────────────────────────────────────────────────────
 export const AnimeAPI = {
-  getHome:    (page = 1) => safeCall((ax) => ax.get('/anime/animekompi/home',    { params: { page } }), parseMediaList, FALLBACK_LIST),
+  getHome:    () => safeCall((ax) => ax.get('/anime/home'), parseMediaList, FALLBACK_LIST),
   getTerbaru: (page = 1) => safeCall((ax) => ax.get('/anime/animekompi/terbaru', { params: { page } }), parseMediaList, FALLBACK_LIST),
   getDonghua: (page = 1) => safeCall((ax) => ax.get('/anime/animekompi/donghua', { params: { page } }), parseMediaList, FALLBACK_LIST),
   getMovies:  (page = 1) => safeCall((ax) => ax.get('/anime/animekompi/movie',   { params: { page } }), parseMediaList, FALLBACK_LIST),
   getLiveAction: (page = 1) => safeCall((ax) => ax.get('/anime/animekompi/live-action', { params: { page } }), parseMediaList, FALLBACK_LIST),
   getTokusatsu: (page = 1)  => safeCall((ax) => ax.get('/anime/animekompi/tokusatsu',  { params: { page } }), parseMediaList, FALLBACK_LIST),
-  getSchedule: () => safeCall((ax) => ax.get('/anime/animekompi/schedule'), (r) => unwrap(r) ?? {}, {}),
-  getGenres:   () => safeCall((ax) => ax.get('/anime/animekompi/genres'),   parseMediaList, FALLBACK_LIST),
+  getSchedule: () => safeCall((ax) => ax.get('/anime/schedule'), (r) => unwrap(r) ?? {}, {}),
+  getGenres:   () => safeCall((ax) => ax.get('/anime/genre'), parseMediaList, FALLBACK_LIST),
   getFilterList: () => safeCall((ax) => ax.get('/anime/animekompi/filterlist'), (r) => unwrap(r) ?? {}, {}),
   filter: (qs: string) => safeCall((ax) => ax.get(`/anime/animekompi/filter?${qs}`), parseMediaList, FALLBACK_LIST),
-  getByGenre:  (slug: string, page = 1) => safeCall((ax) => ax.get(`/anime/animekompi/genre/${slug}`,  { params: { page } }), parseMediaList, FALLBACK_LIST),
+  getByGenre:  (slug: string, page = 1) => safeCall((ax) => ax.get(`/anime/genre/${encodeURIComponent(slug)}`, { params: { page } }), parseMediaList, FALLBACK_LIST),
   getBySeason: (slug: string, page = 1) => safeCall((ax) => ax.get(`/anime/animekompi/season/${slug}`, { params: { page } }), parseMediaList, FALLBACK_LIST),
   getByStudio: (slug: string, page = 1) => safeCall((ax) => ax.get(`/anime/animekompi/studio/${slug}`, { params: { page } }), parseMediaList, FALLBACK_LIST),
-  search: (q: string, page = 1) => safeCall((ax) => ax.get('/anime/animekompi/search', { params: { q: q.trim(), page } }), parseMediaList, FALLBACK_LIST),
-  suggest: (q: string)           => safeCall((ax) => ax.get('/anime/animekompi/search/suggest', { params: { q: q.trim() } }), parseMediaList, FALLBACK_LIST),
-  getDetail:  (slug: string)     => safeCall((ax) => ax.get(`/anime/animekompi/detail/${slug}`),  parseAnimeDetail,      FALLBACK_ANIME_DETAIL),
-  getEpisode: (slug: string)     => safeCall((ax) => ax.get(`/anime/animekompi/episode/${slug}`), parseAnimeEpisodeData, FALLBACK_ANIME_EP),
+  search: (q: string) => safeCall((ax) => ax.get(`/anime/search/${encodeURIComponent(q.trim())}`), parseMediaList, FALLBACK_LIST),
+  suggest: (q: string) => safeCall((ax) => ax.get(`/anime/search/${encodeURIComponent(q.trim())}`), parseMediaList, FALLBACK_LIST),
+  getDetail:  (slug: string)     => safeCall((ax) => ax.get(`/anime/anime/${encodeURIComponent(slug)}`),  parseAnimeDetail,      FALLBACK_ANIME_DETAIL),
+  getEpisode: (slug: string)     => safeCall((ax) => ax.get(`/anime/episode/${encodeURIComponent(slug)}`), parseAnimeEpisodeData, FALLBACK_ANIME_EP),
 };
 
 // ── DONGHUA ───────────────────────────────────────────────────

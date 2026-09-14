@@ -8,6 +8,7 @@ import { useApi } from '@/hooks/useApi';
 import { normaliseCardItem } from '@/utils/slugHelpers';
 import { SkeletonBanner } from '@/components/SkeletonLoader';
 import DonghuaNav from '@/components/DonghuaNav';
+import TopBanner from '@/components/TopBanner';
 
 function toItems(raw: unknown, defaultStatus?: string) {
   if (!Array.isArray(raw)) return [];
@@ -28,6 +29,7 @@ function toItems(raw: unknown, defaultStatus?: string) {
 }
 
 export default function DonghuaPage() {
+  const homeData = useApi(useCallback(() => DonghuaAPI.getHome(), []), []);
   const ongoingData = useApi(useCallback(() => DonghuaAPI.getOngoing(), []), []);
   const latestData = useApi(useCallback(() => DonghuaAPI.getLatest(), []), []);
 
@@ -41,6 +43,13 @@ export default function DonghuaPage() {
       </div>
 
       <div className="max-w-screen-xl mx-auto px-4">
+        {homeData.loading && <SkeletonBanner />}
+        <TopBanner
+          title="Donghua Pilihan"
+          items={toItems(homeData.data)}
+          basePath="/detail/donghua"
+          accentColor="violet"
+        />
         <SectionRow title="Donghua Ongoing" items={toItems(ongoingData.data, 'Ongoing')} loading={ongoingData.loading} error={ongoingData.error} contentType="donghua" basePath="/detail/donghua" moreHref="/donghua/ongoing" accent="violet" />
         <SectionRow title="Update Terbaru" items={toItems(latestData.data, 'Ongoing')} loading={latestData.loading} error={latestData.error} contentType="donghua" basePath="/detail/donghua" moreHref="/donghua/latest" accent="violet" />
       </div>

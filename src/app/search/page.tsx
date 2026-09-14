@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { ArrowRight, Loader2, Search, Sparkles, X } from 'lucide-react';
 import { clsx } from 'clsx';
-import { AnimeAPI, DonghuaAPI, HentaiAPI, ComicAPI, toArray } from '@/lib/api';
+import { DonghuaAPI, HentaiAPI, ComicAPI, toArray } from '@/lib/api';
+import { AnimeAPI as CatalogAnimeAPI } from '@/lib/apiClient';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useSearchSuggest } from '@/hooks/useSearchSuggest';
 import MediaCard from '@/components/MediaCard';
@@ -27,11 +28,6 @@ const TYPE_META: Record<Tab, { label: string }> = {
   hentai: { label: 'Hentai' },
   comic: { label: 'Komik' },
 };
-
-function basePath(type: Tab): string {
-  if (type === 'donghua') return '/donghua';
-  return `/${type}`;
-}
 
 // ── Inner component that uses useSearchParams ─────────────────
 // Must be wrapped in <Suspense> per Next.js 14 requirement.
@@ -56,7 +52,7 @@ function SearchContent() {
   const dq = useDebounce(query, 450);
   const { suggestions, loading: suggestionsLoading } = useSearchSuggest(
     query,
-    tab === 'donghua' ? 'anime' : tab
+    tab
   );
 
   useEffect(() => {
@@ -76,17 +72,21 @@ function SearchContent() {
     try {
       let raw: unknown[] = [];
       if (t === 'anime') {
-        const r = await AnimeAPI.search(q, 1);
+        const r = await CatalogAnimeAPI.searchCatalog(q);
+        if (r.error) throw new Error(r.error);
         raw = toArray(r.data as Parameters<typeof toArray>[0]);
       } else if (t === 'donghua') {
         const r = await DonghuaAPI.search(q, 1);
+        if (r.error) throw new Error(r.error);
         raw = toArray(r.data as Parameters<typeof toArray>[0]);
       } else if (t === 'hentai') {
         const r = await HentaiAPI.search(q, 1);
+        if (r.error) throw new Error(r.error);
         raw = toArray(r.data as Parameters<typeof toArray>[0]);
       } else {
         const r = await ComicAPI.search(q);
-        raw = Array.isArray(r.data) ? r.data : [];
+        if (r.error) throw new Error(r.error);
+        raw = toArray(r.data as Parameters<typeof toArray>[0]);
       }
       setItems(
         raw.map((it) => {
@@ -124,7 +124,14 @@ function SearchContent() {
   };
 
   const selectSuggestion = (slug: string) => {
-    router.push(`${basePath(tab)}/${slug}`);
+    const target = tab === 'donghua'
+      ? `/detail/donghua/${slug}`
+      : tab === 'anime'
+        ? `/anime/anime/${slug}`
+        : tab === 'comic'
+          ? `/detail/comic/${slug}`
+          : `/hentai/${slug}`;
+    router.push(target);
     setShowSuggestions(false);
   };
 

@@ -2,7 +2,7 @@
 // src/app/page.tsx — Anime Home
 
 import { useCallback } from 'react';
-import { AnimeAPI } from '@/lib/api';
+import { AnimeAPI } from '@/lib/apiClient';
 import { useApi } from '@/hooks/useApi';
 import SectionRow from '@/components/SectionRow';
 import { SkeletonBanner } from '@/components/SkeletonLoader';
@@ -11,8 +11,12 @@ import TopBanner from '@/components/TopBanner';
 import AnimeNav from '@/components/AnimeNav';
 
 function toItems(raw: unknown, defaultStatus?: string) {
-  if (!Array.isArray(raw)) return [];
-  return raw
+  const list = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object' && Array.isArray((raw as { data?: unknown }).data)
+      ? (raw as { data: unknown[] }).data
+      : [];
+  return list
     .map((a) => normaliseCardItem(a, 'anime'))
     .filter(Boolean)
     .map((c) => ({
@@ -30,9 +34,9 @@ function toItems(raw: unknown, defaultStatus?: string) {
 }
 
 export default function AnimePage() {
-  const home = useApi(useCallback(() => AnimeAPI.getHome(), []), []);
-  const terbaru = useApi(useCallback(() => AnimeAPI.getTerbaru(), []), []);
-  const movies = useApi(useCallback(() => AnimeAPI.getMovies(), []), []);
+  const home = useApi(useCallback(() => AnimeAPI.getCatalogHome(), []), []);
+  const terbaru = useApi(useCallback(() => AnimeAPI.getCatalogOngoing(), []), []);
+  const movies = useApi(useCallback(() => AnimeAPI.getCatalogCompleted(), []), []);
 
   return (
     <div className="max-w-screen-xl mx-auto py-0 pb-20 md:pb-0">

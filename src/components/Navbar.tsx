@@ -113,13 +113,26 @@ export default function Navbar() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
-    router.push(`/search?q=${encodeURIComponent(query.trim())}&type=${type}`);
+    const encoded = encodeURIComponent(query.trim());
+    const target = type === 'anime'
+      ? `/anime/search?q=${encoded}&page=1`
+      : type === 'donghua'
+        ? `/donghua/search?q=${encoded}&page=1`
+        : `/search?q=${encoded}&type=${type}`;
+    router.push(target);
     setShowDrop(false);
     setShowSearch(false);
   };
 
   const handleSelect = (slug: string) => {
-    router.push(`/${type}/${slug}`);
+    const target = type === 'donghua'
+      ? `/detail/donghua/${slug}`
+      : type === 'anime'
+        ? `/anime/anime/${slug}`
+        : type === 'comic'
+          ? `/detail/comic/${slug}`
+          : `/hentai/${slug}`;
+    router.push(target);
     setShowDrop(false);
     setQuery('');
     setShowSearch(false);
