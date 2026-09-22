@@ -8,6 +8,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   User, Shield, Clock, Star, Heart, MessageCircle,
+  Share2,
   UserPlus, TrendingUp, ArrowLeft, Users, Award, UserCheck, UserX,
   ShieldCheck, Send, CheckCircle2, XCircle
   ,ImagePlus
@@ -21,6 +22,7 @@ import { useFriendSystem } from '@/hooks/useFriendSystem';
 
 interface UserProfile {
   uid: string;
+  publicId?: string;
   displayName: string;
   photoURL: string;
   email?: string;
@@ -138,6 +140,20 @@ export default function ProfilePage() {
       return;
     }
     router.push(`/chat/${uid}`);
+  };
+
+  const handleShareProfile = async () => {
+    const profileURL = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: profile?.displayName ?? 'Profil', url: profileURL });
+      } else {
+        await navigator.clipboard.writeText(profileURL);
+        alert('Link profil berhasil disalin.');
+      }
+    } catch (error) {
+      if ((error as DOMException).name !== 'AbortError') console.error('Gagal membagikan profil:', error);
+    }
   };
 
   const handleAdultRequest = async () => {
@@ -327,6 +343,7 @@ export default function ProfilePage() {
             {/* Name + badges */}
             <div className="mb-4">
               <h1 className="text-2xl font-bold text-primary mb-2">{profile.displayName}</h1>
+              {profile.publicId && <p className="mb-2 text-xs text-muted">ID Publik: {profile.publicId}</p>}
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={clsx(
                   'text-xs font-bold px-3 py-1 rounded-full border',
@@ -413,6 +430,12 @@ export default function ProfilePage() {
                 >
                   <MessageCircle className="w-4 h-4" />
                   Chat
+                </button>
+                <button
+                  onClick={handleShareProfile}
+                  className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-4 py-2 text-sm font-semibold text-secondary hover:border-pink/40 hover:text-pink"
+                >
+                  <Share2 className="h-4 w-4" /> Bagikan
                 </button>
               </div>
             )}

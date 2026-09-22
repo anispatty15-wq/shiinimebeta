@@ -5,7 +5,7 @@
  * Manage friends, friend requests, and search for new friends
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Users, UserPlus, Clock, CheckCircle, XCircle, Search, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useFriends, type User } from '@/hooks/useFriends';
@@ -52,7 +52,7 @@ export default function FriendsPage() {
   };
 
   // Effect for debounced search
-  useState(() => {
+  useEffect(() => {
     if (activeTab === 'search') {
       handleSearch(debouncedSearch);
     }
@@ -402,6 +402,9 @@ export default function FriendsPage() {
                       <h3 className="text-sm font-semibold text-primary truncate">
                         {searchUser.displayName}
                       </h3>
+                      {searchUser.publicId && (
+                        <p className="text-xs text-pink">ID: {searchUser.publicId}</p>
+                      )}
                       {searchUser.email && (
                         <p className="text-xs text-muted truncate">{searchUser.email}</p>
                       )}

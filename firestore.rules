@@ -61,9 +61,13 @@ service cloud.firestore {
     // Friend requests — both sender and receiver can read/delete
     match /friendRequests/{requestId} {
       allow read: if isLoggedIn();
-      allow create: if isLoggedIn() && request.resource.data.from == request.auth.uid;
+      allow create: if isLoggedIn() &&
+        (request.resource.data.from == request.auth.uid || request.resource.data.fromUserId == request.auth.uid);
+      allow update: if isLoggedIn() &&
+        (resource.data.to == request.auth.uid || resource.data.toUserId == request.auth.uid);
       allow delete: if isLoggedIn() && 
-        (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+        (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid ||
+         resource.data.fromUserId == request.auth.uid || resource.data.toUserId == request.auth.uid);
     }
 
     // Friends list — both users can read/write

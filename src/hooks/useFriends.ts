@@ -12,6 +12,7 @@ import {
   query, 
   where, 
   getDocs, 
+  getDoc,
   addDoc, 
   updateDoc, 
   deleteDoc,
@@ -31,6 +32,7 @@ import {
 
 export interface User {
   uid: string;
+  publicId?: string;
   displayName: string;
   photoURL?: string;
   email?: string;
@@ -78,12 +80,10 @@ export function useFriends() {
         const friendId = data.friendId;
 
         // Get friend user info
-        const userDoc = await getDocs(
-          query(collection(db, 'users'), where('uid', '==', friendId), limit(1))
-        );
+        const userDoc = await getDoc(doc(db, 'users', friendId));
 
-        if (!userDoc.empty) {
-          const friendData = userDoc.docs[0].data();
+        if (userDoc.exists()) {
+          const friendData = userDoc.data();
           friendsList.push({
             uid: friendId,
             displayName: friendData.displayName || 'Unknown',
@@ -104,19 +104,19 @@ export function useFriends() {
     if (!user) return;
 
     try {
-      const requestsQuery = query(
-        collection(db, 'friendRequests'),
-        where('toUserId', '==', user.uid),
-        where('status', '==', 'pending'),
-        orderBy('createdAt', 'desc')
-      );
+      const requestsQuery = query(collection(db, 'friendRequests'), orderBy('createdAt', 'desc'), limit(100));
 
       const snapshot = await getDocs(requestsQuery);
-      const requests: FriendRequest[] = snapshot.docs.map((doc) => ({
+      const requests: FriendRequest[] = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
         id: doc.id,
-        ...doc.data(),
+        ...data,
+        fromUserId: data.fromUserId ?? data.from,
+        toUserId: data.toUserId ?? data.to,
+        fromUserName: data.fromUserName ?? 'Seseorang',
         createdAt: doc.data().createdAt?.toDate() || new Date(),
-      })) as FriendRequest[];
+      }; }).filter((request) => request.toUserId === user.uid && request.status === 'pending') as FriendRequest[];
 
       setPendingRequests(requests);
     } catch (error) {
@@ -129,19 +129,19 @@ export function useFriends() {
     if (!user) return;
 
     try {
-      const requestsQuery = query(
-        collection(db, 'friendRequests'),
-        where('fromUserId', '==', user.uid),
-        where('status', '==', 'pending'),
-        orderBy('createdAt', 'desc')
-      );
+      const requestsQuery = query(collection(db, 'friendRequests'), orderBy('createdAt', 'desc'), limit(100));
 
       const snapshot = await getDocs(requestsQuery);
-      const requests: FriendRequest[] = snapshot.docs.map((doc) => ({
+      const requests: FriendRequest[] = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
         id: doc.id,
-        ...doc.data(),
+        ...data,
+        fromUserId: data.fromUserId ?? data.from,
+        toUserId: data.toUserId ?? data.to,
+        fromUserName: data.fromUserName ?? 'Seseorang',
         createdAt: doc.data().createdAt?.toDate() || new Date(),
-      })) as FriendRequest[];
+      }; }).filter((request) => request.fromUserId === user.uid && request.status === 'pending') as FriendRequest[];
 
       setSentRequests(requests);
     } catch (error) {
@@ -154,21 +154,17 @@ export function useFriends() {
     if (!searchTerm.trim() || !user) return [];
 
     try {
-      const usersQuery = query(
-        collection(db, 'users'),
-        where('displayName', '>=', searchTerm),
-        where('displayName', '<=', searchTerm + '\uf8ff'),
-        limit(10)
-      );
-
-      const snapshot = await getDocs(usersQuery);
+      const snapshot = await getDocs(query(collection(db, 'users'), limit(100)));
+      const normalized = searchTerm.trim().toLowerCase();
       const users: User[] = snapshot.docs
         .map((doc) => ({
-          uid: doc.data().uid,
+          uid: doc.id,
+          publicId: doc.data().publicId,
           displayName: doc.data().displayName,
           photoURL: doc.data().photoURL,
           email: doc.data().email,
         }))
+        .filter((u) => u.displayName?.toLowerCase().includes(normalized) || u.publicId === searchTerm.trim())
         .filter((u) => u.uid !== user.uid); // Exclude current user
 
       return users;

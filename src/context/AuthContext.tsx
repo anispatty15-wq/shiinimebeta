@@ -44,6 +44,7 @@ export type AdultStatus = 'none' | 'pending' | 'approved' | 'rejected';
 
 export interface UserProfile {
   uid:          string;
+  publicId?: string;
   displayName:  string;
   email:        string;
   photoURL:     string;
@@ -135,6 +136,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (userSnap?.exists()) {
         const d = userSnap.data();
+        const publicId = typeof d.publicId === 'string' && /^\d{8}$/.test(d.publicId)
+          ? d.publicId
+          : String(Math.floor(10000000 + Math.random() * 90000000));
 
         // Build correct roles array
         let roles: string[] = Array.isArray(d.roles) ? [...d.roles] : ['user'];
@@ -157,12 +161,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           d.isAdmin !== isAdmin ||
           (isAdmin && d.adultStatus !== 'approved');
 
-        if (needsFix) {
-          updateDoc(userRef, { roles, isAdmin, adultStatus }).catch(() => {});
+        if (needsFix || d.publicId !== publicId) {
+          updateDoc(userRef, { roles, isAdmin, adultStatus, publicId }).catch(() => {});
         }
 
         setProfile({
           uid:         u.uid,
+          publicId,
           displayName: d.displayName ?? u.displayName ?? '',
           email:       d.email       ?? u.email        ?? '',
           photoURL:    d.photoURL    ?? u.photoURL      ?? '',
@@ -178,6 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const roles = isAdmin ? ['user', '18+'] : ['user'];
         const p: UserProfile = {
           uid: u.uid, displayName: u.displayName ?? 'User',
+          publicId: String(Math.floor(10000000 + Math.random() * 90000000)),
           email: u.email ?? '', photoURL: u.photoURL ?? '',
           roles, adultStatus: isAdmin ? 'approved' : 'none', isAdmin,
           xp: 0, level: 1, totalMinutes: 0,
