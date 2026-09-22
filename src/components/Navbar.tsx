@@ -29,6 +29,12 @@ const NAV_LINKS = [
   { href: '/favorites',           label: 'Favorit' },
 ] as const;
 
+// The five primary destinations are already present in BottomNav on mobile.
+// Keep the hamburger menu focused on secondary pages to avoid duplicate buttons.
+const MOBILE_MENU_LINKS = NAV_LINKS.filter(({ href }) => (
+  !['/', '/anime', '/donghua', '/hentai', '/comic', '/notifications'].includes(href)
+));
+
 function pathToType(p: string): ContentType {
   if (p.startsWith('/comic'))   return 'comic';
   if (p.startsWith('/hentai'))  return 'hentai';
@@ -116,7 +122,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur-xl border-b border-border pt-safe">
+    <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur-xl border-b border-border pt-safe relative">
 
       {/* ── Main bar ── */}
       <div className="max-w-screen-xl mx-auto px-4 h-14 flex items-center gap-2 px-safe">
@@ -355,9 +361,9 @@ export default function Navbar() {
       {mobileOpen && (
         <nav
           aria-label="Menu mobile"
-          className="md:hidden border-t border-border bg-bg px-3 py-2 grid grid-cols-2 gap-1 animate-slide-up"
+          className="md:hidden absolute top-full left-0 right-0 max-h-[calc(100dvh-7rem)] overflow-y-auto border-t border-border bg-bg px-3 py-2 grid grid-cols-2 gap-1 animate-slide-up shadow-xl"
         >
-          {NAV_LINKS.map(({ href, label }) => {
+          {MOBILE_MENU_LINKS.map(({ href, label }) => {
             const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
             return (
               <Link
