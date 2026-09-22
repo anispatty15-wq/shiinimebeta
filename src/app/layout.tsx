@@ -8,6 +8,7 @@ import FloatingLinks from '@/components/FloatingLinks';
 import AntiInspect   from '@/components/AntiInspect';
 import PageLoader    from '@/components/PageLoader';
 import NotificationPrompt from '@/components/NotificationPrompt';
+import BrowserNotificationListener from '@/components/BrowserNotificationListener';
 import NotificationToast from '@/components/NotificationToast';
 import InstallPrompt from '@/components/InstallPrompt';
 import OAuthHandler from '@/components/OAuthHandler';
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="flex flex-col min-h-screen w-full">
                 <Navbar />
                 <NotificationToast />
+                <BrowserNotificationListener />
                 <main className="flex-1 app-shell w-full">
                   {children}
                 </main>

@@ -36,9 +36,18 @@ service cloud.firestore {
     match /notifications/{notificationId} {
       allow read, update, delete: if isLoggedIn() && resource.data.userId == request.auth.uid;
       allow create: if isLoggedIn()
-        && request.resource.data.senderId == request.auth.uid
         && request.resource.data.userId != request.auth.uid
-        && request.resource.data.type in ['chat_message', 'friend_request', 'friend_accepted'];
+        && (
+          (
+            request.resource.data.keys().hasAny(['senderId']) &&
+            request.resource.data.senderId == request.auth.uid &&
+            request.resource.data.type in ['chat_message', 'friend_request', 'friend_accepted']
+          ) ||
+          (
+            isAdmin() &&
+            request.resource.data.type in ['new_episode', 'announcement']
+          )
+        );
     }
 
     // Comments — public read, logged-in write (own messages only)

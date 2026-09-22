@@ -81,7 +81,7 @@ export default function NotificationPrompt() {
           Aktifkan Notifikasi
         </h3>
         <p className="text-sm text-secondary mb-4">
-          Dapatkan notifikasi saat episode baru rilis, ada balasan komentar, dan friend request.
+          Dapatkan notifikasi browser saat ada chat, friend request, anime terbaru, pengumuman admin, dan aktivitas lainnya.
         </p>
 
         {/* Actions */}
