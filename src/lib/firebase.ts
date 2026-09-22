@@ -26,4 +26,5 @@ if (firebaseConfig.apiKey) {
 export { app, auth, db };
 export const googleProvider  = new GoogleAuthProvider();
 export const FIREBASE_READY  = Boolean(firebaseConfig.apiKey);
+export const FIREBASE_PROJECT_ID = firebaseConfig.projectId;
 export async function initFirebase() { /* no-op */ }

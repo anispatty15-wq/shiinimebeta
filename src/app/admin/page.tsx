@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, FIREBASE_PROJECT_ID } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import type { AdultStatus } from '@/context/AuthContext';
 
@@ -148,6 +148,14 @@ export default function AdminPage() {
       </div>
 
       <div className="px-4 pt-5 space-y-4">
+
+        <div className="rounded-app border border-pink/25 bg-pink/5 p-3 text-xs text-secondary">
+          <p className="font-semibold text-primary mb-1">Diagnostik koneksi admin</p>
+          <p>Project: <span className="font-mono text-pink">{FIREBASE_PROJECT_ID || 'ENV belum terisi'}</span></p>
+          <p>Email login: <span className="font-mono text-pink">{user.email || '-'}</span></p>
+          <p>UID login: <span className="font-mono break-all text-pink">{user.uid}</span></p>
+          <p className="mt-1 text-muted">Document admin wajib berada di <code>admins/{user.uid}</code>.</p>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
