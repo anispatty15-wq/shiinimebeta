@@ -110,6 +110,7 @@ export default function AdminPage() {
       );
     } catch (e) {
       console.error('[Admin] Action error:', e);
+      setError(e instanceof Error ? e.message : 'Gagal memperbarui status member. Pastikan rules Firestore sudah di-deploy.');
     } finally {
       setActing(null);
     }
