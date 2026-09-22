@@ -12,8 +12,11 @@ export default function PageLoader() {
   const [intro, setIntro] = useState(false);
 
   useEffect(() => {
+    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    const isRefresh = navigation?.type === 'reload';
     const isFirstLoad = !sessionStorage.getItem('shiinime-intro-seen');
-    if (isFirstLoad) {
+
+    if (isFirstLoad || isRefresh) {
       sessionStorage.setItem('shiinime-intro-seen', 'true');
       setIntro(true);
       const introDone = setTimeout(() => setIntro(false), 2300);
