@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
-import { Loader2, MessageCircle, Users, X } from 'lucide-react';
+import { collection, doc, getDoc, getDocs, addDoc, onSnapshot, query, serverTimestamp, where } from 'firebase/firestore';
+import { ArrowLeft, Loader2, MessageCircle, Send, Users, X } from 'lucide-react';
 import { useNotificationsList } from '@/hooks/useNotificationsList';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
@@ -17,13 +16,23 @@ interface ChatContact {
   admin?: boolean;
 }
 
+interface ChatMessage {
+  id: string;
+  text?: string;
+  senderId: string;
+  createdAt?: { toDate?: () => Date };
+}
+
 export default function ChatBubble() {
-  const router = useRouter();
   const { user, isAdmin } = useAuth();
   const { notifications, markAsRead } = useNotificationsList();
   const [open, setOpen] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [contacts, setContacts] = useState<ChatContact[]>([]);
+  const [activeContact, setActiveContact] = useState<ChatContact | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messageText, setMessageText] = useState('');
+  const [sending, setSending] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const dragStart = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
   const dragged = useRef(false);
@@ -39,8 +48,62 @@ export default function ChatBubble() {
 
   const openChat = async (uid: string, notificationIds: string[] = []) => {
     await Promise.all(notificationIds.map((notificationId) => markAsRead(notificationId)));
-    setOpen(false);
-    router.push(`/chat/${uid}`);
+    const contact = contacts.find((item) => item.uid === uid) ?? {
+      uid,
+      displayName: contactNames.get(uid) ?? 'Chat',
+      photoURL: '',
+      admin: uid === ADMIN_UID,
+    };
+    setActiveContact(contact);
+  };
+
+  useEffect(() => {
+    if (!user || !activeContact) {
+      setMessages([]);
+      return;
+    }
+    const conversationId = [user.uid, activeContact.uid].sort().join('_');
+    const messagesQuery = query(collection(db, 'conversations', conversationId, 'messages'));
+    return onSnapshot(messagesQuery, (snapshot) => {
+      const next = snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as ChatMessage));
+      next.sort((a, b) => {
+        const aTime = a.createdAt?.toDate?.()?.getTime() ?? 0;
+        const bTime = b.createdAt?.toDate?.()?.getTime() ?? 0;
+        return aTime - bTime;
+      });
+      setMessages(next.slice(-40));
+    }, (error) => console.error('[ChatBubble] Message listener error:', error));
+  }, [user, activeContact]);
+
+  const sendBubbleMessage = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const text = messageText.trim();
+    if (!user || !activeContact || !text || sending) return;
+    setSending(true);
+    setMessageText('');
+    try {
+      const conversationId = [user.uid, activeContact.uid].sort().join('_');
+      await addDoc(collection(db, 'conversations', conversationId, 'messages'), {
+        text,
+        senderId: user.uid,
+        createdAt: serverTimestamp(),
+      });
+      await addDoc(collection(db, 'notifications'), {
+        userId: activeContact.uid,
+        senderId: user.uid,
+        type: 'chat_message',
+        title: 'Pesan chat baru',
+        body: text.slice(0, 100),
+        data: { chatUid: user.uid },
+        read: false,
+        createdAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error('[ChatBubble] Send error:', error);
+      setMessageText(text);
+    } finally {
+      setSending(false);
+    }
   };
 
   useEffect(() => {
@@ -138,13 +201,37 @@ export default function ChatBubble() {
       {open && (
         <div className="absolute bottom-14 right-0 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-pink/25 bg-white shadow-[0_12px_40px_rgba(31,24,29,0.2)]">
           <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-            <MessageCircle className="h-4 w-4 text-pink" />
-            <p className="flex-1 text-sm font-bold text-primary">{isAdmin ? 'Chat Semua Member' : 'Chat'}</p>
+            {activeContact ? (
+              <button onClick={() => setActiveContact(null)} className="rounded-lg p-1 text-muted hover:bg-pink/10" aria-label="Kembali ke daftar chat">
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            ) : <MessageCircle className="h-4 w-4 text-pink" />}
+            <p className="flex-1 truncate text-sm font-bold text-primary">{activeContact ? activeContact.displayName : isAdmin ? 'Chat Semua Member' : 'Chat'}</p>
             <button onClick={() => setOpen(false)} className="text-muted hover:text-primary" aria-label="Tutup chat">
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="max-h-72 overflow-y-auto p-2">
+          {activeContact ? (
+            <div className="flex h-80 flex-col">
+              <div className="flex-1 space-y-2 overflow-y-auto p-3">
+                {messages.length === 0 ? (
+                  <p className="py-12 text-center text-xs text-muted">Belum ada pesan. Mulai chat sekarang.</p>
+                ) : messages.map((message) => (
+                  <div key={message.id} className={`flex ${message.senderId === user.uid ? 'justify-end' : 'justify-start'}`}>
+                    <p className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs ${message.senderId === user.uid ? 'bg-pink text-white' : 'bg-pink/10 text-primary'}`}>
+                      {message.text}
+                    </p>
+                  </div>
+                ))}
+              </div>}
+              <form onSubmit={sendBubbleMessage} className="flex gap-2 border-t border-border p-2">
+                <input value={messageText} onChange={(event) => setMessageText(event.target.value)} maxLength={500} placeholder="Tulis pesan..." className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-xs text-primary outline-none focus:border-pink" />
+                <button type="submit" disabled={sending || !messageText.trim()} className="rounded-xl bg-pink px-3 text-white disabled:opacity-50" aria-label="Kirim pesan">
+                  <Send className="h-4 w-4" />
+                </button>
+              </form>
+            </div>
+          ) : <div className="max-h-72 overflow-y-auto p-2">
             {chatNotifications.length > 0 && (
               <div className="mb-2 border-b border-border pb-2">
                 <p className="px-3 pb-1 text-[0.65rem] font-bold uppercase tracking-wide text-muted">
@@ -201,7 +288,7 @@ export default function ChatBubble() {
                 {contact.admin && <span className="text-[0.62rem] font-bold text-pink">ADMIN</span>}
               </button>
             ))}
-          </div>
+          </div>}
         </div>
       )}
       <button
