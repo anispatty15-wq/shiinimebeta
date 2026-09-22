@@ -45,6 +45,8 @@ export default function NotificationsPage() {
       router.push(`/anime/${notification.data.animeId}?comment=${notification.data.commentId}`);
     } else if (notification.type === 'friend_request' || notification.type === 'friend_accepted') {
       router.push('/friends');
+    } else if (notification.type === 'chat_message' && notification.data?.chatUid) {
+      router.push(`/chat/${notification.data.chatUid}`);
     }
   };
 
@@ -73,6 +75,8 @@ export default function NotificationsPage() {
         return '👋';
       case 'friend_accepted':
         return '✨';
+      case 'chat_message':
+        return '💬';
       default:
         return '🔔';
     }
@@ -88,6 +92,8 @@ export default function NotificationsPage() {
         return 'Friend Request';
       case 'friend_accepted':
         return 'Friend Accepted';
+      case 'chat_message':
+        return 'Pesan Chat';
       default:
         return 'Notifikasi';
     }

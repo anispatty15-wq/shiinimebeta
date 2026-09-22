@@ -32,6 +32,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Notifications are created for another logged-in user and owned by recipient.
+    match /notifications/{notificationId} {
+      allow read, update, delete: if isLoggedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isLoggedIn()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.userId != request.auth.uid
+        && request.resource.data.type in ['chat_message', 'friend_request', 'friend_accepted'];
+    }
+
     // Comments — public read, logged-in write (own messages only)
     match /comments/{episodeSlug}/messages/{msgId} {
       allow read:   if true;

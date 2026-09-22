@@ -11,6 +11,7 @@ import NotificationPrompt from '@/components/NotificationPrompt';
 import NotificationToast from '@/components/NotificationToast';
 import InstallPrompt from '@/components/InstallPrompt';
 import OAuthHandler from '@/components/OAuthHandler';
+import ChatBubble from '@/components/ChatBubble';
 import { BookmarkProvider } from '@/context/BookmarkContext';
 import { HistoryProvider }  from '@/context/HistoryContext';
 import { AuthProvider }     from '@/context/AuthContext';
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <BottomNav />
                 <SubBanner />
                 <FloatingLinks />
+                <ChatBubble />
                 <NotificationPrompt />
                 <InstallPrompt />
               </div>

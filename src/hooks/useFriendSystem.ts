@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import {
-  collection, doc, setDoc, deleteDoc, getDoc, getDocs,
+  collection, doc, setDoc, deleteDoc, getDoc, getDocs, addDoc,
   query, where, serverTimestamp, onSnapshot,
   type Unsubscribe,
 } from 'firebase/firestore';
@@ -91,6 +91,17 @@ export function useFriendSystem(targetUserId?: string) {
         from: user.uid,
         to: targetUserId,
         status: 'pending',
+        createdAt: serverTimestamp(),
+      });
+      const senderName = user.displayName ?? 'Seseorang';
+      await addDoc(collection(db, 'notifications'), {
+        userId: targetUserId,
+        senderId: user.uid,
+        type: 'friend_request',
+        title: 'Friend request baru',
+        body: `${senderName} ingin menjadi teman kamu`,
+        data: { userId: user.uid },
+        read: false,
         createdAt: serverTimestamp(),
       });
       setStatus('pending');

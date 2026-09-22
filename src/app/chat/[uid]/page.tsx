@@ -148,6 +148,16 @@ export default function ChatPage() {
         senderId: user.uid,
         createdAt: serverTimestamp(),
       });
+      await addDoc(collection(db, 'notifications'), {
+        userId: otherUid,
+        senderId: user.uid,
+        type: 'chat_message',
+        title: 'Pesan chat baru',
+        body: text ? text.slice(0, 100) : 'Mengirim gambar',
+        data: { chatUid: user.uid },
+        read: false,
+        createdAt: serverTimestamp(),
+      });
 
       // Focus back to input
       inputRef.current?.focus();
