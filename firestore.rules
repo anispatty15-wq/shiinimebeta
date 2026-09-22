@@ -8,9 +8,9 @@ service cloud.firestore {
       return isLoggedIn() &&
         (
           exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-          || request.auth.uid == 'tjG4P99RoxigBJlK4dUJrAnZxAk2'
+          || request.auth.uid == 'pp4P99R0xdgB1fk4dUjFAnZsAnK2'
           || (
-            request.auth.token.email == 'anispatty30@gmail.com'
+            request.auth.token.email == 'anispatty17@gmail.com'
           )
         );
     }

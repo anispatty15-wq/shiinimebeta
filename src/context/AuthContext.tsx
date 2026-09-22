@@ -72,8 +72,8 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 const CONFIG_MISSING = !FIREBASE_READY;
-const ADMIN_EMAIL = 'anispatty30@gmail.com';
-const ADMIN_UID = 'tjG4P99RoxigBJlK4dUJrAnZxAk2';
+const ADMIN_EMAIL = 'anispatty17@gmail.com';
+const ADMIN_UID = 'pp4P99R0xdgB1fk4dUjFAnZsAnK2';
 
 // ── Provider ──────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
