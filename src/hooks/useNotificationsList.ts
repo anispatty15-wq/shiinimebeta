@@ -53,7 +53,6 @@ export function useNotificationsList() {
     const notifQuery = query(
       collection(db, 'notifications'),
       where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
       limit(50)
     );
 
@@ -68,10 +67,15 @@ export function useNotificationsList() {
         data: doc.data().data,
         read: doc.data().read ?? false,
         createdAt: doc.data().createdAt?.toDate() || new Date(),
-      }));
+      })).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
       setNotifications(notifList);
       setUnreadCount(notifList.filter((n) => !n.read).length);
+      setLoading(false);
+    }, (error) => {
+      console.error('[useNotificationsList] Failed to listen for notifications:', error);
+      setNotifications([]);
+      setUnreadCount(0);
       setLoading(false);
     });
 

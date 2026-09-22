@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { Loader2, MessageCircle, Users, X } from 'lucide-react';
@@ -24,6 +24,9 @@ export default function ChatBubble() {
   const [open, setOpen] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [contacts, setContacts] = useState<ChatContact[]>([]);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const dragStart = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
+  const dragged = useRef(false);
   const unreadChats = notifications.filter((notification) => !notification.read && notification.type === 'chat_message').length;
   const chatNotifications = notifications
     .filter((notification) => notification.type === 'chat_message')
@@ -90,10 +93,48 @@ export default function ChatBubble() {
     return () => { cancelled = true; };
   }, [open, user, isAdmin]);
 
+  useEffect(() => {
+    const saved = window.localStorage.getItem('chat-bubble-position');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as { x?: number; y?: number };
+        if (typeof parsed.x === 'number' && typeof parsed.y === 'number') setDragOffset({ x: parsed.x, y: parsed.y });
+      } catch {
+        window.localStorage.removeItem('chat-bubble-position');
+      }
+    }
+  }, []);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragStart.current = { x: event.clientX, y: event.clientY, offsetX: dragOffset.x, offsetY: dragOffset.y };
+    dragged.current = false;
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!dragStart.current) return;
+    const next = {
+      x: dragStart.current.offsetX + event.clientX - dragStart.current.x,
+      y: dragStart.current.offsetY + event.clientY - dragStart.current.y,
+    };
+    if (Math.abs(next.x - dragStart.current.offsetX) > 4 || Math.abs(next.y - dragStart.current.offsetY) > 4) dragged.current = true;
+    setDragOffset(next);
+  };
+
+  const handlePointerUp = () => {
+    if (dragStart.current) {
+      window.localStorage.setItem('chat-bubble-position', JSON.stringify(dragOffset));
+    }
+    dragStart.current = null;
+  };
+
   if (!user) return null;
 
   return (
-    <div className="fixed right-4 bottom-24 md:bottom-6 z-40">
+    <div
+      className="fixed right-4 bottom-24 md:bottom-6 z-40"
+      style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }}
+    >
       {open && (
         <div className="absolute bottom-14 right-0 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-pink/25 bg-white shadow-[0_12px_40px_rgba(31,24,29,0.2)]">
           <div className="flex items-center gap-2 border-b border-border px-4 py-3">
@@ -164,9 +205,14 @@ export default function ChatBubble() {
         </div>
       )}
       <button
-        onClick={() => setOpen((value) => !value)}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onClick={() => {
+          if (!dragged.current) setOpen((value) => !value);
+        }}
         aria-label="Buka daftar chat"
-        className="relative flex h-12 w-12 items-center justify-center rounded-full bg-pink text-white shadow-[0_8px_24px_rgba(233,30,140,0.35)] transition-transform hover:scale-105"
+        className="relative flex h-12 w-12 cursor-grab touch-none items-center justify-center rounded-full bg-pink text-white shadow-[0_8px_24px_rgba(233,30,140,0.35)] transition-transform hover:scale-105 active:cursor-grabbing"
       >
         <MessageCircle className="h-5 w-5" aria-hidden />
       {unreadChats > 0 && (
