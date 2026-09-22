@@ -2,7 +2,6 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth,  GoogleAuthProvider, type Auth }   from 'firebase/auth';
 import { getFirestore, type Firestore }               from 'firebase/firestore';
-import { getStorage, type FirebaseStorage }           from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey:            process.env.NEXT_PUBLIC_FIREBASE_API_KEY             ?? '',
@@ -16,17 +15,15 @@ const firebaseConfig = {
 let app:  FirebaseApp | null = null;
 let auth: Auth        | null = null;
 let db:   Firestore   | null = null;
-let storage: FirebaseStorage | null = null;
 
 if (firebaseConfig.apiKey) {
   const _app = getApps().length ? getApps()[0]! : initializeApp(firebaseConfig);
   app  = _app;
   auth = getAuth(_app);
   db   = getFirestore(_app);
-  storage = getStorage(_app);
 }
 
-export { app, auth, db, storage };
+export { app, auth, db };
 export const googleProvider  = new GoogleAuthProvider();
 export const FIREBASE_READY  = Boolean(firebaseConfig.apiKey);
 export const FIREBASE_PROJECT_ID = firebaseConfig.projectId;

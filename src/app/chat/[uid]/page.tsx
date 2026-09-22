@@ -13,8 +13,7 @@ import {
   orderBy, onSnapshot, serverTimestamp,
   type DocumentData,
 } from 'firebase/firestore';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 
 interface Message {
@@ -29,6 +28,28 @@ interface OtherUser {
   uid: string;
   displayName: string;
   photoURL: string;
+}
+
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const image = new window.Image();
+    const reader = new FileReader();
+    reader.onload = () => { image.src = String(reader.result); };
+    reader.onerror = () => reject(new Error('Gagal membaca gambar.'));
+    image.onload = () => {
+      const maxSize = 1000;
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const result = canvas.toDataURL('image/jpeg', 0.72);
+      if (result.length > 900_000) reject(new Error('Gambar terlalu besar setelah dikompres.'));
+      else resolve(result);
+    };
+    image.onerror = () => reject(new Error('Format gambar tidak didukung.'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export default function ChatPage() {
@@ -122,10 +143,8 @@ export default function ChatPage() {
       let imageUrl = '';
 
       if (selectedImage) {
-        if (!storage) throw new Error('Firebase Storage belum tersedia.');
-        if (selectedImage.size > 5 * 1024 * 1024) throw new Error('Ukuran gambar maksimal 5 MB.');
-        const fileRef = ref(storage, `chat/${conversationId}/${user.uid}/${Date.now()}-${selectedImage.name}`);
-        imageUrl = await getDownloadURL(await uploadBytes(fileRef, selectedImage));
+        if (selectedImage.size > 10 * 1024 * 1024) throw new Error('Ukuran gambar maksimal 10 MB sebelum kompresi.');
+        imageUrl = await compressImage(selectedImage);
       }
       
       await addDoc(messagesRef, {
