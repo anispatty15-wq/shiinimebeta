@@ -62,18 +62,30 @@ service cloud.firestore {
     match /friendRequests/{requestId} {
       allow read: if isLoggedIn();
       allow create: if isLoggedIn() &&
-        (request.resource.data.from == request.auth.uid || request.resource.data.fromUserId == request.auth.uid);
+        ((request.resource.data.keys().hasAny(['from']) &&
+          request.resource.data.from == request.auth.uid) ||
+         (request.resource.data.keys().hasAny(['fromUserId']) &&
+          request.resource.data.fromUserId == request.auth.uid));
       allow update: if isLoggedIn() &&
-        (resource.data.to == request.auth.uid || resource.data.toUserId == request.auth.uid);
+        ((resource.data.keys().hasAny(['to']) &&
+          resource.data.to == request.auth.uid) ||
+         (resource.data.keys().hasAny(['toUserId']) &&
+          resource.data.toUserId == request.auth.uid));
       allow delete: if isLoggedIn() && 
-        (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid ||
-         resource.data.fromUserId == request.auth.uid || resource.data.toUserId == request.auth.uid);
+        ((resource.data.keys().hasAny(['from']) &&
+          resource.data.from == request.auth.uid) ||
+         (resource.data.keys().hasAny(['to']) &&
+          resource.data.to == request.auth.uid) ||
+         (resource.data.keys().hasAny(['fromUserId']) &&
+          resource.data.fromUserId == request.auth.uid) ||
+         (resource.data.keys().hasAny(['toUserId']) &&
+          resource.data.toUserId == request.auth.uid));
     }
 
     // Friends list — both users can read/write
     match /friends/{friendshipId} {
       allow read: if isLoggedIn();
-      allow create, delete: if isLoggedIn() && 
+      allow create, update, delete: if isLoggedIn() && 
         request.auth.uid in [request.resource.data.userId, request.resource.data.friendId];
     }
 

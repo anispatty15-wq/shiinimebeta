@@ -14,6 +14,7 @@ import {
   getDocs, 
   getDoc,
   addDoc, 
+  writeBatch,
   updateDoc, 
   deleteDoc,
   doc,
@@ -265,24 +266,24 @@ export function useFriends() {
         throw new Error('Friend request tidak valid');
       }
 
-      // Update request status
-      await updateDoc(requestRef, {
+      // Complete the request and create both friendship records atomically.
+      // This prevents a half-accepted request when one write fails.
+      const batch = writeBatch(db);
+      batch.update(requestRef, {
         status: 'accepted',
         acceptedAt: serverTimestamp(),
       });
-
-      // Add to friends collection (both ways)
-      await addDoc(collection(db, 'friends'), {
+      batch.set(doc(db, 'friends', `${user.uid}_${fromUserId}`), {
         userId: user.uid,
         friendId: fromUserId,
         createdAt: serverTimestamp(),
-      });
-
-      await addDoc(collection(db, 'friends'), {
+      }, { merge: true });
+      batch.set(doc(db, 'friends', `${fromUserId}_${user.uid}`), {
         userId: fromUserId,
         friendId: user.uid,
         createdAt: serverTimestamp(),
-      });
+      }, { merge: true });
+      await batch.commit();
 
       // Create notification for the requester
       await createFriendAcceptedNotification(
@@ -298,6 +299,7 @@ export function useFriends() {
       return true;
     } catch (error) {
       console.error('Error accepting friend request:', error);
+      alert(error instanceof Error ? error.message : 'Gagal menerima friend request. Coba lagi.');
       return false;
     }
   };
