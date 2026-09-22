@@ -151,6 +151,51 @@ export default function ProfilePage() {
     setEditingProfile(true);
   };
 
+  const cropBackgroundTo16x9 = (file: File): Promise<File> => new Promise((resolve, reject) => {
+    const image = new window.Image();
+    const objectURL = URL.createObjectURL(file);
+    image.onload = () => {
+      const targetRatio = 16 / 9;
+      const sourceRatio = image.naturalWidth / image.naturalHeight;
+      let sourceWidth = image.naturalWidth;
+      let sourceHeight = image.naturalHeight;
+      let sourceX = 0;
+      let sourceY = 0;
+
+      if (sourceRatio > targetRatio) {
+        sourceWidth = image.naturalHeight * targetRatio;
+        sourceX = (image.naturalWidth - sourceWidth) / 2;
+      } else {
+        sourceHeight = image.naturalWidth / targetRatio;
+        sourceY = (image.naturalHeight - sourceHeight) / 2;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 1600;
+      canvas.height = 900;
+      const context = canvas.getContext('2d');
+      if (!context) {
+        URL.revokeObjectURL(objectURL);
+        reject(new Error('Browser tidak mendukung pemotongan gambar.'));
+        return;
+      }
+      context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(objectURL);
+        if (!blob) {
+          reject(new Error('Gagal memproses gambar latar.'));
+          return;
+        }
+        resolve(new File([blob], `profile-background-${Date.now()}.jpg`, { type: 'image/jpeg' }));
+      }, 'image/jpeg', 0.88);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectURL);
+      reject(new Error('Gambar latar tidak dapat dibaca.'));
+    };
+    image.src = objectURL;
+  });
+
   const uploadBackground = async (file: File) => {
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
@@ -412,11 +457,16 @@ export default function ProfilePage() {
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     if (!file) return;
-                    setBackgroundFile(file);
-                    setBackgroundPreview(URL.createObjectURL(file));
+                    void cropBackgroundTo16x9(file).then((croppedFile) => {
+                      setBackgroundFile(croppedFile);
+                      setBackgroundPreview(URL.createObjectURL(croppedFile));
+                    }).catch((error: Error) => {
+                      alert(error.message);
+                    });
                   }}
                 />
               </label>
+              <p className="mt-1 text-[0.7rem] font-normal text-muted">Gambar otomatis dipangkas ke rasio 16:9.</p>
               {backgroundPreview && (
                 <div className="relative mt-2 h-24 overflow-hidden rounded-app border border-border">
                   <img src={backgroundPreview} alt="Preview latar belakang" className="h-full w-full object-cover" />
