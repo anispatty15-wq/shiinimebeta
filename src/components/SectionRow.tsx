@@ -2,7 +2,7 @@
 // src/components/SectionRow.tsx
 
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useRef } from 'react';
 import MediaCard, { type MediaCardItem } from './MediaCard';
@@ -82,6 +82,13 @@ export default function SectionRow({
     }
   };
 
+  const scrollRow = (direction: -1 | 1) => {
+    rowRef.current?.scrollBy({
+      left: direction * 320,
+      behavior: 'smooth',
+    });
+  };
+
   return (
     <section className={clsx('mb-8', className)}>
       {/* Header */}
@@ -113,30 +120,48 @@ export default function SectionRow({
       ) : items.length === 0 ? (
         <p className="px-4 text-sm text-muted py-4">Tidak ada konten.</p>
       ) : (
-        <div
-          ref={rowRef}
-          className="scroll-row flex gap-3 overflow-x-auto pb-3 px-4 snap-x snap-mandatory"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={stopDragging}
-          onPointerCancel={stopDragging}
-          onClickCapture={preventClickAfterDrag}
-          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' } as React.CSSProperties}
-        >
-          {items.map((item) => {
-            // Use pre-resolved href if available, else build from basePath
-            const cardHref = item.href ?? `${basePath}/${item.slug}`;
-            return (
-              <div key={`${item.slug}-${cardHref}`} className="scroll-item snap-start flex-shrink-0 w-36 sm:w-40">
-                <MediaCard
-                  item={item}
-                  contentType={contentType}
-                  href={cardHref}
-                />
-              </div>
-            );
-          })}
-          <div className="flex-shrink-0 w-1" aria-hidden />
+        <div className="relative group/scroll">
+          <div
+            ref={rowRef}
+            className="scroll-row flex gap-3 overflow-x-auto pb-3 px-4 snap-x snap-mandatory"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={stopDragging}
+            onPointerCancel={stopDragging}
+            onClickCapture={preventClickAfterDrag}
+            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' } as React.CSSProperties}
+          >
+            {items.map((item) => {
+              // Use pre-resolved href if available, else build from basePath
+              const cardHref = item.href ?? `${basePath}/${item.slug}`;
+              return (
+                <div key={`${item.slug}-${cardHref}`} className="scroll-item snap-start flex-shrink-0 w-36 sm:w-40">
+                  <MediaCard
+                    item={item}
+                    contentType={contentType}
+                    href={cardHref}
+                  />
+                </div>
+              );
+            })}
+            <div className="flex-shrink-0 w-1" aria-hidden />
+          </div>
+          <button
+            type="button"
+            onClick={() => scrollRow(-1)}
+            className="scroll-arrow left-1"
+            aria-label={`Geser ${title} ke kiri`}
+          >
+            <ChevronLeft className="w-5 h-5" aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollRow(1)}
+            className="scroll-arrow right-1"
+            aria-label={`Geser ${title} ke kanan`}
+          >
+            <ChevronRight className="w-5 h-5" aria-hidden />
+          </button>
         </div>
       )}
     </section>

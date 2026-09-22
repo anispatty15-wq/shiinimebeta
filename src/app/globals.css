@@ -261,6 +261,34 @@
   cursor: grabbing;
 }
 
+.scroll-arrow {
+  position: absolute;
+  top: 42%;
+  z-index: 20;
+  display: flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(233,30,140,0.28);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.94);
+  color: #BE185D;
+  box-shadow: 0 5px 16px rgba(190,24,93,0.18);
+  opacity: 0.88;
+  transition: transform 150ms ease, opacity 150ms ease, background 150ms ease;
+}
+
+.scroll-arrow:hover {
+  background: #FFF0F5;
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+.scroll-arrow:active {
+  transform: scale(0.94);
+}
+
 .animate-zoom-in {
   .scroll-row > .scroll-item,
   .intro-logo,
