@@ -269,10 +269,6 @@ export function useFriends() {
       // Complete the request and create both friendship records atomically.
       // This prevents a half-accepted request when one write fails.
       const batch = writeBatch(db);
-      batch.update(requestRef, {
-        status: 'accepted',
-        acceptedAt: serverTimestamp(),
-      });
       batch.set(doc(db, 'friends', `${user.uid}_${fromUserId}`), {
         userId: user.uid,
         friendId: fromUserId,
@@ -283,6 +279,7 @@ export function useFriends() {
         friendId: user.uid,
         createdAt: serverTimestamp(),
       }, { merge: true });
+      batch.delete(requestRef);
       await batch.commit();
 
       // Create notification for the requester
