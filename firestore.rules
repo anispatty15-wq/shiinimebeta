@@ -8,6 +8,7 @@ service cloud.firestore {
       return isLoggedIn() &&
         (
           exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+          || request.auth.uid == 'tjG4P99RoxigBJlK4dUJrAnZxAk2'
           || (
             request.auth.token.email == 'anispatty30@gmail.com'
           )
