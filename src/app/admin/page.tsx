@@ -40,9 +40,11 @@ export default function AdminPage() {
 
   // ── Redirect if not admin ──────────────────────────────────
   useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) {
-      router.replace('/');
-    }
+    if (authLoading || (user && isAdmin)) return;
+    const redirectTimer = window.setTimeout(() => {
+      if (!user || !isAdmin) router.replace('/');
+    }, 1800);
+    return () => window.clearTimeout(redirectTimer);
   }, [authLoading, user, isAdmin, router]);
 
   // ── Fetch requests ────────────────────────────────────────

@@ -72,6 +72,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 const CONFIG_MISSING = !FIREBASE_READY;
+const ADMIN_EMAIL = 'anispatty30@gmail.com';
 
 // ── Provider ──────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -108,15 +109,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check admin with better error handling
       let isAdmin = false;
       if (adminSnap.status === 'fulfilled' && adminDoc) {
-        isAdmin = adminDoc.exists();
+        isAdmin = adminDoc.exists() || u.email?.toLowerCase() === ADMIN_EMAIL;
       } else if (adminSnap.status === 'rejected') {
         console.warn('[AuthContext] Admin check failed:', adminSnap.reason);
         // Try direct check as fallback
         try {
           const directAdminCheck = await getDoc(adminRef);
-          isAdmin = directAdminCheck.exists();
+          isAdmin = directAdminCheck.exists() || u.email?.toLowerCase() === ADMIN_EMAIL;
         } catch (fallbackError) {
-          console.error('[AuthContext] Fallback admin check also failed:', fallbackError);
+            console.error('[AuthContext] Fallback admin check also failed:', fallbackError);
         }
       }
 
