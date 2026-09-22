@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { collection, doc, getDoc, getDocs, addDoc, onSnapshot, query, serverTimestamp, where } from 'firebase/firestore';
 import { ArrowLeft, Loader2, MessageCircle, Send, Users, X } from 'lucide-react';
 import { useNotificationsList } from '@/hooks/useNotificationsList';
@@ -24,6 +25,7 @@ interface ChatMessage {
 }
 
 export default function ChatBubble() {
+  const router = useRouter();
   const { user, isAdmin } = useAuth();
   const { notifications, markAsRead } = useNotificationsList();
   const [open, setOpen] = useState(false);
@@ -55,6 +57,12 @@ export default function ChatBubble() {
       admin: uid === ADMIN_UID,
     };
     setActiveContact(contact);
+  };
+
+  const openProfile = (uid: string) => {
+    setOpen(false);
+    setActiveContact(null);
+    router.push(`/profile/${uid}`);
   };
 
   useEffect(() => {
@@ -206,7 +214,16 @@ export default function ChatBubble() {
                 <ArrowLeft className="h-4 w-4" />
               </button>
             ) : <MessageCircle className="h-4 w-4 text-pink" />}
-            <p className="flex-1 truncate text-sm font-bold text-primary">{activeContact ? activeContact.displayName : isAdmin ? 'Chat Semua Member' : 'Chat'}</p>
+            {activeContact ? (
+              <button
+                onClick={() => openProfile(activeContact.uid)}
+                className="flex-1 truncate text-left text-sm font-bold text-primary hover:text-pink"
+              >
+                {activeContact.displayName}
+              </button>
+            ) : (
+              <p className="flex-1 truncate text-sm font-bold text-primary">{isAdmin ? 'Chat Semua Member' : 'Chat'}</p>
+            )}
             <button onClick={() => setOpen(false)} className="text-muted hover:text-primary" aria-label="Tutup chat">
               <X className="h-4 w-4" />
             </button>
@@ -223,7 +240,7 @@ export default function ChatBubble() {
                     </p>
                   </div>
                 ))}
-              </div>}
+              </div>
               <form onSubmit={sendBubbleMessage} className="flex gap-2 border-t border-border p-2">
                 <input value={messageText} onChange={(event) => setMessageText(event.target.value)} maxLength={500} placeholder="Tulis pesan..." className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-xs text-primary outline-none focus:border-pink" />
                 <button type="submit" disabled={sending || !messageText.trim()} className="rounded-xl bg-pink px-3 text-white disabled:opacity-50" aria-label="Kirim pesan">
@@ -251,7 +268,18 @@ export default function ChatBubble() {
                     >
                       <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${notification.read ? 'bg-border' : 'bg-pink'}`} />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs font-bold text-primary">
+                        <span
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openProfile(senderId);
+                          }}
+                          role="link"
+                          tabIndex={0}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') openProfile(senderId);
+                          }}
+                          className="block max-w-full cursor-pointer truncate text-xs font-bold text-primary hover:text-pink"
+                        >
                           {contactNames.get(senderId) ?? 'Pesan baru'}
                         </span>
                         <span className="block truncate text-[0.7rem] text-muted">{notification.body}</span>
@@ -271,7 +299,7 @@ export default function ChatBubble() {
             ) : contacts.length === 0 ? (
               <div className="py-8 text-center text-xs text-muted"><Users className="mx-auto mb-2 h-5 w-5" />Belum ada teman untuk diajak chat.</div>
             ) : contacts.map((contact) => (
-              <button
+              <div
                 key={contact.uid}
                 onClick={() => openChat(
                   contact.uid,
@@ -279,14 +307,41 @@ export default function ChatBubble() {
                     .filter((notification) => (notification.data?.chatUid ?? notification.senderId) === contact.uid && !notification.read)
                     .map((notification) => notification.id)
                 )}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    void openChat(
+                      contact.uid,
+                      chatNotifications
+                        .filter((notification) => (notification.data?.chatUid ?? notification.senderId) === contact.uid && !notification.read)
+                        .map((notification) => notification.id)
+                    );
+                  }
+                }}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-pink/10"
               >
-                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-pink/15 text-sm font-bold text-pink">
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openProfile(contact.uid);
+                  }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-pink/15 text-sm font-bold text-pink"
+                  aria-label={`Buka profil ${contact.displayName}`}
+                >
                   {contact.photoURL ? <img src={contact.photoURL} alt="" className="h-full w-full object-cover" /> : contact.displayName.charAt(0).toUpperCase()}
-                </div>
-                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-primary">{contact.displayName}</span>
+                </button>
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openProfile(contact.uid);
+                  }}
+                  className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-primary hover:text-pink"
+                >
+                  {contact.displayName}
+                </button>
                 {contact.admin && <span className="text-[0.62rem] font-bold text-pink">ADMIN</span>}
-              </button>
+              </div>
             ))}
           </div>}
         </div>
