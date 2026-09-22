@@ -2,7 +2,7 @@
 // src/components/HentaiGuard.tsx — 18+ access gate
 
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, LogIn, Lock, Clock } from 'lucide-react';
+import { ShieldAlert, LogIn, Lock, Clock, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function HentaiGuard({ children }: { children: React.ReactNode }) {
@@ -11,6 +11,7 @@ export default function HentaiGuard({ children }: { children: React.ReactNode })
 
   // Consider approved if either: has 18+ role OR adultStatus is approved
   const hasAccess = isAdult || adultStatus === 'approved';
+    const adminUid = 'pp4P99R0xdgB1fk4dUjFAnZsAnK2';
 
   if (loading) {
     return (
@@ -53,6 +54,7 @@ export default function HentaiGuard({ children }: { children: React.ReactNode })
         desc="Permintaan akses 18+ kamu ditolak. Hubungi admin jika ada pertanyaan."
         badge={{ text: '✗ Ditolak', color: 'bg-red-400/15 border-red-400/40 text-red-400' }}
         action={{ label: 'Ke Profil', onClick: () => router.push('/profile') }}
+        secondaryAction={{ label: 'Hubungi Admin', onClick: () => router.push(`/chat/${adminUid}`) }}
       />
     );
   }
@@ -65,6 +67,7 @@ export default function HentaiGuard({ children }: { children: React.ReactNode })
         title="Verifikasi Umur Diperlukan"
         desc="Konten ini hanya untuk pengguna 18+. Aktifkan akses di halaman profil dan tunggu persetujuan admin."
         action={{ label: '🔞 Ajukan Akses 18+', onClick: () => router.push('/profile') }}
+        secondaryAction={{ label: 'Hubungi Admin', onClick: () => router.push(`/chat/${adminUid}`) }}
       />
     );
   }
@@ -74,13 +77,14 @@ export default function HentaiGuard({ children }: { children: React.ReactNode })
 
 // ── Reusable gate screen ──────────────────────────────────────
 function GateScreen({
-  icon, title, desc, badge, action,
+  icon, title, desc, badge, action, secondaryAction,
 }: {
   icon:    React.ReactNode;
   title:   string;
   desc:    string;
   badge?:  { text: string; color: string };
   action?: { label: string; onClick: () => void };
+  secondaryAction?: { label: string; onClick: () => void };
 }) {
   const router = useRouter();
   return (
@@ -105,6 +109,15 @@ function GateScreen({
           >
             <LogIn className="w-4 h-4" aria-hidden />
             {action.label}
+          </button>
+        )}
+        {secondaryAction && (
+          <button
+            onClick={secondaryAction.onClick}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-app border border-pink/30 text-pink font-semibold text-sm hover:bg-pink/10 transition-all"
+          >
+            <MessageCircle className="w-4 h-4" aria-hidden />
+            {secondaryAction.label}
           </button>
         )}
         <button

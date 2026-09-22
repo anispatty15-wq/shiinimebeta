@@ -12,7 +12,7 @@ import {
   ShieldCheck, Send, CheckCircle2, XCircle
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { getLevelFromXP, getXPProgress } from '@/lib/xp';
@@ -28,6 +28,7 @@ interface UserProfile {
   isAdmin?: boolean;
   createdAt?: any;
   bio?: string;
+  backgroundURL?: string;
 }
 
 export default function ProfilePage() {
@@ -44,6 +45,10 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [requestingAdult, setRequestingAdult] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [bioDraft, setBioDraft] = useState('');
+  const [backgroundDraft, setBackgroundDraft] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const isOwnProfile = currentUser?.uid === uid;
 
@@ -135,6 +140,29 @@ export default function ProfilePage() {
     }
   };
 
+  const startProfileEdit = () => {
+    setBioDraft(profile?.bio ?? '');
+    setBackgroundDraft(profile?.backgroundURL ?? '');
+    setEditingProfile(true);
+  };
+
+  const saveProfile = async () => {
+    if (!currentUser || !db) return;
+    setSavingProfile(true);
+    try {
+      const bio = bioDraft.trim().slice(0, 240);
+      const backgroundURL = backgroundDraft.trim().slice(0, 500);
+      await updateDoc(doc(db, 'users', currentUser.uid), { bio, backgroundURL });
+      setProfile((prev) => prev ? { ...prev, bio, backgroundURL } : prev);
+      setEditingProfile(false);
+    } catch (error) {
+      console.error('[Profile] Save error:', error);
+      alert('Gagal menyimpan profil. Coba lagi.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -199,7 +227,10 @@ export default function ProfilePage() {
         {/* Profile Header */}
         <div className="bg-surface border border-border rounded-app overflow-hidden mb-6">
           {/* Cover gradient */}
-          <div className="h-32 bg-gradient-to-br from-cyan/20 via-violet/20 to-pink/20" />
+          <div
+            className="h-32 bg-gradient-to-br from-cyan/20 via-violet/20 to-pink/20 bg-cover bg-center"
+            style={profile.backgroundURL ? { backgroundImage: `url(${profile.backgroundURL})` } : undefined}
+          />
 
           <div className="px-6 pb-6 -mt-16">
             {/* Avatar */}
@@ -309,12 +340,9 @@ export default function ProfilePage() {
             {/* Edit profile button for own profile */}
             {isOwnProfile && (
               <div className="flex items-center gap-2">
-                <Link
-                  href="/settings"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-cyan text-bg hover:brightness-110 transition-all"
-                >
+                <button onClick={startProfileEdit} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-cyan text-bg hover:brightness-110 transition-all">
                   Edit Profile
-                </Link>
+                </button>
                 <button
                   onClick={() => {
                     import('@/lib/firebase').then(({ auth }) => {
@@ -331,6 +359,26 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+
+        {isOwnProfile && editingProfile && (
+          <div className="bg-surface border border-border rounded-app p-5 mb-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-primary">Edit Profil</h2>
+              <button onClick={() => setEditingProfile(false)} className="text-sm text-muted hover:text-primary">Tutup</button>
+            </div>
+            <label className="block text-xs font-semibold text-secondary">
+              Bio
+              <textarea value={bioDraft} onChange={(event) => setBioDraft(event.target.value)} maxLength={240} rows={3} placeholder="Ceritakan sedikit tentang kamu..." className="mt-1 w-full rounded-app border border-border bg-surface-2 p-3 text-sm text-primary outline-none focus:border-pink" />
+            </label>
+            <label className="block text-xs font-semibold text-secondary">
+              URL Latar Belakang
+              <input value={backgroundDraft} onChange={(event) => setBackgroundDraft(event.target.value)} type="url" placeholder="https://..." className="mt-1 w-full rounded-app border border-border bg-surface-2 px-3 py-2.5 text-sm text-primary outline-none focus:border-pink" />
+            </label>
+            <button onClick={saveProfile} disabled={savingProfile} className="inline-flex items-center gap-2 rounded-app bg-pink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
+              {savingProfile ? 'Menyimpan...' : 'Simpan Profil'}
+            </button>
+          </div>
+        )}
 
         {isOwnProfile && (
           <div className="bg-surface border border-pink/25 rounded-app p-5 mb-6">

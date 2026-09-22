@@ -6,19 +6,21 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { 
-  ArrowLeft, Send, User, Loader2, MessageCircle 
+  ArrowLeft, Send, User, Loader2, MessageCircle, ImagePlus, X
 } from 'lucide-react';
 import {
   collection, doc, getDoc, addDoc, query,
   orderBy, onSnapshot, serverTimestamp,
   type DocumentData,
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 
 interface Message {
   id: string;
   text: string;
+  imageUrl?: string;
   senderId: string;
   createdAt: any;
 }
@@ -39,6 +41,8 @@ export default function ChatPage() {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState('');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -101,7 +105,7 @@ export default function ChatPage() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !otherUid || !inputText.trim() || !db) return;
+    if (!user || !otherUid || !db || (!inputText.trim() && !selectedImage)) return;
 
     const text = inputText.trim();
     if (text.length > 500) {
@@ -115,15 +119,26 @@ export default function ChatPage() {
     try {
       const conversationId = getConversationId(user.uid, otherUid);
       const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+      let imageUrl = '';
+
+      if (selectedImage) {
+        if (!storage) throw new Error('Firebase Storage belum tersedia.');
+        if (selectedImage.size > 5 * 1024 * 1024) throw new Error('Ukuran gambar maksimal 5 MB.');
+        const fileRef = ref(storage, `chat/${conversationId}/${user.uid}/${Date.now()}-${selectedImage.name}`);
+        imageUrl = await getDownloadURL(await uploadBytes(fileRef, selectedImage));
+      }
       
       await addDoc(messagesRef, {
-        text,
+        text: text || '',
+        ...(imageUrl ? { imageUrl } : {}),
         senderId: user.uid,
         createdAt: serverTimestamp(),
       });
 
       // Focus back to input
       inputRef.current?.focus();
+      setSelectedImage(null);
+      setImagePreview('');
     } catch (err) {
       console.error('Error sending message:', err);
       alert('Gagal mengirim pesan. Coba lagi.');
@@ -232,6 +247,11 @@ export default function ChatPage() {
                   <p className="text-sm break-words whitespace-pre-wrap">
                     {msg.text}
                   </p>
+                  {msg.imageUrl && (
+                    <a href={msg.imageUrl} target="_blank" rel="noreferrer" className="block mt-2">
+                      <img src={msg.imageUrl} alt="Lampiran chat" className="max-w-full max-h-64 rounded-lg object-cover" />
+                    </a>
+                  )}
                   {msg.createdAt && (
                     <p
                       className={`text-[0.65rem] mt-1 ${
@@ -257,6 +277,28 @@ export default function ChatPage() {
         onSubmit={handleSend}
         className="flex items-center gap-2 px-4 py-3 bg-surface border-t border-border"
       >
+        {imagePreview && (
+          <div className="absolute bottom-16 left-4 flex items-center gap-2 rounded-app bg-surface border border-border p-2 shadow-lg">
+            <img src={imagePreview} alt="Preview lampiran" className="h-14 w-14 rounded object-cover" />
+            <button type="button" onClick={() => { setSelectedImage(null); setImagePreview(''); }} className="text-muted hover:text-red-500" aria-label="Hapus gambar">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+        <label className="w-10 h-10 flex items-center justify-center rounded-full border border-border text-secondary hover:text-pink cursor-pointer flex-shrink-0" aria-label="Kirim gambar">
+          <ImagePlus className="w-5 h-5" />
+          <input
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              setSelectedImage(file);
+              setImagePreview(URL.createObjectURL(file));
+            }}
+          />
+        </label>
         <input
           ref={inputRef}
           type="text"
@@ -268,7 +310,7 @@ export default function ChatPage() {
         />
         <button
           type="submit"
-          disabled={!inputText.trim() || sending}
+          disabled={(!inputText.trim() && !selectedImage) || sending}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-cyan text-bg hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
         >
           {sending ? (

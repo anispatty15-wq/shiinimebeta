@@ -70,7 +70,7 @@ service cloud.firestore {
         conversationId.matches('.*' + request.auth.uid + '.*');
       allow create: if isLoggedIn() && 
         request.resource.data.senderId == request.auth.uid && 
-        request.resource.data.text.size() <= 500;
+        (!('text' in request.resource.data) || request.resource.data.text.size() <= 500);
     }
   }
 }
