@@ -25,6 +25,7 @@ interface RequestUser {
   photoURL:    string;
   adultStatus: AdultStatus;
   requestedAt: string;
+  roles: string[];
 }
 
 export default function AdminPage() {
@@ -34,7 +35,7 @@ export default function AdminPage() {
   const [requests, setRequests] = useState<RequestUser[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState<string | null>(null);
-  const [filter,   setFilter]   = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+  const [filter,   setFilter]   = useState<'pending' | 'approved' | 'rejected' | 'all' | 'members'>('pending');
   const [acting,   setActing]   = useState<string | null>(null); // uid being processed
 
   // ── Redirect if not admin ──────────────────────────────────
@@ -51,11 +52,11 @@ export default function AdminPage() {
     setError(null);
     try {
       const col = collection(db, 'users');
-      const q   = filter === 'all'
-        ? query(col, where('adultStatus', 'in', ['pending', 'approved', 'rejected']))
-        : query(col, where('adultStatus', '==', filter));
-
-      const snap = await getDocs(q);
+      const snap = filter === 'members'
+        ? await getDocs(col)
+        : await getDocs(filter === 'all'
+          ? query(col, where('adultStatus', 'in', ['pending', 'approved', 'rejected']))
+          : query(col, where('adultStatus', '==', filter)));
       const list: RequestUser[] = snap.docs.map((d) => {
         const data = d.data();
         return {
@@ -64,6 +65,7 @@ export default function AdminPage() {
           email:       data.email       ?? '',
           photoURL:    data.photoURL    ?? '',
           adultStatus: data.adultStatus ?? 'none',
+          roles:       Array.isArray(data.roles) ? data.roles : ['user'],
           requestedAt: data.adultRequestAt?.toDate?.()
             ? new Date(data.adultRequestAt.toDate()).toLocaleString('id-ID')
             : '-',
@@ -74,7 +76,7 @@ export default function AdminPage() {
       list.sort((a, b) => {
         if (a.adultStatus === 'pending' && b.adultStatus !== 'pending') return -1;
         if (b.adultStatus === 'pending' && a.adultStatus !== 'pending') return 1;
-        return 0;
+        return a.displayName.localeCompare(b.displayName);
       });
 
       setRequests(list);
@@ -160,7 +162,7 @@ export default function AdminPage() {
 
         {/* Filter tabs */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
-          {(['pending', 'approved', 'rejected', 'all'] as const).map((f) => (
+          {(['pending', 'approved', 'rejected', 'all', 'members'] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -171,7 +173,7 @@ export default function AdminPage() {
                   : 'bg-surface border-border text-secondary hover:text-primary'
               )}
             >
-              {f === 'all' ? 'Semua' : f === 'pending' ? `⏳ Pending${pendingCount > 0 && filter !== 'pending' ? ` (${pendingCount})` : ''}` : f === 'approved' ? '✅ Disetujui' : '✗ Ditolak'}
+              {f === 'members' ? '👥 Semua Member' : f === 'all' ? 'Semua Request' : f === 'pending' ? `⏳ Pending${pendingCount > 0 && filter !== 'pending' ? ` (${pendingCount})` : ''}` : f === 'approved' ? '✅ Disetujui' : '✗ Ditolak'}
             </button>
           ))}
         </div>
@@ -197,7 +199,7 @@ export default function AdminPage() {
         {!loading && requests.length === 0 && (
           <div className="text-center py-16 text-muted space-y-2">
             <Users className="w-10 h-10 mx-auto opacity-30" aria-hidden />
-            <p className="text-sm">Tidak ada request {filter !== 'all' ? filter : ''}.</p>
+            <p className="text-sm">Tidak ada data {filter === 'members' ? 'member' : `request ${filter !== 'all' ? filter : ''}`}.</p>
           </div>
         )}
 
@@ -211,6 +213,7 @@ export default function AdminPage() {
                   'rounded-app border p-4 flex items-start gap-3 transition-all',
                   req.adultStatus === 'pending'  ? 'border-yellow-400/30 bg-yellow-400/5'
                   : req.adultStatus === 'approved' ? 'border-green-400/20 bg-surface'
+                  : req.adultStatus === 'none' ? 'border-border bg-surface'
                   : 'border-red-400/20 bg-surface'
                 )}
               >
@@ -228,15 +231,20 @@ export default function AdminPage() {
                   <p className="text-xs text-muted mt-0.5">
                     Diajukan: {req.requestedAt}
                   </p>
+                  <p className="text-xs text-secondary mt-0.5">
+                    Role: {req.roles.join(', ')}
+                  </p>
                   {/* Status badge */}
                   <span className={clsx(
                     'inline-block mt-1.5 text-[0.65rem] font-bold px-2 py-0.5 rounded-full border',
                     req.adultStatus === 'pending'  ? 'bg-yellow-400/15 border-yellow-400/40 text-yellow-400'
                     : req.adultStatus === 'approved' ? 'bg-green-400/15 border-green-400/40 text-green-400'
+                    : req.adultStatus === 'none' ? 'bg-surface-2 border-border text-muted'
                     : 'bg-red-400/15 border-red-400/40 text-red-400'
                   )}>
                     {req.adultStatus === 'pending' ? '⏳ Pending'
                       : req.adultStatus === 'approved' ? '✅ Disetujui'
+                      : req.adultStatus === 'none' ? 'Belum mengajukan'
                       : '✗ Ditolak'}
                   </span>
                 </div>
@@ -264,7 +272,7 @@ export default function AdminPage() {
                 )}
 
                 {/* Re-review approved/rejected */}
-                {req.adultStatus !== 'pending' && (
+                {req.adultStatus !== 'pending' && req.adultStatus !== 'none' && (
                   <div className="flex flex-col gap-2 flex-shrink-0">
                     {req.adultStatus === 'approved' ? (
                       <button

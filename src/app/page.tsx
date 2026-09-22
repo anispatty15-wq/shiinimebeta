@@ -9,6 +9,7 @@ import { SkeletonBanner } from '@/components/SkeletonLoader';
 import { normaliseCardItem } from '@/utils/slugHelpers';
 import HeroBanner from '@/components/HeroBanner';
 import TopBanner from '@/components/TopBanner';
+import { useAuth } from '@/context/AuthContext';
 
 function toItems(raw: unknown, defaultStatus?: string, contentType: 'anime' | 'donghua' = 'anime') {
   if (!Array.isArray(raw)) return [];
@@ -47,6 +48,9 @@ function toComicItems(raw: unknown) {
 }
 
 export default function HomePage() {
+  const { user, isAdult, adultStatus, loading: authLoading } = useAuth();
+  const hasAdultAccess = !authLoading && !!user && (isAdult || adultStatus === 'approved');
+
   // Anime sections
   const animeHome = useApi(useCallback(() => AnimeAPI.getHome(), []), []);
   
@@ -131,7 +135,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Hentai Section - LOCKED (18+ only) */}
+      {/* Hentai Section - unlocked only after admin approval */}
       <div className="px-4 mb-6 mt-12">
         <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
           <span className="text-pink-400">🔞</span> Hentai
@@ -139,8 +143,7 @@ export default function HomePage() {
       </div>
 
       <div className="relative px-4 mb-8">
-        {/* Blurred content behind */}
-        <div className="blur-md pointer-events-none">
+        <div className={hasAdultAccess ? '' : 'blur-md pointer-events-none'}>
           <SectionRow
             title="Top Hentai"
             items={toItems(hentaiHome.data).slice(0, 6)}
@@ -153,8 +156,7 @@ export default function HomePage() {
           />
         </div>
         
-        {/* Lock overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-app border border-pink/20">
+        {!hasAdultAccess && <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-app border border-pink/20">
           <div className="text-center max-w-sm px-4">
             <div className="w-16 h-16 rounded-full bg-pink/10 border border-pink/30 flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">🔒</span>
@@ -163,7 +165,11 @@ export default function HomePage() {
               Konten Dewasa (18+)
             </h3>
             <p className="text-sm text-secondary mb-4">
-              Verifikasi usia di profil untuk mengakses konten ini
+              {adultStatus === 'pending'
+                ? 'Permintaan akses 18+ sedang menunggu persetujuan admin'
+                : adultStatus === 'rejected'
+                  ? 'Permintaan akses 18+ ditolak oleh admin'
+                  : 'Verifikasi usia di profil untuk mengakses konten ini'}
             </p>
             <a
               href="/hentai"
@@ -172,7 +178,7 @@ export default function HomePage() {
               🔞 Buka Hentai
             </a>
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* Comic Section */}

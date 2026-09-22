@@ -211,8 +211,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const d = snap.data();
             setProfile((prev) => {
               if (!prev) return prev;
+              const roles = Array.isArray(d.roles) ? d.roles : prev.roles;
               return {
                 ...prev,
+                roles,
+                adultStatus: (d.adultStatus as AdultStatus) ?? prev.adultStatus,
+                isAdmin: d.isAdmin ?? prev.isAdmin,
                 xp:           Number(d.xp           ?? prev.xp),
                 level:        Number(d.level         ?? prev.level),
                 totalMinutes: Number(d.totalMinutes  ?? prev.totalMinutes),
