@@ -97,6 +97,7 @@ export default function AdminPage() {
   const handleAction = async (uid: string, action: 'approve' | 'reject') => {
     if (!db) return;
     setActing(uid);
+    setError(null);
     try {
       const newStatus: AdultStatus = action === 'approve' ? 'approved' : 'rejected';
       const newRoles = action === 'approve' ? ['user', '18+'] : ['user'];
@@ -112,7 +113,8 @@ export default function AdminPage() {
       );
     } catch (e) {
       console.error('[Admin] Action error:', e);
-      setError(e instanceof Error ? e.message : 'Gagal memperbarui status member. Pastikan rules Firestore sudah di-deploy.');
+      const message = e instanceof Error ? e.message : 'Unknown Firebase error';
+      setError(`Gagal ${action === 'approve' ? 'menyetujui' : 'menolak'}: ${message} | Login: ${user.email ?? '-'} | UID: ${user.uid}`);
     } finally {
       setActing(null);
     }
