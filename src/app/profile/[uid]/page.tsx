@@ -56,6 +56,7 @@ export default function ProfilePage() {
   const [cropZoom, setCropZoom] = useState(1);
   const [cropPosition, setCropPosition] = useState({ x: 0, y: 0 });
   const cropDrag = useState<{ x: number; y: number; startX: number; startY: number } | null>(null);
+  const [profileError, setProfileError] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
 
   const isOwnProfile = currentUser?.uid === uid;
@@ -153,6 +154,7 @@ export default function ProfilePage() {
     setBackgroundDraft(profile?.backgroundURL ?? '');
     setBackgroundFile(null);
     setBackgroundPreview(profile?.backgroundURL ?? '');
+    setProfileError('');
     setEditingProfile(true);
   };
 
@@ -209,8 +211,10 @@ export default function ProfilePage() {
       method: 'POST',
       body: formData,
     });
-    if (!response.ok) throw new Error('Upload latar ke Cloudinary gagal.');
-    const result = await response.json() as { secure_url?: string };
+    const result = await response.json() as { secure_url?: string; error?: { message?: string } };
+    if (!response.ok) {
+      throw new Error(`Cloudinary: ${result.error?.message ?? 'upload ditolak'}`);
+    }
     if (!result.secure_url) throw new Error('Cloudinary tidak mengembalikan URL latar.');
     return result.secure_url;
   };
@@ -218,6 +222,7 @@ export default function ProfilePage() {
   const saveProfile = async () => {
     if (!currentUser || !db) return;
     setSavingProfile(true);
+    setProfileError('');
     try {
       const bio = bioDraft.trim().slice(0, 240);
       const backgroundURL = backgroundFile
@@ -230,8 +235,9 @@ export default function ProfilePage() {
       setBackgroundPreview(backgroundURL);
       setEditingProfile(false);
     } catch (error) {
-      console.error('[Profile] Save error:', error);
-      alert('Gagal menyimpan profil. Coba lagi.');
+      const message = error instanceof Error ? error.message : 'Kesalahan tidak diketahui.';
+      setProfileError(message);
+      console.error('[Profile] Save error:', message);
     } finally {
       setSavingProfile(false);
     }
@@ -440,6 +446,11 @@ export default function ProfilePage() {
               <h2 className="text-sm font-bold text-primary">Edit Profil</h2>
               <button onClick={() => setEditingProfile(false)} className="text-sm text-muted hover:text-primary">Tutup</button>
             </div>
+            {profileError && (
+              <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {profileError}
+              </div>
+            )}
             <label className="block text-xs font-semibold text-secondary">
               Bio
               <textarea value={bioDraft} onChange={(event) => setBioDraft(event.target.value)} maxLength={240} rows={3} placeholder="Ceritakan sedikit tentang kamu..." className="mt-1 w-full rounded-app border border-border bg-surface-2 p-3 text-sm text-primary outline-none focus:border-pink" />
