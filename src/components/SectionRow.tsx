@@ -75,14 +75,14 @@ export default function SectionRow({
         <p className="px-4 text-sm text-muted py-4">Tidak ada konten.</p>
       ) : (
         <div
-          className="flex gap-3 overflow-x-auto pb-3 px-4 snap-x snap-mandatory"
+          className="scroll-row flex gap-3 overflow-x-auto pb-3 px-4 snap-x snap-mandatory"
           style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
         >
           {items.map((item) => {
             // Use pre-resolved href if available, else build from basePath
             const cardHref = item.href ?? `${basePath}/${item.slug}`;
             return (
-              <div key={`${item.slug}-${cardHref}`} className="snap-start flex-shrink-0 w-36 sm:w-40">
+              <div key={`${item.slug}-${cardHref}`} className="scroll-item snap-start flex-shrink-0 w-36 sm:w-40">
                 <MediaCard
                   item={item}
                   contentType={contentType}
