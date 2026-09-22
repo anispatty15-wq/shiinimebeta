@@ -10,6 +10,7 @@ import {
   User, Shield, Clock, Star, Heart, MessageCircle,
   UserPlus, TrendingUp, ArrowLeft, Users, Award, UserCheck, UserX,
   ShieldCheck, Send, CheckCircle2, XCircle
+  ,ImagePlus
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -48,6 +49,8 @@ export default function ProfilePage() {
   const [editingProfile, setEditingProfile] = useState(false);
   const [bioDraft, setBioDraft] = useState('');
   const [backgroundDraft, setBackgroundDraft] = useState('');
+  const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
+  const [backgroundPreview, setBackgroundPreview] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
 
   const isOwnProfile = currentUser?.uid === uid;
@@ -143,7 +146,29 @@ export default function ProfilePage() {
   const startProfileEdit = () => {
     setBioDraft(profile?.bio ?? '');
     setBackgroundDraft(profile?.backgroundURL ?? '');
+    setBackgroundFile(null);
+    setBackgroundPreview(profile?.backgroundURL ?? '');
     setEditingProfile(true);
+  };
+
+  const uploadBackground = async (file: File) => {
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+    if (!cloudName || !uploadPreset) throw new Error('Cloudinary belum dikonfigurasi.');
+    if (!file.type.startsWith('image/')) throw new Error('File latar harus berupa gambar.');
+    if (file.size > 10 * 1024 * 1024) throw new Error('Ukuran gambar maksimal 10 MB.');
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) throw new Error('Upload latar ke Cloudinary gagal.');
+    const result = await response.json() as { secure_url?: string };
+    if (!result.secure_url) throw new Error('Cloudinary tidak mengembalikan URL latar.');
+    return result.secure_url;
   };
 
   const saveProfile = async () => {
@@ -151,9 +176,14 @@ export default function ProfilePage() {
     setSavingProfile(true);
     try {
       const bio = bioDraft.trim().slice(0, 240);
-      const backgroundURL = backgroundDraft.trim().slice(0, 500);
+      const backgroundURL = backgroundFile
+        ? await uploadBackground(backgroundFile)
+        : backgroundDraft.trim().slice(0, 500);
       await updateDoc(doc(db, 'users', currentUser.uid), { bio, backgroundURL });
       setProfile((prev) => prev ? { ...prev, bio, backgroundURL } : prev);
+      setBackgroundDraft(backgroundURL);
+      setBackgroundFile(null);
+      setBackgroundPreview(backgroundURL);
       setEditingProfile(false);
     } catch (error) {
       console.error('[Profile] Save error:', error);
@@ -370,10 +400,29 @@ export default function ProfilePage() {
               Bio
               <textarea value={bioDraft} onChange={(event) => setBioDraft(event.target.value)} maxLength={240} rows={3} placeholder="Ceritakan sedikit tentang kamu..." className="mt-1 w-full rounded-app border border-border bg-surface-2 p-3 text-sm text-primary outline-none focus:border-pink" />
             </label>
-            <label className="block text-xs font-semibold text-secondary">
-              URL Latar Belakang
-              <input value={backgroundDraft} onChange={(event) => setBackgroundDraft(event.target.value)} type="url" placeholder="https://..." className="mt-1 w-full rounded-app border border-border bg-surface-2 px-3 py-2.5 text-sm text-primary outline-none focus:border-pink" />
-            </label>
+            <div className="text-xs font-semibold text-secondary">
+              <span>Latar Belakang</span>
+              <label className="mt-1 flex cursor-pointer items-center gap-2 rounded-app border border-dashed border-pink/40 bg-surface-2 px-3 py-3 text-sm text-secondary hover:border-pink">
+                <ImagePlus className="h-5 w-5 text-pink" />
+                <span>{backgroundFile ? backgroundFile.name : 'Pilih gambar latar'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    setBackgroundFile(file);
+                    setBackgroundPreview(URL.createObjectURL(file));
+                  }}
+                />
+              </label>
+              {backgroundPreview && (
+                <div className="relative mt-2 h-24 overflow-hidden rounded-app border border-border">
+                  <img src={backgroundPreview} alt="Preview latar belakang" className="h-full w-full object-cover" />
+                </div>
+              )}
+            </div>
             <button onClick={saveProfile} disabled={savingProfile} className="inline-flex items-center gap-2 rounded-app bg-pink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
               {savingProfile ? 'Menyimpan...' : 'Simpan Profil'}
             </button>
