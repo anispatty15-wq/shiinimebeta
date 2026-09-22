@@ -331,14 +331,18 @@ export default function ChatBubble() {
                 >
                   {contact.photoURL ? <img src={contact.photoURL} alt="" className="h-full w-full object-cover" /> : contact.displayName.charAt(0).toUpperCase()}
                 </button>
+                <span className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-primary">
+                  {contact.displayName}
+                </span>
                 <button
                   onClick={(event) => {
                     event.stopPropagation();
                     openProfile(contact.uid);
                   }}
-                  className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-primary hover:text-pink"
+                  className="shrink-0 rounded-lg px-2 py-1 text-[0.65rem] font-semibold text-pink hover:bg-pink/10"
+                  aria-label={`Buka profil ${contact.displayName}`}
                 >
-                  {contact.displayName}
+                  Profil
                 </button>
                 {contact.admin && <span className="text-[0.62rem] font-bold text-pink">ADMIN</span>}
               </div>
