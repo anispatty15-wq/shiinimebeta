@@ -56,7 +56,7 @@ export default function FriendsPage() {
     if (activeTab === 'search') {
       handleSearch(debouncedSearch);
     }
-  });
+  }, [activeTab, debouncedSearch]);
 
   const handleSendRequest = async (toUserId: string) => {
     setActionLoading(toUserId);

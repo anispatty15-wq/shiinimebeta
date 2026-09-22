@@ -107,16 +107,29 @@ export function useFriends() {
       const requestsQuery = query(collection(db, 'friendRequests'), orderBy('createdAt', 'desc'), limit(100));
 
       const snapshot = await getDocs(requestsQuery);
-      const requests: FriendRequest[] = snapshot.docs.map((doc) => {
-        const data = doc.data();
+      const requests = await Promise.all(snapshot.docs.map(async (requestDoc) => {
+        const data = requestDoc.data();
+        const fromUserId = data.fromUserId ?? data.from;
+        let sender = data.fromUserName || data.fromName || '';
+        let senderAvatar = data.fromUserAvatar || data.fromAvatar || '';
+        if (fromUserId && (!sender || !senderAvatar)) {
+          const senderDoc = await getDoc(doc(db, 'users', fromUserId));
+          if (senderDoc.exists()) {
+            const senderData = senderDoc.data();
+            sender = sender || senderData.displayName || 'Seseorang';
+            senderAvatar = senderAvatar || senderData.photoURL || '';
+          }
+        }
         return {
-        id: doc.id,
+        id: requestDoc.id,
         ...data,
-        fromUserId: data.fromUserId ?? data.from,
+        fromUserId,
         toUserId: data.toUserId ?? data.to,
-        fromUserName: data.fromUserName ?? 'Seseorang',
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-      }; }).filter((request) => request.toUserId === user.uid && request.status === 'pending') as FriendRequest[];
+        fromUserName: sender || 'Seseorang',
+        fromUserAvatar: senderAvatar,
+        createdAt: data.createdAt?.toDate() || new Date(),
+      };
+      })).then((items) => items.filter((request) => request.toUserId === user.uid && request.status === 'pending')) as FriendRequest[];
 
       setPendingRequests(requests);
     } catch (error) {
@@ -132,15 +145,15 @@ export function useFriends() {
       const requestsQuery = query(collection(db, 'friendRequests'), orderBy('createdAt', 'desc'), limit(100));
 
       const snapshot = await getDocs(requestsQuery);
-      const requests: FriendRequest[] = snapshot.docs.map((doc) => {
-        const data = doc.data();
+      const requests: FriendRequest[] = snapshot.docs.map((requestDoc) => {
+        const data = requestDoc.data();
         return {
-        id: doc.id,
+        id: requestDoc.id,
         ...data,
         fromUserId: data.fromUserId ?? data.from,
         toUserId: data.toUserId ?? data.to,
         fromUserName: data.fromUserName ?? 'Seseorang',
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
+        createdAt: data.createdAt?.toDate() || new Date(),
       }; }).filter((request) => request.fromUserId === user.uid && request.status === 'pending') as FriendRequest[];
 
       setSentRequests(requests);
@@ -246,7 +259,11 @@ export function useFriends() {
       }
 
       const requestData = requestSnapshot.docs[0].data();
-      const fromUserId = requestData.fromUserId;
+      const fromUserId = requestData.fromUserId ?? requestData.from;
+      const toUserId = requestData.toUserId ?? requestData.to;
+      if (!fromUserId || toUserId !== user.uid) {
+        throw new Error('Friend request tidak valid');
+      }
 
       // Update request status
       await updateDoc(requestRef, {

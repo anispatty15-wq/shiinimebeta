@@ -90,6 +90,10 @@ export function useFriendSystem(targetUserId?: string) {
       await setDoc(doc(db, 'friendRequests', requestId), {
         from: user.uid,
         to: targetUserId,
+        fromUserId: user.uid,
+        toUserId: targetUserId,
+        fromUserName: user.displayName ?? 'Seseorang',
+        fromUserAvatar: user.photoURL ?? '',
         status: 'pending',
         createdAt: serverTimestamp(),
       });
@@ -117,6 +121,12 @@ export function useFriendSystem(targetUserId?: string) {
 
     try {
       const requestId = `${targetUserId}_${user.uid}`;
+      const requestSnapshot = await getDoc(doc(db, 'friendRequests', requestId));
+      if (!requestSnapshot.exists()) throw new Error('Friend request tidak ditemukan');
+      const requestData = requestSnapshot.data();
+      if (requestData.toUserId && requestData.toUserId !== user.uid) {
+        throw new Error('Friend request bukan untuk akun ini');
+      }
       
       // Create friendship (both directions)
       await setDoc(doc(db, 'friends', `${user.uid}_${targetUserId}`), {
