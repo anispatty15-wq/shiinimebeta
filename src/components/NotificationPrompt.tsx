@@ -17,21 +17,12 @@ export default function NotificationPrompt() {
   const [isDismissed, setIsDismissed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check if dismissed in localStorage
-  useEffect(() => {
-    const dismissed = localStorage.getItem('notification-prompt-dismissed');
-    if (dismissed === 'true') {
-      setIsDismissed(true);
-    }
-  }, []);
-
   const handleEnable = async () => {
     setIsLoading(true);
     try {
       const granted = await requestPermission();
       if (granted) {
         setIsDismissed(true);
-        localStorage.setItem('notification-prompt-dismissed', 'true');
       }
     } catch (error) {
       console.error('Error enabling notifications:', error);
@@ -42,7 +33,6 @@ export default function NotificationPrompt() {
 
   const handleDismiss = () => {
     setIsDismissed(true);
-    localStorage.setItem('notification-prompt-dismissed', 'true');
   };
 
   // Don't show if:
@@ -82,6 +72,9 @@ export default function NotificationPrompt() {
         </h3>
         <p className="text-sm text-secondary mb-4">
           Dapatkan notifikasi browser saat ada chat, friend request, anime terbaru, pengumuman admin, dan aktivitas lainnya.
+        </p>
+        <p className="text-xs text-muted mb-3">
+          Jika sebelumnya memilih Blokir, tekan ikon kunci di address bar lalu ubah Notifikasi menjadi Izinkan.
         </p>
 
         {/* Actions */}
