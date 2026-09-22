@@ -203,11 +203,11 @@ export default function ChatBubble() {
 
   return (
     <div
-      className="fixed right-4 bottom-24 md:bottom-6 z-40"
+      className="fixed right-4 bottom-24 md:bottom-6 z-[60]"
       style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }}
     >
       {open && (
-        <div className="absolute bottom-14 right-0 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-pink/25 bg-white shadow-[0_12px_40px_rgba(31,24,29,0.2)]">
+        <div className="absolute bottom-14 right-0 z-[61] w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-pink/25 bg-white shadow-[0_12px_40px_rgba(31,24,29,0.2)]">
           <div className="flex items-center gap-2 border-b border-border px-4 py-3">
             {activeContact ? (
               <button onClick={() => setActiveContact(null)} className="rounded-lg p-1 text-muted hover:bg-pink/10" aria-label="Kembali ke daftar chat">
