@@ -201,9 +201,9 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex min-h-0 h-[calc(100dvh-5rem)] flex-col bg-bg">
+    <div className="flex h-[calc(100dvh-8.5rem)] min-h-0 flex-col overflow-hidden bg-bg md:h-[calc(100dvh-3.5rem)]">
       {/* Header */}
-      <div className="sticky top-0 z-20 flex shrink-0 items-center gap-3 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur">
+      <div className="z-20 flex shrink-0 items-center gap-3 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur">
         <button
           onClick={() => router.back()}
           className="w-8 h-8 flex items-center justify-center rounded-app text-secondary hover:text-primary transition-colors"
@@ -299,7 +299,7 @@ export default function ChatPage() {
       {/* Input area */}
       <form
         onSubmit={handleSend}
-        className="sticky bottom-0 z-20 flex shrink-0 items-center gap-2 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur"
+        className="z-20 flex shrink-0 items-center gap-2 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur"
       >
         {imagePreview && (
           <div className="absolute bottom-16 left-4 flex items-center gap-2 rounded-app bg-surface border border-border p-2 shadow-lg">
