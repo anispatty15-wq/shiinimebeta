@@ -20,11 +20,25 @@ interface ChatContact {
 export default function ChatBubble() {
   const router = useRouter();
   const { user, isAdmin } = useAuth();
-  const { notifications } = useNotificationsList();
+  const { notifications, markAsRead } = useNotificationsList();
   const [open, setOpen] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [contacts, setContacts] = useState<ChatContact[]>([]);
   const unreadChats = notifications.filter((notification) => !notification.read && notification.type === 'chat_message').length;
+  const chatNotifications = notifications
+    .filter((notification) => notification.type === 'chat_message')
+    .slice(0, 8);
+  const chatSenders = chatNotifications.filter((notification, index, list) => {
+    const senderId = notification.data?.chatUid ?? notification.senderId;
+    return senderId && list.findIndex((item) => (item.data?.chatUid ?? item.senderId) === senderId) === index;
+  });
+  const contactNames = new Map(contacts.map((contact) => [contact.uid, contact.displayName]));
+
+  const openChat = async (uid: string, notificationIds: string[] = []) => {
+    await Promise.all(notificationIds.map((notificationId) => markAsRead(notificationId)));
+    setOpen(false);
+    router.push(`/chat/${uid}`);
+  };
 
   useEffect(() => {
     if (!open || !user || !db) return;
@@ -90,6 +104,40 @@ export default function ChatBubble() {
             </button>
           </div>
           <div className="max-h-72 overflow-y-auto p-2">
+            {chatNotifications.length > 0 && (
+              <div className="mb-2 border-b border-border pb-2">
+                <p className="px-3 pb-1 text-[0.65rem] font-bold uppercase tracking-wide text-muted">
+                  Pesan masuk
+                </p>
+                {chatSenders.map((notification) => {
+                  const senderId = notification.data?.chatUid ?? notification.senderId;
+                  if (!senderId) return null;
+                  const senderNotifications = chatNotifications.filter(
+                    (item) => (item.data?.chatUid ?? item.senderId) === senderId
+                  );
+                  return (
+                    <button
+                      key={notification.id}
+                      onClick={() => openChat(senderId, senderNotifications.filter((item) => !item.read).map((item) => item.id))}
+                      className="flex w-full items-start gap-2 rounded-xl px-3 py-2 text-left hover:bg-pink/10"
+                    >
+                      <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${notification.read ? 'bg-border' : 'bg-pink'}`} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-bold text-primary">
+                          {contactNames.get(senderId) ?? 'Pesan baru'}
+                        </span>
+                        <span className="block truncate text-[0.7rem] text-muted">{notification.body}</span>
+                      </span>
+                      {senderNotifications.filter((item) => !item.read).length > 1 && (
+                        <span className="rounded-full bg-pink/15 px-1.5 py-0.5 text-[0.6rem] font-bold text-pink">
+                          {senderNotifications.filter((item) => !item.read).length}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {loadingContacts ? (
               <div className="flex items-center justify-center gap-2 py-8 text-xs text-muted"><Loader2 className="h-4 w-4 animate-spin" /> Memuat kontak...</div>
             ) : contacts.length === 0 ? (
@@ -97,7 +145,12 @@ export default function ChatBubble() {
             ) : contacts.map((contact) => (
               <button
                 key={contact.uid}
-                onClick={() => { setOpen(false); router.push(`/chat/${contact.uid}`); }}
+                onClick={() => openChat(
+                  contact.uid,
+                  chatNotifications
+                    .filter((notification) => (notification.data?.chatUid ?? notification.senderId) === contact.uid && !notification.read)
+                    .map((notification) => notification.id)
+                )}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-pink/10"
               >
                 <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-pink/15 text-sm font-bold text-pink">

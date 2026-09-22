@@ -27,6 +27,7 @@ export interface Notification {
   id: string;
   userId: string;
   type: 'new_episode' | 'comment_reply' | 'friend_request' | 'friend_accepted' | 'chat_message';
+  senderId?: string;
   title: string;
   body: string;
   data?: Record<string, any>;
@@ -61,6 +62,7 @@ export function useNotificationsList() {
         id: doc.id,
         userId: doc.data().userId,
         type: doc.data().type,
+        senderId: doc.data().senderId,
         title: doc.data().title,
         body: doc.data().body,
         data: doc.data().data,
