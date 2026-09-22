@@ -129,6 +129,7 @@ export async function createFriendAcceptedNotification(
   try {
     await addDoc(collection(db, 'notifications'), {
       userId: requesterUserId,
+      senderId: accepterUserId,
       type: 'friend_accepted',
       title: 'Friend Request Diterima',
       body: `${accepterUserName} menerima permintaan berteman Anda`,
