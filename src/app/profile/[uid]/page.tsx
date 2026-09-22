@@ -8,7 +8,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   User, Shield, Clock, Star, Heart, MessageCircle,
-  UserPlus, TrendingUp, ArrowLeft, Users, Award, UserCheck, UserX
+  UserPlus, TrendingUp, ArrowLeft, Users, Award, UserCheck, UserX,
+  ShieldCheck, Send, CheckCircle2, XCircle
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { doc, getDoc } from 'firebase/firestore';
@@ -32,10 +33,17 @@ interface UserProfile {
 export default function ProfilePage() {
   const { uid } = useParams<{ uid: string }>();
   const router = useRouter();
-  const { user: currentUser } = useAuth();
+  const {
+    user: currentUser,
+    isAdmin: currentUserIsAdmin,
+    adultStatus,
+    isAdult,
+    requestAdultRole,
+  } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [requestingAdult, setRequestingAdult] = useState(false);
 
   const isOwnProfile = currentUser?.uid === uid;
 
@@ -116,6 +124,15 @@ export default function ProfilePage() {
       return;
     }
     router.push(`/chat/${uid}`);
+  };
+
+  const handleAdultRequest = async () => {
+    setRequestingAdult(true);
+    try {
+      await requestAdultRole();
+    } finally {
+      setRequestingAdult(false);
+    }
   };
 
   if (loading) {
@@ -314,6 +331,51 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+
+        {isOwnProfile && (
+          <div className="bg-surface border border-pink/25 rounded-app p-5 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-pink/10 border border-pink/25 flex items-center justify-center flex-shrink-0">
+                {currentUserIsAdmin || isAdult
+                  ? <ShieldCheck className="w-5 h-5 text-green-500" />
+                  : <Shield className="w-5 h-5 text-pink" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-bold text-primary">Akses Konten 18+</h2>
+                {currentUserIsAdmin || isAdult ? (
+                  <p className="text-xs text-green-600 mt-1">Akses aktif. Akun admin memiliki akses otomatis.</p>
+                ) : adultStatus === 'pending' ? (
+                  <div className="flex items-center gap-2 mt-2 text-xs text-yellow-600">
+                    <Clock className="w-4 h-4" /> Menunggu persetujuan admin.
+                  </div>
+                ) : adultStatus === 'rejected' ? (
+                  <div className="space-y-2 mt-1">
+                    <p className="flex items-center gap-2 text-xs text-red-500"><XCircle className="w-4 h-4" /> Pengajuan ditolak admin.</p>
+                    <button
+                      onClick={handleAdultRequest}
+                      disabled={requestingAdult}
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-app bg-pink text-white text-xs font-semibold disabled:opacity-60"
+                    >
+                      <Send className="w-3.5 h-3.5" /> Ajukan Lagi
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2 mt-1">
+                    <p className="text-xs text-secondary">Ajukan akses dan tunggu konfirmasi admin.</p>
+                    <button
+                      onClick={handleAdultRequest}
+                      disabled={requestingAdult}
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-app bg-pink text-white text-xs font-semibold disabled:opacity-60"
+                    >
+                      {requestingAdult ? <Clock className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      {requestingAdult ? 'Mengirim...' : 'Ajukan Akses 18+'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
