@@ -249,6 +249,8 @@
   scroll-behavior: smooth;
   overscroll-behavior-inline: contain;
   scroll-snap-type: x proximity;
+  cursor: grab;
+  user-select: none;
 }
 
 .scroll-row:hover .scroll-item {

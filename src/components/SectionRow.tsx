@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useRef } from 'react';
 import MediaCard, { type MediaCardItem } from './MediaCard';
 import { SkeletonRow } from './SkeletonLoader';
 import type { ContentType } from '@/types/media';
@@ -43,6 +44,44 @@ export default function SectionRow({
   accent = 'cyan',
   className,
 }: SectionRowProps) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const dragState = useRef({ active: false, moved: false, startX: 0, startScrollLeft: 0 });
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    const row = rowRef.current;
+    if (!row) return;
+    dragState.current = {
+      active: true,
+      moved: false,
+      startX: event.clientX,
+      startScrollLeft: row.scrollLeft,
+    };
+    row.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const row = rowRef.current;
+    if (!row || !dragState.current.active) return;
+    const distance = event.clientX - dragState.current.startX;
+    if (Math.abs(distance) > 4) dragState.current.moved = true;
+    row.scrollLeft = dragState.current.startScrollLeft - distance;
+  };
+
+  const stopDragging = (event: React.PointerEvent<HTMLDivElement>) => {
+    const row = rowRef.current;
+    if (row?.hasPointerCapture(event.pointerId)) row.releasePointerCapture(event.pointerId);
+    dragState.current.active = false;
+  };
+
+  const preventClickAfterDrag = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (dragState.current.moved) {
+      event.preventDefault();
+      event.stopPropagation();
+      dragState.current.moved = false;
+    }
+  };
+
   return (
     <section className={clsx('mb-8', className)}>
       {/* Header */}
@@ -75,8 +114,14 @@ export default function SectionRow({
         <p className="px-4 text-sm text-muted py-4">Tidak ada konten.</p>
       ) : (
         <div
+          ref={rowRef}
           className="scroll-row flex gap-3 overflow-x-auto pb-3 px-4 snap-x snap-mandatory"
-          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={stopDragging}
+          onPointerCancel={stopDragging}
+          onClickCapture={preventClickAfterDrag}
+          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' } as React.CSSProperties}
         >
           {items.map((item) => {
             // Use pre-resolved href if available, else build from basePath

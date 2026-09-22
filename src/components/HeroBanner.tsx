@@ -37,6 +37,7 @@ export default function HeroBanner() {
   }, []);
 
   const slide = SLIDES[current]!;
+  const imagePosition = current === 2 ? 'center 28%' : 'center center';
 
   return (
     <div className="relative w-full overflow-hidden mb-5 h-[210px] sm:h-[230px] lg:h-[260px]">
@@ -48,7 +49,7 @@ export default function HeroBanner() {
         alt=""
         aria-hidden
         className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-30 transition-opacity duration-500"
-        style={{ objectPosition: 'center center' }}
+        style={{ objectPosition: imagePosition }}
       />
 
       {/* Main GIF — portrait crop from top */}
@@ -61,7 +62,7 @@ export default function HeroBanner() {
           'absolute inset-0 w-full h-full object-cover transition-opacity duration-400',
           fading ? 'opacity-0' : 'opacity-100'
         )}
-        style={{ objectPosition: 'center center' }}
+        style={{ objectPosition: imagePosition }}
       />
 
       {/* Gradient overlay — bottom fade */}
