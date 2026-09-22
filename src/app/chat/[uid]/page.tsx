@@ -201,9 +201,9 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-bg">
+    <div className="flex min-h-0 h-[calc(100dvh-5rem)] flex-col bg-bg">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-surface border-b border-border">
+      <div className="sticky top-0 z-20 flex shrink-0 items-center gap-3 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur">
         <button
           onClick={() => router.back()}
           className="w-8 h-8 flex items-center justify-center rounded-app text-secondary hover:text-primary transition-colors"
@@ -246,7 +246,7 @@ export default function ChatPage() {
       </div>
 
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.length === 0 ? (
           <div className="text-center py-12">
             <MessageCircle className="w-12 h-12 text-muted mx-auto mb-3" />
@@ -299,7 +299,7 @@ export default function ChatPage() {
       {/* Input area */}
       <form
         onSubmit={handleSend}
-        className="flex items-center gap-2 px-4 py-3 bg-surface border-t border-border"
+        className="sticky bottom-0 z-20 flex shrink-0 items-center gap-2 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur"
       >
         {imagePreview && (
           <div className="absolute bottom-16 left-4 flex items-center gap-2 rounded-app bg-surface border border-border p-2 shadow-lg">
