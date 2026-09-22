@@ -198,8 +198,8 @@ export default function ProfilePage() {
   });
 
   const uploadBackground = async (file: File) => {
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim();
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim();
     if (!cloudName || !uploadPreset) throw new Error('Cloudinary belum dikonfigurasi.');
     if (!file.type.startsWith('image/')) throw new Error('File latar harus berupa gambar.');
     if (file.size > 10 * 1024 * 1024) throw new Error('Ukuran gambar maksimal 10 MB.');
@@ -213,7 +213,7 @@ export default function ProfilePage() {
     });
     const result = await response.json() as { secure_url?: string; error?: { message?: string } };
     if (!response.ok) {
-      throw new Error(`Cloudinary: ${result.error?.message ?? 'upload ditolak'}`);
+      throw new Error(`Cloudinary (${cloudName}/${uploadPreset}): ${result.error?.message ?? 'upload ditolak'}`);
     }
     if (!result.secure_url) throw new Error('Cloudinary tidak mengembalikan URL latar.');
     return result.secure_url;

@@ -31,8 +31,8 @@ interface OtherUser {
 }
 
 async function uploadToCloudinary(file: File): Promise<string> {
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim();
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim();
   if (!cloudName || !uploadPreset) throw new Error('Cloudinary belum dikonfigurasi.');
   const formData = new FormData();
   formData.append('file', file);
