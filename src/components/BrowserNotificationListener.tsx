@@ -46,7 +46,6 @@ export default function BrowserNotificationListener() {
 
       if (Notification.permission !== 'granted') return;
 
-      const registration = await navigator.serviceWorker?.ready.catch(() => null);
       for (const notification of newNotifications) {
         const title = notification.title || 'Shiiinime';
         const options: NotificationOptions = {
@@ -57,10 +56,11 @@ export default function BrowserNotificationListener() {
           data: notification.data,
         };
 
-        if (registration) {
-          await registration.showNotification(title, options);
-        } else {
+        try {
+          // Direct browser notifications work even when FCM/VAPID is not configured.
           new Notification(title, options);
+        } catch (error) {
+          console.error('[BrowserNotificationListener] Failed to show notification:', error);
         }
       }
     }, (error) => {

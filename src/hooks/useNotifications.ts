@@ -95,7 +95,11 @@ export function useNotifications() {
       
       if (result === 'granted') {
         // Get FCM token after permission granted
-        await getFCMToken();
+        // FCM is optional for foreground browser notifications. A missing
+        // VAPID key must not prevent the regular Notification API from working.
+        await getFCMToken().catch((error) => {
+          console.warn('[useNotifications] FCM setup skipped:', error);
+        });
         return true;
       }
       
