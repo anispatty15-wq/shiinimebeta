@@ -10,17 +10,24 @@ export default function PageLoader() {
   const [active, setActive] = useState(false);
   const [visible, setVisible] = useState(false);
   const [intro, setIntro] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
     const isRefresh = navigation?.type === 'reload';
     const isFirstLoad = !sessionStorage.getItem('shiinime-intro-seen');
 
-    if (isFirstLoad || isRefresh) {
+    if (isFirstLoad) {
       sessionStorage.setItem('shiinime-intro-seen', 'true');
       setIntro(true);
       const introDone = setTimeout(() => setIntro(false), 2300);
       return () => clearTimeout(introDone);
+    }
+
+    if (isRefresh) {
+      setRefreshing(true);
+      const refreshDone = setTimeout(() => setRefreshing(false), 900);
+      return () => clearTimeout(refreshDone);
     }
 
     setActive(true);
@@ -34,7 +41,7 @@ export default function PageLoader() {
     return () => clearTimeout(done);
   }, [pathname]);
 
-  if (!visible && !intro) return null;
+  if (!visible && !intro && !refreshing) return null;
 
   return (
     <>
@@ -80,7 +87,27 @@ export default function PageLoader() {
         .intro-ring { animation: intro-ring 2s ease-out .08s forwards; }
         .intro-spark { animation: intro-spark 1.6s ease-in-out .25s infinite; }
         .intro-copy { animation: intro-copy 2.1s ease forwards; }
+        @keyframes refresh-spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes refresh-pulse {
+          0%, 100% { opacity: .55; transform: scale(.92); }
+          50% { opacity: 1; transform: scale(1); }
+        }
+        .refresh-spinner { animation: refresh-spin 1.1s linear infinite; }
+        .refresh-logo { animation: refresh-pulse 1.1s ease-in-out infinite; }
       `}</style>
+
+      {refreshing && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#FFF7FA]/90 backdrop-blur-sm">
+          <div className="relative flex h-24 w-24 items-center justify-center">
+            <div className="refresh-spinner absolute inset-0 rounded-full border-2 border-pink/20 border-t-pink border-r-pink-400" />
+            <div className="refresh-logo flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-[0_8px_24px_rgba(233,30,140,0.22)]">
+              <img src="/logo.png" alt="Memuat Shiiinime" className="h-10 w-10 object-contain" />
+            </div>
+          </div>
+        </div>
+      )}
 
       {intro && (
         <div className="fixed inset-0 z-[200] overflow-hidden bg-[#FFF7FA] flex items-center justify-center intro-screen">
