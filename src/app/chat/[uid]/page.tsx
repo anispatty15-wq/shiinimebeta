@@ -30,26 +30,21 @@ interface OtherUser {
   photoURL: string;
 }
 
-function compressImage(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const image = new window.Image();
-    const reader = new FileReader();
-    reader.onload = () => { image.src = String(reader.result); };
-    reader.onerror = () => reject(new Error('Gagal membaca gambar.'));
-    image.onload = () => {
-      const maxSize = 1000;
-      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.max(1, Math.round(image.width * scale));
-      canvas.height = Math.max(1, Math.round(image.height * scale));
-      canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
-      const result = canvas.toDataURL('image/jpeg', 0.72);
-      if (result.length > 900_000) reject(new Error('Gambar terlalu besar setelah dikompres.'));
-      else resolve(result);
-    };
-    image.onerror = () => reject(new Error('Format gambar tidak didukung.'));
-    reader.readAsDataURL(file);
+async function uploadToCloudinary(file: File): Promise<string> {
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  if (!cloudName || !uploadPreset) throw new Error('Cloudinary belum dikonfigurasi.');
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', uploadPreset);
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+    method: 'POST',
+    body: formData,
   });
+  if (!response.ok) throw new Error('Upload gambar ke Cloudinary gagal.');
+  const result = await response.json() as { secure_url?: string };
+  if (!result.secure_url) throw new Error('Cloudinary tidak mengembalikan URL gambar.');
+  return result.secure_url;
 }
 
 export default function ChatPage() {
@@ -143,8 +138,8 @@ export default function ChatPage() {
       let imageUrl = '';
 
       if (selectedImage) {
-        if (selectedImage.size > 10 * 1024 * 1024) throw new Error('Ukuran gambar maksimal 10 MB sebelum kompresi.');
-        imageUrl = await compressImage(selectedImage);
+        if (selectedImage.size > 10 * 1024 * 1024) throw new Error('Ukuran gambar maksimal 10 MB.');
+        imageUrl = await uploadToCloudinary(selectedImage);
       }
       
       await addDoc(messagesRef, {
