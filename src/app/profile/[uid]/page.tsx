@@ -51,6 +51,11 @@ export default function ProfilePage() {
   const [backgroundDraft, setBackgroundDraft] = useState('');
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
   const [backgroundPreview, setBackgroundPreview] = useState('');
+  const [cropSource, setCropSource] = useState('');
+  const [cropImageSize, setCropImageSize] = useState({ width: 320, height: 180 });
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropPosition, setCropPosition] = useState({ x: 0, y: 0 });
+  const cropDrag = useState<{ x: number; y: number; startX: number; startY: number } | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
 
   const isOwnProfile = currentUser?.uid === uid;
@@ -151,24 +156,18 @@ export default function ProfilePage() {
     setEditingProfile(true);
   };
 
-  const cropBackgroundTo16x9 = (file: File): Promise<File> => new Promise((resolve, reject) => {
+  const cropBackgroundTo16x9 = (file: File, position: { x: number; y: number }, zoom: number): Promise<File> => new Promise((resolve, reject) => {
     const image = new window.Image();
     const objectURL = URL.createObjectURL(file);
     image.onload = () => {
-      const targetRatio = 16 / 9;
-      const sourceRatio = image.naturalWidth / image.naturalHeight;
-      let sourceWidth = image.naturalWidth;
-      let sourceHeight = image.naturalHeight;
-      let sourceX = 0;
-      let sourceY = 0;
-
-      if (sourceRatio > targetRatio) {
-        sourceWidth = image.naturalHeight * targetRatio;
-        sourceX = (image.naturalWidth - sourceWidth) / 2;
-      } else {
-        sourceHeight = image.naturalWidth / targetRatio;
-        sourceY = (image.naturalHeight - sourceHeight) / 2;
-      }
+      const frameWidth = 320;
+      const frameHeight = 180;
+      const baseScale = Math.max(frameWidth / image.naturalWidth, frameHeight / image.naturalHeight);
+      const displayScale = baseScale * zoom;
+      const sourceX = Math.max(0, Math.min(image.naturalWidth - frameWidth / displayScale, -position.x / displayScale));
+      const sourceY = Math.max(0, Math.min(image.naturalHeight - frameHeight / displayScale, -position.y / displayScale));
+      const sourceWidth = frameWidth / displayScale;
+      const sourceHeight = frameHeight / displayScale;
 
       const canvas = document.createElement('canvas');
       canvas.width = 1600;
@@ -457,16 +456,90 @@ export default function ProfilePage() {
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     if (!file) return;
-                    void cropBackgroundTo16x9(file).then((croppedFile) => {
-                      setBackgroundFile(croppedFile);
-                      setBackgroundPreview(URL.createObjectURL(croppedFile));
-                    }).catch((error: Error) => {
-                      alert(error.message);
-                    });
+                    if (!file.type.startsWith('image/')) {
+                      alert('File latar harus berupa gambar.');
+                      return;
+                    }
+                    if (file.size > 10 * 1024 * 1024) {
+                      alert('Ukuran gambar maksimal 10 MB.');
+                      return;
+                    }
+                    setBackgroundFile(file);
+                    setCropSource(URL.createObjectURL(file));
+                    const previewURL = URL.createObjectURL(file);
+                    const previewImage = new window.Image();
+                    previewImage.onload = () => {
+                      setCropImageSize({ width: previewImage.naturalWidth, height: previewImage.naturalHeight });
+                      URL.revokeObjectURL(previewURL);
+                    };
+                    previewImage.src = previewURL;
+                    setCropZoom(1);
+                    setCropPosition({ x: 0, y: 0 });
                   }}
                 />
               </label>
-              <p className="mt-1 text-[0.7rem] font-normal text-muted">Gambar otomatis dipangkas ke rasio 16:9.</p>
+              <p className="mt-1 text-[0.7rem] font-normal text-muted">Geser dan zoom gambar untuk memilih crop 16:9.</p>
+              {cropSource && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4">
+                  <div className="w-full max-w-md rounded-2xl bg-surface p-4 shadow-2xl">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-primary">Pangkas Latar 16:9</h3>
+                      <button type="button" onClick={() => setCropSource('')} className="text-sm text-muted">Batal</button>
+                    </div>
+                    <div
+                      className="relative mx-auto aspect-video w-full max-w-[320px] overflow-hidden rounded-lg bg-black touch-none"
+                      onPointerDown={(event) => {
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                        cropDrag[1]({ x: event.clientX, y: event.clientY, startX: cropPosition.x, startY: cropPosition.y });
+                      }}
+                      onPointerMove={(event) => {
+                        const drag = cropDrag[0];
+                        if (drag) setCropPosition({ x: drag.startX + event.clientX - drag.x, y: drag.startY + event.clientY - drag.y });
+                      }}
+                      onPointerUp={() => cropDrag[1](null)}
+                    >
+                      <img
+                        src={cropSource}
+                        alt="Atur crop latar"
+                        draggable={false}
+                        onLoad={(event) => {
+                          const image = event.currentTarget;
+                          const baseScale = Math.max(320 / image.naturalWidth, 180 / image.naturalHeight);
+                          image.style.width = `${image.naturalWidth * baseScale * cropZoom}px`;
+                          image.style.height = `${image.naturalHeight * baseScale * cropZoom}px`;
+                        }}
+                        className="pointer-events-none absolute max-w-none select-none"
+                        style={{
+                          width: `${cropImageSize.width * Math.max(320 / cropImageSize.width, 180 / cropImageSize.height) * cropZoom}px`,
+                          height: `${cropImageSize.height * Math.max(320 / cropImageSize.width, 180 / cropImageSize.height) * cropZoom}px`,
+                          left: `${cropPosition.x}px`,
+                          top: `${cropPosition.y}px`,
+                          objectFit: 'cover',
+                        }}
+                      />
+                    </div>
+                    <label className="mt-4 block text-xs text-secondary">
+                      Zoom
+                      <input type="range" min="1" max="3" step="0.05" value={cropZoom} onChange={(event) => setCropZoom(Number(event.target.value))} className="mt-2 w-full accent-pink" />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const file = backgroundFile;
+                        if (!file) return;
+                        void cropBackgroundTo16x9(file, cropPosition, cropZoom).then((croppedFile) => {
+                          setBackgroundFile(croppedFile);
+                          setBackgroundPreview(URL.createObjectURL(croppedFile));
+                          setCropSource('');
+                        }).catch((error: Error) => alert(error.message));
+                      }}
+                      className="mt-4 w-full rounded-app bg-pink px-4 py-2.5 text-sm font-semibold text-white"
+                    >
+                      Gunakan Crop
+                    </button>
+                  </div>
+                </div>
+              )}
               {backgroundPreview && (
                 <div className="relative mt-2 h-24 overflow-hidden rounded-app border border-border">
                   <img src={backgroundPreview} alt="Preview latar belakang" className="h-full w-full object-cover" />
