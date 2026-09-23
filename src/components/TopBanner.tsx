@@ -83,7 +83,7 @@ export default function TopBanner({
             className="object-cover opacity-30 blur-sm"
             unoptimized
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent dark:from-[#07111F] dark:via-[#07111F]/80" />
         </div>
 
         {/* Content */}

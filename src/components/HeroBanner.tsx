@@ -66,7 +66,7 @@ export default function HeroBanner({ title, subtitle }: { title?: string; subtit
       />
 
       {/* Gradient overlay — bottom fade */}
-      <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/20 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/20 to-transparent dark:from-[#07111F] dark:via-[#07111F]/20" />
 
       {title && (
         <div className="absolute inset-x-0 bottom-10 z-10 px-5 md:px-8">

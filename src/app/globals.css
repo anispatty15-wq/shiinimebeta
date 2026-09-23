@@ -35,8 +35,19 @@
   }
 
   html.dark .bg-bg { background-color: #07111F; }
+  html.dark .bg-bg\/95 { background-color: rgba(7, 17, 31, 0.95); }
+  html.dark .bg-bg\/80 { background-color: rgba(7, 17, 31, 0.8); }
+  html.dark .bg-bg\/60 { background-color: rgba(7, 17, 31, 0.6); }
   html.dark .bg-surface { background-color: #0D1B2A; }
+  html.dark .bg-surface\/95 { background-color: rgba(13, 27, 42, 0.95); }
+  html.dark .bg-surface\/90 { background-color: rgba(13, 27, 42, 0.9); }
+  html.dark .bg-surface\/80 { background-color: rgba(13, 27, 42, 0.8); }
   html.dark .bg-surface-2 { background-color: #102A43; }
+  html.dark .bg-white { background-color: #0D1B2A; }
+  html.dark .bg-white\/10 { background-color: rgba(230, 244, 255, 0.1); }
+  html.dark .bg-white\/15 { background-color: rgba(230, 244, 255, 0.15); }
+  html.dark .bg-background\/80,
+  html.dark .bg-background\/30 { background-color: rgba(7, 17, 31, 0.8); }
   html.dark .border-border { border-color: #1B466B; }
   html.dark .text-primary { color: #E6F4FF; }
   html.dark .text-secondary { color: #B8CEE0; }

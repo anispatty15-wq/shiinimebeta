@@ -243,7 +243,7 @@ export default function ChatBubble() {
       style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }}
     >
       {open && (
-        <div className="absolute bottom-14 right-0 z-[61] w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-pink/25 bg-white shadow-[0_12px_40px_rgba(31,24,29,0.2)]">
+        <div className="absolute bottom-14 right-0 z-[61] w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-pink/25 bg-white shadow-[0_12px_40px_rgba(31,24,29,0.2)] dark:bg-surface dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)]">
           <div className="flex items-center gap-2 border-b border-border px-4 py-3">
             {activeContact ? (
               <button onClick={() => setActiveContact(null)} className="rounded-lg p-1 text-muted hover:bg-pink/10" aria-label="Kembali ke daftar chat">
@@ -281,7 +281,7 @@ export default function ChatBubble() {
                 ))}
               </div>
               <form onSubmit={sendBubbleMessage} className="flex gap-2 border-t border-border p-2">
-                <input value={messageText} onChange={(event) => setMessageText(event.target.value)} maxLength={500} placeholder="Tulis pesan..." className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-xs text-primary outline-none focus:border-pink" />
+                <input value={messageText} onChange={(event) => setMessageText(event.target.value)} maxLength={500} placeholder="Tulis pesan..." className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-xs text-primary outline-none focus:border-pink dark:bg-surface-2" />
                 <button type="submit" disabled={sending || !messageText.trim()} className="rounded-xl bg-pink px-3 text-white disabled:opacity-50" aria-label="Kirim pesan">
                   <Send className="h-4 w-4" />
                 </button>
