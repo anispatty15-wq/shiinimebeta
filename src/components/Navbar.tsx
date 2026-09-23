@@ -148,7 +148,7 @@ export default function Navbar() {
         {/* Logo — always visible, shrink-0 */}
         <Link
           href="/"
-          className="flex items-center gap-2 flex-shrink-0 font-bold text-[1.05rem] tracking-tight"
+          className="flex min-w-0 shrink-0 items-center gap-2 font-bold text-[1.05rem] tracking-tight"
         >
           <Image 
             src="/logo.png" 
@@ -157,14 +157,14 @@ export default function Navbar() {
             height={32}
             className="flex-shrink-0"
           />
-          <div className="flex items-center gap-1">
-            <span className="text-primary">Shiiinime</span>
-            <span className="text-cyan ml-1">Stream</span>
+          <div className="hidden items-center gap-1 sm:flex">
+            <span className="truncate text-primary">Shiiinime</span>
+            <span className="ml-1 text-cyan">Stream</span>
           </div>
         </Link>
 
         {/* Desktop nav tabs */}
-        <nav className="hidden md:flex items-center gap-0.5 ml-2 overflow-x-auto no-scrollbar" aria-label="Navigasi">
+        <nav className="hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-auto no-scrollbar md:flex" aria-label="Navigasi">
           {NAV_LINKS.map(({ href, key }) => {
             const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
             return (
@@ -186,7 +186,7 @@ export default function Navbar() {
         <div className="flex-1" />
 
         {/* Desktop search */}
-        <div ref={wrapRef} className="hidden md:block relative w-52 lg:w-64">
+        <div ref={wrapRef} className="relative hidden w-40 shrink-0 md:block lg:w-52 xl:w-64">
           <SearchBox
             query={query}
             setQuery={setQuery}
