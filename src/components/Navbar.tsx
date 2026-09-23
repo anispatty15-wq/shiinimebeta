@@ -157,9 +157,9 @@ export default function Navbar() {
             height={32}
             className="flex-shrink-0"
           />
-          <div className="hidden items-center gap-1 sm:flex">
-            <span className="truncate text-primary">Shiiinime</span>
-            <span className="ml-1 text-cyan">Stream</span>
+          <div className="flex min-w-0 items-center gap-1 text-[0.9rem] sm:text-[1.05rem]">
+            <span className="truncate text-primary">Shiinime</span>
+            <span className="text-cyan">Stream</span>
           </div>
         </Link>
 
