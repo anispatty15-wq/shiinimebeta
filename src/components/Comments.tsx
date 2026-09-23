@@ -486,7 +486,16 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
                 </label>
                 <div className="relative">
                   <button type="button" onClick={() => setShowGifts((value) => !value)} className="flex h-9 w-9 items-center justify-center rounded-app border border-border text-muted hover:text-pink" aria-label="Pilih gift"><Gift className="h-4 w-4" /></button>
-                  {showGifts && <div className="absolute bottom-11 left-0 z-20 grid grid-cols-3 gap-1 rounded-xl border border-border bg-surface p-2 shadow-xl">{CHAT_GIFTS.map((gift) => <button key={gift.id} type="button" onClick={() => { setSelectedGift(gift); setShowGifts(false); }} className="rounded p-1 text-xl hover:bg-surface-2" title={gift.name}>{gift.emoji}</button>)}</div>}
+                  {showGifts && (
+                    <div className="absolute bottom-12 left-0 z-30 w-48 rounded-xl border border-border bg-surface p-3 shadow-xl">
+                      <div className="mb-2 text-[0.65rem] font-semibold text-muted">Pilih gift</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {CHAT_GIFTS.map((gift) => (
+                          <button key={gift.id} type="button" onClick={() => { setSelectedGift(gift); setShowGifts(false); }} className="flex h-12 w-full items-center justify-center rounded-lg border border-transparent text-2xl hover:border-pink/30 hover:bg-surface-2" title={gift.name}>{gift.emoji}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <input
                   ref={inputRef}

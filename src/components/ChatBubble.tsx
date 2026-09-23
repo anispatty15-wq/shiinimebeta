@@ -208,7 +208,7 @@ export default function ChatBubble() {
     dragStart.current = null;
   };
 
-  if (!user || pathname.startsWith('/chat/')) return null;
+  if (!user || pathname.startsWith('/chat/') || pathname.startsWith('/stream/')) return null;
 
   return (
     <div

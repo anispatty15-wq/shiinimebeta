@@ -449,12 +449,15 @@ export default function ChatPage() {
             <Gift className="w-5 h-5" />
           </button>
           {showGifts && (
-            <div className="absolute bottom-12 left-0 z-30 grid grid-cols-3 gap-1 rounded-xl border border-border bg-surface p-2 shadow-xl">
-              {CHAT_GIFTS.map((gift) => (
-                <button key={gift.id} type="button" onClick={() => { setSelectedGift(gift); setShowGifts(false); }} className="rounded-lg px-2 py-1 text-center hover:bg-surface-2" title={gift.name}>
-                  <span className="text-xl">{gift.emoji}</span>
-                </button>
-              ))}
+            <div className="absolute bottom-12 left-0 z-30 w-48 rounded-xl border border-border bg-surface p-3 shadow-xl">
+              <div className="mb-2 text-[0.65rem] font-semibold text-muted">Pilih gift</div>
+              <div className="grid grid-cols-3 gap-2">
+                {CHAT_GIFTS.map((gift) => (
+                  <button key={gift.id} type="button" onClick={() => { setSelectedGift(gift); setShowGifts(false); }} className="flex h-12 w-full items-center justify-center rounded-lg border border-transparent text-2xl hover:border-yellow-400/30 hover:bg-surface-2" title={gift.name}>
+                    {gift.emoji}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
