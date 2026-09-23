@@ -10,7 +10,7 @@ import {
   Share2,
   UserPlus, TrendingUp, ArrowLeft, Users, Award, UserCheck, UserX,
   ShieldCheck, Send, CheckCircle2, XCircle
-  ,ImagePlus
+  ,ImagePlus, ExternalLink
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -35,6 +35,15 @@ interface UserProfile {
   backgroundURL?: string;
 }
 
+function isHttpURL(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export default function ProfilePage() {
   const { uid } = useParams<{ uid: string }>();
   const router = useRouter();
@@ -57,6 +66,7 @@ export default function ProfilePage() {
   const [backgroundPreview, setBackgroundPreview] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState('');
+  const [avatarURLDraft, setAvatarURLDraft] = useState('');
   const [cropSource, setCropSource] = useState('');
   const [cropImageSize, setCropImageSize] = useState({ width: 320, height: 180 });
   const [cropZoom, setCropZoom] = useState(1);
@@ -194,6 +204,7 @@ export default function ProfilePage() {
     setBackgroundPreview(profile?.backgroundURL ?? '');
     setAvatarFile(null);
     setAvatarPreview(profile?.photoURL ?? '');
+    setAvatarURLDraft(profile?.photoURL ?? '');
     setProfileError('');
     setEditingProfile(true);
   };
@@ -266,10 +277,16 @@ export default function ProfilePage() {
     try {
       const nextDisplayName = displayNameDraft.trim().replace(/\s+/g, ' ').slice(0, 30) || profile?.displayName || 'User';
       const bio = bioDraft.trim().slice(0, 240);
+      if (backgroundDraft.trim() && !backgroundFile && !isHttpURL(backgroundDraft.trim())) {
+        throw new Error('URL latar harus diawali http:// atau https://.');
+      }
+      if (avatarURLDraft.trim() && !avatarFile && !isHttpURL(avatarURLDraft.trim())) {
+        throw new Error('URL foto profil harus diawali http:// atau https://.');
+      }
       const backgroundURL = backgroundFile
         ? await uploadBackground(backgroundFile)
         : backgroundDraft.trim().slice(0, 500);
-      const avatarURL = avatarFile ? await uploadBackground(avatarFile) : profile?.photoURL ?? '';
+      const avatarURL = avatarFile ? await uploadBackground(avatarFile) : avatarURLDraft.trim().slice(0, 1000);
 
       await updateDoc(doc(db, 'users', currentUser.uid), {
         displayName: nextDisplayName,
@@ -285,6 +302,7 @@ export default function ProfilePage() {
       setBackgroundPreview(backgroundURL);
       setAvatarFile(null);
       setAvatarPreview(avatarURL);
+      setAvatarURLDraft(avatarURL);
       setEditingProfile(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Kesalahan tidak diketahui.';
@@ -530,6 +548,20 @@ export default function ProfilePage() {
             </label>
             <div className="mt-4 text-xs font-semibold text-secondary">
               <span>Foto Profil</span>
+              <div className="mt-1 flex flex-wrap gap-2">
+                <a href="https://www.pinterest.com/search/pins/?q=anime%20profile%20gif" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded border border-red-300/40 px-2 py-1 text-[0.7rem] text-red-500 hover:bg-red-50">
+                  Pinterest <ExternalLink className="h-3 w-3" />
+                </a>
+                <a href="https://giphy.com/search/anime-profile" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded border border-cyan/40 px-2 py-1 text-[0.7rem] text-cyan hover:bg-cyan/10">
+                  GIPHY <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+              <input
+                value={avatarURLDraft}
+                onChange={(event) => { setAvatarURLDraft(event.target.value); setAvatarFile(null); setAvatarPreview(event.target.value); }}
+                placeholder="Tempel URL foto/GIF langsung..."
+                className="mt-2 w-full rounded-app border border-border bg-surface-2 p-3 text-sm text-primary outline-none focus:border-pink"
+              />
               <label className="mt-1 flex cursor-pointer items-center gap-2 rounded-app border border-dashed border-cyan/40 bg-surface-2 px-3 py-3 text-sm text-secondary hover:border-cyan">
                 <ImagePlus className="h-5 w-5 text-cyan" />
                 <span>{avatarFile ? avatarFile.name : 'Pilih foto profil'}</span>
@@ -549,6 +581,7 @@ export default function ProfilePage() {
                       return;
                     }
                     setAvatarFile(file);
+                    setAvatarURLDraft('');
                     setAvatarPreview(URL.createObjectURL(file));
                   }}
                 />
@@ -561,7 +594,7 @@ export default function ProfilePage() {
               {(avatarPreview || avatarFile) && (
                 <button
                   type="button"
-                  onClick={() => { setAvatarFile(null); setAvatarPreview(''); }}
+                  onClick={() => { setAvatarFile(null); setAvatarURLDraft(''); setAvatarPreview(''); }}
                   className="mt-2 text-xs font-semibold text-red-500 hover:text-red-600"
                 >
                   Hapus foto profil
@@ -574,6 +607,20 @@ export default function ProfilePage() {
             </label>
             <div className="text-xs font-semibold text-secondary">
               <span>Latar Belakang</span>
+              <div className="mt-1 flex flex-wrap gap-2">
+                <a href="https://www.pinterest.com/search/pins/?q=anime%20background%20gif" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded border border-red-300/40 px-2 py-1 text-[0.7rem] text-red-500 hover:bg-red-50">
+                  Pinterest <ExternalLink className="h-3 w-3" />
+                </a>
+                <a href="https://giphy.com/search/anime-background" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded border border-cyan/40 px-2 py-1 text-[0.7rem] text-cyan hover:bg-cyan/10">
+                  GIPHY <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+              <input
+                value={backgroundDraft}
+                onChange={(event) => { setBackgroundDraft(event.target.value); setBackgroundFile(null); setBackgroundPreview(event.target.value); setCropSource(''); }}
+                placeholder="Tempel URL latar/GIF langsung..."
+                className="mt-2 w-full rounded-app border border-border bg-surface-2 p-3 text-sm text-primary outline-none focus:border-pink"
+              />
               <label className="mt-1 flex cursor-pointer items-center gap-2 rounded-app border border-dashed border-pink/40 bg-surface-2 px-3 py-3 text-sm text-secondary hover:border-pink">
                 <ImagePlus className="h-5 w-5 text-pink" />
                 <span>{backgroundFile ? backgroundFile.name : 'Pilih gambar latar'}</span>
