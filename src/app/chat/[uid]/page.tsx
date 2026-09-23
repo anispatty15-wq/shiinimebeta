@@ -278,7 +278,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-4rem)] min-h-0 flex-col overflow-hidden bg-bg md:h-[calc(100dvh-3.5rem)]">
+    <div className="fixed inset-x-0 top-16 bottom-16 z-30 flex min-h-0 flex-col overflow-hidden bg-bg md:bottom-0 md:top-14">
       {/* Header */}
       <div className="z-20 flex shrink-0 items-center gap-3 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur">
         <button
