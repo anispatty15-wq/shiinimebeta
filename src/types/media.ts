@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 // ── Content type discriminator ────────────────────────────────
-export type ContentType = 'anime' | 'hentai' | 'comic' | 'donghua';
+export type ContentType = 'anime' | 'donghua' | 'hentai' | 'comic';
 
 // ─────────────────────────────────────────────────────────────
 // Generic API envelope
@@ -111,6 +111,13 @@ export interface ComicDetail {
 export interface ComicChapterData {
   title:             string;
   images:            string[];
+  pages?:            string[];
+  seriesSlug?:       string;
+  seriesTitle?:      string;
+  number?:           string | number;
+  poster?:           string;
+  prevChapter?:      unknown;
+  nextChapter?:      unknown;
   prev_chapter_slug: string;
   next_chapter_slug: string;
 }
@@ -121,6 +128,7 @@ export interface ComicChapterData {
 
 /** Generic media card used across all listing endpoints */
 export interface MediaCard {
+  id?:    string;
   title:   string;
   slug:    string;
   poster:  string;
@@ -139,6 +147,7 @@ export interface MediaCard {
 
 export interface BookmarkEntry {
   slug:    string;
+  id?:     string;
   title:   string;
   poster:  string;
   type:    ContentType;
@@ -149,6 +158,8 @@ export interface WatchEntry {
   slug:            string;
   seriesSlug:      string;
   title:           string;
+  episodeTitle?:   string;
+  poster?:         string;
   type:            'anime' | 'hentai';
   positionSeconds: number;
   durationSeconds: number;
@@ -160,8 +171,69 @@ export interface ReadEntry {
   slug:         string;
   seriesSlug:   string;
   title:        string;
+  chapterTitle?: string;
+  poster?:      string;
   lastPage:     number;
   totalPages:   number;
   completed:    boolean;
   updatedAt:    string;
 }
+
+export interface ApiResult<T> {
+  data: T;
+  error: string | null;
+  status: number;
+}
+
+export interface PaginatedResponse<T> {
+  data?: T[];
+  items?: T[];
+  results?: T[];
+  page?: number;
+  total?: number;
+  [key: string]: unknown;
+}
+
+export interface SlugItem {
+  slug: string;
+  title?: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+export type AnimeCard = MediaCard;
+export type HentaiCard = MediaCard;
+export type ComicCard = MediaCard;
+
+export interface AnimeSuggestion {
+  slug: string;
+  title?: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+export interface AnimeFilterParams {
+  genre?: string[];
+  season?: string[];
+  status?: string[];
+  type?: string[];
+  order?: string;
+  page?: number;
+}
+
+export interface AnimeFilterOptions {
+  genres?: string[];
+  seasons?: string[];
+  statuses?: string[];
+  types?: string[];
+  [key: string]: unknown;
+}
+
+export type ScheduleDay = Record<string, unknown>;
+
+export type AnimeDetailData = AnimeDetail;
+export type AnimeEpisode = AnimeEpisodeData;
+export type HentaiDetailData = HentaiDetail;
+export type HentaiEpisode = HentaiEpisodeData;
+export type ComicDetailData = ComicDetail;
+export type ComicChapter = ComicChapterData;

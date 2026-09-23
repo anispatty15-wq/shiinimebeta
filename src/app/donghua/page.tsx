@@ -77,7 +77,7 @@ export default function DonghuaPage() {
               contentType="anime"
               basePath="/stream/anime"
               moreHref="/donghua/ongoing"
-              accent="yellow-400"
+              accent="yellow"
             />
           </div>
 
@@ -90,7 +90,7 @@ export default function DonghuaPage() {
               contentType="anime"
               basePath="/stream/anime"
               moreHref="/donghua/latest"
-              accent="yellow-400"
+              accent="yellow"
             />
           </div>
         </div>

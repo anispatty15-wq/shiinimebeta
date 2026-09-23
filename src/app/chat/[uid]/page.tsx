@@ -6,20 +6,26 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { 
-  ArrowLeft, Send, User, Loader2, MessageCircle, ImagePlus, X
+  ArrowLeft, Send, User, Loader2, MessageCircle, ImagePlus, Video, Gift, X
 } from 'lucide-react';
 import {
-  collection, doc, getDoc, addDoc, query,
-  orderBy, onSnapshot, serverTimestamp,
+  collection, doc, getDoc, getDocs, addDoc, query,
+  orderBy, onSnapshot, serverTimestamp, deleteDoc,
   type DocumentData,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
+import { CHAT_GIFTS, getChatGift, type ChatGift } from '@/lib/gifts';
 
 interface Message {
   id: string;
   text: string;
   imageUrl?: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video';
+  giftId?: string;
+  giftName?: string;
+  giftEmoji?: string;
   senderId: string;
   createdAt: any;
 }
@@ -37,13 +43,14 @@ async function uploadToCloudinary(file: File): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', uploadPreset);
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+  const resourceType = file.type.startsWith('video/') ? 'video' : 'image';
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
     method: 'POST',
     body: formData,
   });
-  if (!response.ok) throw new Error('Upload gambar ke Cloudinary gagal.');
+  if (!response.ok) throw new Error('Upload media ke Cloudinary gagal.');
   const result = await response.json() as { secure_url?: string };
-  if (!result.secure_url) throw new Error('Cloudinary tidak mengembalikan URL gambar.');
+  if (!result.secure_url) throw new Error('Cloudinary tidak mengembalikan URL media.');
   return result.secure_url;
 }
 
@@ -59,6 +66,10 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+  const [showGifts, setShowGifts] = useState(false);
+  const [selectedGift, setSelectedGift] = useState<ChatGift | null>(null);
+  const [deletingChat, setDeletingChat] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -76,10 +87,11 @@ export default function ChatPage() {
   // Fetch other user info
   useEffect(() => {
     if (!otherUid || !db) return;
+    const firestore = db;
 
     const fetchUser = async () => {
       try {
-        const userDoc = await getDoc(doc(db, 'users', otherUid));
+        const userDoc = await getDoc(doc(firestore, 'users', otherUid));
         if (userDoc.exists()) {
           const data = userDoc.data();
           setOtherUser({
@@ -121,7 +133,7 @@ export default function ChatPage() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !otherUid || !db || (!inputText.trim() && !selectedImage)) return;
+    if (!user || !otherUid || !db || (!inputText.trim() && !selectedImage && !selectedGift)) return;
 
     const text = inputText.trim();
     if (text.length > 500) {
@@ -135,16 +147,17 @@ export default function ChatPage() {
     try {
       const conversationId = getConversationId(user.uid, otherUid);
       const messagesRef = collection(db, 'conversations', conversationId, 'messages');
-      let imageUrl = '';
+      let mediaUrl = '';
 
       if (selectedImage) {
-        if (selectedImage.size > 10 * 1024 * 1024) throw new Error('Ukuran gambar maksimal 10 MB.');
-        imageUrl = await uploadToCloudinary(selectedImage);
+        if (selectedImage.size > 25 * 1024 * 1024) throw new Error('Ukuran media maksimal 25 MB.');
+        mediaUrl = await uploadToCloudinary(selectedImage);
       }
       
       await addDoc(messagesRef, {
         text: text || '',
-        ...(imageUrl ? { imageUrl } : {}),
+        ...(mediaUrl ? { mediaUrl, mediaType, ...(mediaType === 'image' ? { imageUrl: mediaUrl } : {}) } : {}),
+        ...(selectedGift ? { giftId: selectedGift.id, giftName: selectedGift.name, giftEmoji: selectedGift.emoji } : {}),
         senderId: user.uid,
         createdAt: serverTimestamp(),
       });
@@ -153,7 +166,7 @@ export default function ChatPage() {
         senderId: user.uid,
         type: 'chat_message',
         title: 'Pesan chat baru',
-        body: text ? text.slice(0, 100) : 'Mengirim gambar',
+        body: text ? text.slice(0, 100) : selectedGift ? `Mengirim gift ${selectedGift.emoji}` : mediaType === 'video' ? 'Mengirim video' : 'Mengirim gambar',
         data: { chatUid: user.uid },
         read: false,
         createdAt: serverTimestamp(),
@@ -163,12 +176,36 @@ export default function ChatPage() {
       inputRef.current?.focus();
       setSelectedImage(null);
       setImagePreview('');
+      setSelectedGift(null);
+      setShowGifts(false);
     } catch (err) {
       console.error('Error sending message:', err);
       alert('Gagal mengirim pesan. Coba lagi.');
       setInputText(text); // Restore text
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleDeleteChat = async () => {
+    if (!user || !otherUid || !db) return;
+    const targetName = otherUser?.displayName ?? 'orang ini';
+    if (!window.confirm(`Hapus semua chat dengan ${targetName}? Tindakan ini tidak bisa dibatalkan.`)) {
+      return;
+    }
+
+    try {
+      setDeletingChat(true);
+      const conversationId = getConversationId(user.uid, otherUid);
+      const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+      const snapshot = await getDocs(messagesRef);
+      await Promise.all(snapshot.docs.map((messageDoc) => deleteDoc(messageDoc.ref)));
+      setMessages([]);
+    } catch (err) {
+      console.error('Error deleting chat:', err);
+      alert('Gagal menghapus chat. Coba lagi.');
+    } finally {
+      setDeletingChat(false);
     }
   };
 
@@ -235,12 +272,21 @@ export default function ChatPage() {
               <p className="text-xs text-muted">Chat langsung</p>
             </div>
 
-            <button
-              onClick={() => router.push(`/profile/${otherUid}`)}
-              className="text-xs text-cyan hover:text-cyan/80 transition-colors"
-            >
-              View Profile
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => router.push(`/profile/${otherUid}`)}
+                className="text-xs text-cyan hover:text-cyan/80 transition-colors"
+              >
+                View Profile
+              </button>
+              <button
+                onClick={handleDeleteChat}
+                disabled={deletingChat}
+                className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+              >
+                {deletingChat ? 'Menghapus...' : 'Hapus Chat'}
+              </button>
+            </div>
           </>
         )}
       </div>
@@ -276,6 +322,15 @@ export default function ChatPage() {
                       <img src={msg.imageUrl} alt="Lampiran chat" className="max-w-full max-h-64 rounded-lg object-cover" />
                     </a>
                   )}
+                  {msg.mediaUrl && msg.mediaType === 'video' && (
+                    <video src={msg.mediaUrl} controls preload="metadata" className="mt-2 max-w-full max-h-64 rounded-lg" />
+                  )}
+                  {msg.giftId && (
+                    <div className="mt-2 rounded-xl border border-pink-300/40 bg-pink-500/10 px-4 py-3 text-center">
+                      <div className="text-4xl">{msg.giftEmoji ?? getChatGift(msg.giftId)?.emoji ?? '🎁'}</div>
+                      <p className="mt-1 text-xs font-semibold">{msg.giftName ?? getChatGift(msg.giftId)?.name ?? 'Gift'}</p>
+                    </div>
+                  )}
                   {msg.createdAt && (
                     <p
                       className={`text-[0.65rem] mt-1 ${
@@ -303,26 +358,41 @@ export default function ChatPage() {
       >
         {imagePreview && (
           <div className="absolute bottom-16 left-4 flex items-center gap-2 rounded-app bg-surface border border-border p-2 shadow-lg">
-            <img src={imagePreview} alt="Preview lampiran" className="h-14 w-14 rounded object-cover" />
+            {mediaType === 'video' ? <video src={imagePreview} className="h-14 w-14 rounded object-cover" /> : <img src={imagePreview} alt="Preview lampiran" className="h-14 w-14 rounded object-cover" />}
             <button type="button" onClick={() => { setSelectedImage(null); setImagePreview(''); }} className="text-muted hover:text-red-500" aria-label="Hapus gambar">
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
-        <label className="w-10 h-10 flex items-center justify-center rounded-full border border-border text-secondary hover:text-pink cursor-pointer flex-shrink-0" aria-label="Kirim gambar">
+        <label className="w-10 h-10 flex items-center justify-center rounded-full border border-border text-secondary hover:text-pink cursor-pointer flex-shrink-0" aria-label="Kirim gambar atau video">
           <ImagePlus className="w-5 h-5" />
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             className="sr-only"
             onChange={(event) => {
               const file = event.target.files?.[0];
               if (!file) return;
               setSelectedImage(file);
+              setMediaType(file.type.startsWith('video/') ? 'video' : 'image');
               setImagePreview(URL.createObjectURL(file));
             }}
           />
         </label>
+        <div className="relative flex-shrink-0">
+          <button type="button" onClick={() => setShowGifts((value) => !value)} className="w-10 h-10 flex items-center justify-center rounded-full border border-border text-secondary hover:text-yellow-400" aria-label="Pilih gift">
+            <Gift className="w-5 h-5" />
+          </button>
+          {showGifts && (
+            <div className="absolute bottom-12 left-0 z-30 grid grid-cols-3 gap-1 rounded-xl border border-border bg-surface p-2 shadow-xl">
+              {CHAT_GIFTS.map((gift) => (
+                <button key={gift.id} type="button" onClick={() => { setSelectedGift(gift); setShowGifts(false); }} className="rounded-lg px-2 py-1 text-center hover:bg-surface-2" title={gift.name}>
+                  <span className="text-xl">{gift.emoji}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <input
           ref={inputRef}
           type="text"
@@ -334,7 +404,7 @@ export default function ChatPage() {
         />
         <button
           type="submit"
-          disabled={(!inputText.trim() && !selectedImage) || sending}
+          disabled={(!inputText.trim() && !selectedImage && !selectedGift) || sending}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-cyan text-bg hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
         >
           {sending ? (

@@ -60,18 +60,19 @@ export default function ComicChapterPage() {
 
   return (
     <ComicReader
-      pages={pages}
-      meta={{
-        slug:         slug ?? '',
-        seriesSlug:   chapterMeta.seriesSlug  ?? '',
-        title:        chapterMeta.seriesTitle ?? '',
-        chapterTitle: chapterMeta.title        ?? `Chapter ${chapterMeta.number ?? ''}`,
-        poster:       chapterMeta.poster       ?? '',
-        totalPages:   pages.length,
+      chapter={{
+        title: chapterMeta.title ?? `Chapter ${chapterMeta.number ?? ''}`,
+        images: pages,
+        prev_chapter_slug: typeof chapterMeta.prevChapter === 'string' ? chapterMeta.prevChapter as string : '',
+        next_chapter_slug: typeof chapterMeta.nextChapter === 'string' ? chapterMeta.nextChapter as string : '',
+        seriesSlug: chapterMeta.seriesSlug ?? '',
+        seriesTitle: chapterMeta.seriesTitle ?? '',
+        number: chapterMeta.number ?? '',
+        poster: chapterMeta.poster ?? '',
       }}
-      prevChapter={chapterMeta.prevChapter ?? null}
-      nextChapter={chapterMeta.nextChapter ?? null}
-      chapterBase="/comic/chapter"
+      seriesSlug={chapterMeta.seriesSlug ?? ''}
+      onPageChange={() => undefined}
+      resumePage={1}
     />
   );
 }

@@ -21,7 +21,7 @@ const SLIDES = [
 
 const INTERVAL = 4_000;
 
-export default function HeroBanner() {
+export default function HeroBanner({ title, subtitle }: { title?: string; subtitle?: string }) {
   const [current, setCurrent] = useState(0);
   const [fading,  setFading]  = useState(false);
 
@@ -67,6 +67,13 @@ export default function HeroBanner() {
 
       {/* Gradient overlay — bottom fade */}
       <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/20 to-transparent" />
+
+      {title && (
+        <div className="absolute inset-x-0 bottom-10 z-10 px-5 md:px-8">
+          <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white drop-shadow-lg">{title}</h1>
+          {subtitle && <p className="mt-2 max-w-xl text-sm md:text-base text-white/80">{subtitle}</p>}
+        </div>
+      )}
 
       {/* Dots */}
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">

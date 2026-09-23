@@ -213,6 +213,30 @@ export const AnimeAPI = {
     return safeRequest<SlugItem[]>((ax) => ax.get('/anime/animekompi/genres'), []);
   },
 
+  getByGenre(slug: string, page = 1) {
+    if (!slug) return Promise.resolve<ApiResult<AnimeCard[]>>({ data: [], error: 'Missing slug', status: 400 });
+    return safeRequest<PaginatedResponse<AnimeCard> | AnimeCard[]>(
+      (ax) => ax.get(`/anime/animekompi/genre/${enc(slug)}`, { params: cleanParams({ page }) }),
+      []
+    );
+  },
+
+  getBySeason(slug: string, page = 1) {
+    if (!slug) return Promise.resolve<ApiResult<AnimeCard[]>>({ data: [], error: 'Missing slug', status: 400 });
+    return safeRequest<PaginatedResponse<AnimeCard> | AnimeCard[]>(
+      (ax) => ax.get(`/anime/animekompi/season/${enc(slug)}`, { params: cleanParams({ page }) }),
+      []
+    );
+  },
+
+  getByStudio(slug: string, page = 1) {
+    if (!slug) return Promise.resolve<ApiResult<AnimeCard[]>>({ data: [], error: 'Missing slug', status: 400 });
+    return safeRequest<PaginatedResponse<AnimeCard> | AnimeCard[]>(
+      (ax) => ax.get(`/anime/animekompi/studio/${enc(slug)}`, { params: cleanParams({ page }) }),
+      []
+    );
+  },
+
   getDetail(slug: string) {
     if (!slug) return Promise.resolve<ApiResult<AnimeDetail | null>>({ data: null, error: 'Missing slug', status: 400 });
     // Strip any accidental leading slash
@@ -333,6 +357,11 @@ export const ComicAPI = {
 
   getGenres() {
     return safeRequest<SlugItem[]>((ax) => ax.get('/comic/westmanga/genres'), []);
+  },
+
+  getByGenre(id: string) {
+    if (!id) return Promise.resolve<ApiResult<ComicCard[]>>({ data: [], error: 'Missing slug', status: 400 });
+    return safeRequest<ComicCard[]>((ax) => ax.get(`/comic/westmanga/genre/${enc(id)}`), []);
   },
 
   getList(params: Record<string, unknown> = {}) {

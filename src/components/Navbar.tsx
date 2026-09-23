@@ -121,6 +121,21 @@ export default function Navbar() {
     setShowSearch(false);
   };
 
+  const handleLogout = async () => {
+    if (!user) return;
+    if (!window.confirm('Yakin ingin logout dari akun ini?')) return;
+
+    try {
+      const { auth } = await import('@/lib/firebase');
+      const { signOut } = await import('firebase/auth');
+      await signOut(auth);
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout failed:', error);
+      window.alert('Gagal logout. Coba lagi.');
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur-xl border-b border-border pt-safe relative">
 
@@ -309,14 +324,7 @@ export default function Navbar() {
                   <button
                     onClick={() => {
                       setShowProfileMenu(false);
-                      // Logout via Firebase
-                      import('@/lib/firebase').then(({ auth }) => {
-                        import('firebase/auth').then(({ signOut }) => {
-                          signOut(auth).then(() => {
-                            window.location.href = '/';
-                          });
-                        });
-                      });
+                      void handleLogout();
                     }}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
                   >

@@ -1,10 +1,10 @@
 // src/components/MediaGrid.tsx
 import Link from 'next/link';
 import Image from 'next/image';
-import { MediaCard, ContentType } from '@/types/media';
+import { type MediaCard as MediaCardType, type ContentType } from '@/types/media';
 
 interface MediaGridProps {
-  items: MediaCard[];
+  items: MediaCardType[];
   type?: ContentType;
   columns?: 'auto' | 2 | 3 | 4 | 5 | 6;
 }
@@ -29,13 +29,13 @@ export default function MediaGrid({
   return (
     <div className={`grid ${gridCols} gap-4`}>
       {items.map((item, idx) => (
-        <MediaCard key={`${item.slug}-${idx}`} item={item} type={type} />
+        <GridMediaCard key={`${item.slug}-${idx}`} item={item} type={type} />
       ))}
     </div>
   );
 }
 
-function MediaCard({ item, type }: { item: MediaCard; type: ContentType }) {
+function GridMediaCard({ item, type }: { item: MediaCardType; type: ContentType }) {
   const href = `/detail/${type}/${item.slug}`;
 
   return (

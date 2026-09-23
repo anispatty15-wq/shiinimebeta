@@ -11,7 +11,7 @@ import HeroBanner from '@/components/HeroBanner';
 import TopBanner from '@/components/TopBanner';
 import { useAuth } from '@/context/AuthContext';
 
-function toItems(raw: unknown, defaultStatus?: string, contentType: 'anime' | 'donghua' = 'anime') {
+function toItems(raw: unknown, defaultStatus?: string, contentType: 'anime' | 'donghua' | 'hentai' = 'anime') {
   if (!Array.isArray(raw)) return [];
   return raw
     .map((a) => normaliseCardItem(a, contentType))
@@ -146,7 +146,7 @@ export default function HomePage() {
         <div className={hasAdultAccess ? '' : 'blur-md pointer-events-none'}>
           <SectionRow
             title="Top Hentai"
-            items={toItems(hentaiHome.data).slice(0, 6)}
+            items={toItems(hentaiHome.data, undefined, 'hentai').slice(0, 6)}
             loading={hentaiHome.loading}
             error={hentaiHome.error}
             contentType="hentai"

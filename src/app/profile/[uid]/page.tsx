@@ -19,6 +19,8 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { getLevelFromXP, getXPProgress } from '@/lib/xp';
 import { useFriendSystem } from '@/hooks/useFriendSystem';
+import { useFriends } from '@/hooks/useFriends';
+import { useBookmarks } from '@/context/BookmarkContext';
 
 interface UserProfile {
   uid: string;
@@ -49,10 +51,13 @@ export default function ProfilePage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [requestingAdult, setRequestingAdult] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
+  const [displayNameDraft, setDisplayNameDraft] = useState('');
   const [bioDraft, setBioDraft] = useState('');
   const [backgroundDraft, setBackgroundDraft] = useState('');
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
   const [backgroundPreview, setBackgroundPreview] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
   const [cropSource, setCropSource] = useState('');
   const [cropImageSize, setCropImageSize] = useState({ width: 320, height: 180 });
   const [cropZoom, setCropZoom] = useState(1);
@@ -71,6 +76,8 @@ export default function ProfilePage() {
     acceptRequest,
     removeFriend
   } = useFriendSystem(uid);
+  const { friends: friendList } = useFriends();
+  const { allBookmarks } = useBookmarks();
 
   useEffect(() => {
     if (!uid) return;
@@ -126,6 +133,21 @@ export default function ProfilePage() {
     }
   };
 
+  const handleLogout = async () => {
+    if (!currentUser) return;
+    if (!confirm('Yakin ingin logout dari akun ini?')) return;
+
+    try {
+      const { auth } = await import('@/lib/firebase');
+      const { signOut } = await import('firebase/auth');
+      await signOut(auth);
+      router.push('/');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      alert('Gagal logout. Coba lagi.');
+    }
+  };
+
   const handleFollow = () => {
     if (!currentUser) {
       alert('Login dulu untuk follow!');
@@ -166,10 +188,13 @@ export default function ProfilePage() {
   };
 
   const startProfileEdit = () => {
+    setDisplayNameDraft(profile?.displayName ?? '');
     setBioDraft(profile?.bio ?? '');
     setBackgroundDraft(profile?.backgroundURL ?? '');
     setBackgroundFile(null);
     setBackgroundPreview(profile?.backgroundURL ?? '');
+    setAvatarFile(null);
+    setAvatarPreview(profile?.photoURL ?? '');
     setProfileError('');
     setEditingProfile(true);
   };
@@ -240,15 +265,27 @@ export default function ProfilePage() {
     setSavingProfile(true);
     setProfileError('');
     try {
+      const nextDisplayName = displayNameDraft.trim().replace(/\s+/g, ' ').slice(0, 30) || profile?.displayName || 'User';
       const bio = bioDraft.trim().slice(0, 240);
       const backgroundURL = backgroundFile
         ? await uploadBackground(backgroundFile)
         : backgroundDraft.trim().slice(0, 500);
-      await updateDoc(doc(db, 'users', currentUser.uid), { bio, backgroundURL });
-      setProfile((prev) => prev ? { ...prev, bio, backgroundURL } : prev);
+      const avatarURL = avatarFile ? await uploadBackground(avatarFile) : profile?.photoURL ?? '';
+
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        displayName: nextDisplayName,
+        photoURL: avatarURL,
+        bio,
+        backgroundURL,
+      });
+
+      setProfile((prev) => prev ? { ...prev, displayName: nextDisplayName, photoURL: avatarURL, bio, backgroundURL } : prev);
+      setDisplayNameDraft(nextDisplayName);
       setBackgroundDraft(backgroundURL);
       setBackgroundFile(null);
       setBackgroundPreview(backgroundURL);
+      setAvatarFile(null);
+      setAvatarPreview(avatarURL);
       setEditingProfile(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Kesalahan tidak diketahui.';
@@ -343,7 +380,7 @@ export default function ProfilePage() {
             {/* Name + badges */}
             <div className="mb-4">
               <h1 className="text-2xl font-bold text-primary mb-2">{profile.displayName}</h1>
-              {profile.publicId && <p className="mb-2 text-xs text-muted">ID Publik: {profile.publicId}</p>}
+              {profile.publicId && <p className="mb-2 text-xs text-muted">ID: {profile.publicId}</p>}
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={clsx(
                   'text-xs font-bold px-3 py-1 rounded-full border',
@@ -447,13 +484,7 @@ export default function ProfilePage() {
                   Edit Profile
                 </button>
                 <button
-                  onClick={() => {
-                    import('@/lib/firebase').then(({ auth }) => {
-                      import('firebase/auth').then(({ signOut }) => {
-                        signOut(auth).then(() => router.push('/'));
-                      });
-                    });
-                  }}
+                  onClick={handleLogout}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-surface-2 border border-border text-secondary hover:text-red-400 hover:border-red-400/40 transition-all"
                 >
                   Logout
@@ -475,6 +506,47 @@ export default function ProfilePage() {
               </div>
             )}
             <label className="block text-xs font-semibold text-secondary">
+              Nickname
+              <input
+                value={displayNameDraft}
+                onChange={(event) => setDisplayNameDraft(event.target.value)}
+                maxLength={30}
+                placeholder="Nama tampilan kamu"
+                className="mt-1 w-full rounded-app border border-border bg-surface-2 p-3 text-sm text-primary outline-none focus:border-pink"
+              />
+            </label>
+            <div className="mt-4 text-xs font-semibold text-secondary">
+              <span>Foto Profil</span>
+              <label className="mt-1 flex cursor-pointer items-center gap-2 rounded-app border border-dashed border-cyan/40 bg-surface-2 px-3 py-3 text-sm text-secondary hover:border-cyan">
+                <ImagePlus className="h-5 w-5 text-cyan" />
+                <span>{avatarFile ? avatarFile.name : 'Pilih foto profil'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    if (!file.type.startsWith('image/')) {
+                      alert('Foto profil harus berupa gambar.');
+                      return;
+                    }
+                    if (file.size > 5 * 1024 * 1024) {
+                      alert('Ukuran foto maksimal 5 MB.');
+                      return;
+                    }
+                    setAvatarFile(file);
+                    setAvatarPreview(URL.createObjectURL(file));
+                  }}
+                />
+              </label>
+              {avatarPreview && (
+                <div className="relative mt-2 h-20 w-20 overflow-hidden rounded-full border border-border">
+                  <img src={avatarPreview} alt="Preview avatar" className="h-full w-full object-cover" />
+                </div>
+              )}
+            </div>
+            <label className="block text-xs font-semibold text-secondary mt-4">
               Bio
               <textarea value={bioDraft} onChange={(event) => setBioDraft(event.target.value)} maxLength={240} rows={3} placeholder="Ceritakan sedikit tentang kamu..." className="mt-1 w-full rounded-app border border-border bg-surface-2 p-3 text-sm text-primary outline-none focus:border-pink" />
             </label>
@@ -686,19 +758,25 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Coming Soon Sections */}
+        {/* Quick links */}
         <div className="grid md:grid-cols-2 gap-4">
-          <div className="bg-surface border border-border rounded-app p-6 text-center">
-            <Users className="w-8 h-8 text-muted mx-auto mb-3" />
+          <Link
+            href="/friends"
+            className="block bg-surface border border-border rounded-app p-6 text-center hover:border-cyan/40 hover:bg-surface-2 transition-all"
+          >
+            <Users className="w-8 h-8 text-cyan mx-auto mb-3" />
             <h3 className="text-sm font-semibold text-primary mb-1">Friends</h3>
-            <p className="text-xs text-muted">Coming Soon</p>
-          </div>
+            <p className="text-xs text-muted">{friendList.length} teman terhubung</p>
+          </Link>
 
-          <div className="bg-surface border border-border rounded-app p-6 text-center">
-            <Heart className="w-8 h-8 text-muted mx-auto mb-3" />
+          <Link
+            href="/favorites"
+            className="block bg-surface border border-border rounded-app p-6 text-center hover:border-pink/40 hover:bg-surface-2 transition-all"
+          >
+            <Heart className="w-8 h-8 text-pink fill-pink mx-auto mb-3" />
             <h3 className="text-sm font-semibold text-primary mb-1">Bookmarks</h3>
-            <p className="text-xs text-muted">Coming Soon</p>
-          </div>
+            <p className="text-xs text-muted">{allBookmarks.length} favorit tersimpan</p>
+          </Link>
         </div>
       </div>
     </div>

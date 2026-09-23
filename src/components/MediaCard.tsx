@@ -121,7 +121,7 @@ export default function MediaCard({
   const title  = _title  ?? item?.title  ?? '';
   const status = _status ?? item?.status ?? '';
   const type   = _type   ?? item?.type   ?? '';
-  const rawPoster = _poster ?? getPoster((item as Record<string, unknown>) ?? {});
+  const rawPoster = _poster ?? getPoster((item ?? {}) as Record<string, unknown>);
   
   const [imgErr, setImgErr] = useState(false);
 
@@ -268,9 +268,9 @@ export default function MediaCard({
         
         {/* Episode & Date info */}
         <div className="mt-1 flex items-center gap-2 text-[0.7rem] text-muted">
-          {item?.episode && (
+          {'episode' in (item ?? {}) && typeof (item as { episode?: string | number })?.episode !== 'undefined' && (item as { episode?: string | number }).episode !== '' && (
             <span className="px-1.5 py-0.5 rounded bg-surface-2 border border-border">
-              {item.episode}
+              {String((item as { episode?: string | number }).episode)}
             </span>
           )}
           {item?.date && (

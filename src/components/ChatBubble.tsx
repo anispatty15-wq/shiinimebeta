@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, MessageCircle, Send, Users, X } from 'lucide-react'
 import { useNotificationsList } from '@/hooks/useNotificationsList';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
+import { getChatGift } from '@/lib/gifts';
 
 const ADMIN_UID = 'pp4P99R0xdgB1fk4dUjFAnZsAnK2';
 
@@ -20,6 +21,12 @@ interface ChatContact {
 interface ChatMessage {
   id: string;
   text?: string;
+  imageUrl?: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video';
+  giftId?: string;
+  giftName?: string;
+  giftEmoji?: string;
   senderId: string;
   createdAt?: { toDate?: () => Date };
 }
@@ -235,9 +242,12 @@ export default function ChatBubble() {
                   <p className="py-12 text-center text-xs text-muted">Belum ada pesan. Mulai chat sekarang.</p>
                 ) : messages.map((message) => (
                   <div key={message.id} className={`flex ${message.senderId === user.uid ? 'justify-end' : 'justify-start'}`}>
-                    <p className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs ${message.senderId === user.uid ? 'bg-pink text-white' : 'bg-pink/10 text-primary'}`}>
-                      {message.text}
-                    </p>
+                    <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs ${message.senderId === user.uid ? 'bg-pink text-white' : 'bg-pink/10 text-primary'}`}>
+                      {message.text && <p className="whitespace-pre-wrap break-words">{message.text}</p>}
+                      {(message.mediaUrl || message.imageUrl) && message.mediaType !== 'video' && <a href={message.mediaUrl ?? message.imageUrl} target="_blank" rel="noreferrer" className="mt-1 block"><img src={message.mediaUrl ?? message.imageUrl} alt="Lampiran chat" className="max-h-40 max-w-full rounded-lg object-cover" /></a>}
+                      {message.mediaUrl && message.mediaType === 'video' && <video src={message.mediaUrl} controls preload="metadata" className="mt-1 max-h-40 max-w-full rounded-lg" />}
+                      {message.giftId && <div className="mt-1 text-center"><div className="text-3xl">{message.giftEmoji ?? getChatGift(message.giftId)?.emoji ?? '🎁'}</div><span>{message.giftName ?? getChatGift(message.giftId)?.name ?? 'Gift'}</span></div>}
+                    </div>
                   </div>
                 ))}
               </div>

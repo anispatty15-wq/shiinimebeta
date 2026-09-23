@@ -23,6 +23,7 @@ import type {
   MediaCard,
   StreamServer,
   DownloadResolution,
+  ApiResult,
 } from '@/types/media';
 
 // ─────────────────────────────────────────────────────────────
@@ -42,11 +43,6 @@ const http: AxiosInstance = axios.create({
 // ─────────────────────────────────────────────────────────────
 // Result type
 // ─────────────────────────────────────────────────────────────
-export interface ApiResult<T> {
-  data:   T;
-  error:  string | null;
-}
-
 // ─────────────────────────────────────────────────────────────
 // Core helper
 // ─────────────────────────────────────────────────────────────
@@ -63,7 +59,7 @@ async function safeCall<T>(
   try {
     const res     = await fn(http);
     const payload = res?.data;
-    return { data: parser(payload), error: null };
+    return { data: parser(payload), error: null, status: res?.status ?? 200 };
   } catch (err: unknown) {
     let message = 'Terjadi kesalahan jaringan.';
     if (axios.isAxiosError(err)) {
@@ -75,7 +71,7 @@ async function safeCall<T>(
     if (process.env.NODE_ENV !== 'production') {
       console.error('[api]', message);
     }
-    return { data: fallback, error: message };
+    return { data: fallback, error: message, status: 0 };
   }
 }
 
@@ -488,7 +484,7 @@ export const DonghuaAPI = {
 
 // ── HENTAI ────────────────────────────────────────────────────
 export const HentaiAPI = {
-  getHome:        ()           => safeCall((ax) => ax.get('/anime/nekopoi/home'),                                  parseMediaList, FALLBACK_LIST),
+  getHome:        (page = 1)   => safeCall((ax) => ax.get('/anime/nekopoi/latest-hentai', { params: { page } }), parseMediaList, FALLBACK_LIST),
   getLatestHentai:(page = 1)   => safeCall((ax) => ax.get('/anime/nekopoi/latest-hentai',  { params: { page } }), parseMediaList, FALLBACK_LIST),
   getLatestJAV:   (page = 1)   => safeCall((ax) => ax.get('/anime/nekopoi/latest-jav',     { params: { page } }), parseMediaList, FALLBACK_LIST),
   getHentaiList:  (page = 1)   => safeCall((ax) => ax.get('/anime/nekopoi/hentai-list',    { params: { page } }), parseMediaList, FALLBACK_LIST),

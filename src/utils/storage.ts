@@ -16,12 +16,14 @@ import type {
 export const STORAGE_KEYS = {
   WATCH_HISTORY:    'shiiinime__watch',
   READ_HISTORY:     'shiiinime__read',
+  BOOKMARKS_DONGHUA:'shiiinime__bm_donghua',
   BOOKMARKS_ANIME:  'shiiinime__bm_anime',
   BOOKMARKS_HENTAI: 'shiiinime__bm_hentai',
   BOOKMARKS_COMIC:  'shiiinime__bm_comic',
 } as const;
 
 const BM_KEY: Record<ContentType, string> = {
+  donghua: STORAGE_KEYS.BOOKMARKS_DONGHUA,
   anime:  STORAGE_KEYS.BOOKMARKS_ANIME,
   hentai: STORAGE_KEYS.BOOKMARKS_HENTAI,
   comic:  STORAGE_KEYS.BOOKMARKS_COMIC,

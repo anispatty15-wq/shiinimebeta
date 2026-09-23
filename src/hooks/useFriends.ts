@@ -130,7 +130,7 @@ export function useFriends() {
         fromUserAvatar: senderAvatar,
         createdAt: data.createdAt?.toDate() || new Date(),
       };
-      })).then((items) => items.filter((request) => request.toUserId === user.uid && request.status === 'pending')) as FriendRequest[];
+      })).then((items) => items.filter((request) => request.toUserId === user.uid && (request as FriendRequest).status === 'pending')) as FriendRequest[];
 
       setPendingRequests(requests);
     } catch (error) {
@@ -155,7 +155,7 @@ export function useFriends() {
         toUserId: data.toUserId ?? data.to,
         fromUserName: data.fromUserName ?? 'Seseorang',
         createdAt: data.createdAt?.toDate() || new Date(),
-      }; }).filter((request) => request.fromUserId === user.uid && request.status === 'pending') as FriendRequest[];
+      }; }).filter((request) => request.fromUserId === user.uid && (request as FriendRequest).status === 'pending') as FriendRequest[];
 
       setSentRequests(requests);
     } catch (error) {

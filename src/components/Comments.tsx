@@ -8,7 +8,7 @@ import {
   onSnapshot, serverTimestamp,
   type Timestamp,
 } from 'firebase/firestore';
-import { MessageCircle, Send, User, LogIn, CornerDownRight, X, AlertCircle } from 'lucide-react';
+import { MessageCircle, Send, User, LogIn, CornerDownRight, X, AlertCircle, ImagePlus, Gift } from 'lucide-react';
 import { clsx } from 'clsx';
 import { db, FIREBASE_READY } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
@@ -16,11 +16,17 @@ import { getLevelFromXP, XP_COMMENT } from '@/lib/xp';
 import { isCommentAllowed } from '@/lib/wordFilter';
 import UserProfilePopup, { type PopupUser } from '@/components/UserProfilePopup';
 import { createReplyNotification } from '@/hooks/useCommentNotifier';
+import { CHAT_GIFTS, getChatGift, type ChatGift } from '@/lib/gifts';
 
 // ── Types ─────────────────────────────────────────────────────
 interface Comment {
   id:          string;
   text:        string;
+  mediaUrl?:   string;
+  mediaType?:  'image' | 'video';
+  giftId?:     string;
+  giftName?:   string;
+  giftEmoji?:  string;
   uid:         string;
   displayName: string;
   photoURL:    string;
@@ -52,6 +58,21 @@ function Avatar({ photoURL, name, size = 8 }: { photoURL?: string; name: string;
         : <div className="absolute inset-0 flex items-center justify-center"><User className="w-4 h-4 text-muted" /></div>}
     </div>
   );
+}
+
+async function uploadCommentMedia(file: File): Promise<string> {
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim();
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim();
+  if (!cloudName || !uploadPreset) throw new Error('Cloudinary belum dikonfigurasi.');
+  const resourceType = file.type.startsWith('video/') ? 'video' : 'image';
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', uploadPreset);
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, { method: 'POST', body: formData });
+  if (!response.ok) throw new Error('Upload media komentar gagal.');
+  const result = await response.json() as { secure_url?: string };
+  if (!result.secure_url) throw new Error('URL media komentar tidak tersedia.');
+  return result.secure_url;
 }
 
 // ── Single comment row ────────────────────────────────────────
@@ -125,7 +146,21 @@ function CommentRow({
         )}
 
         {/* Text */}
-        <p className="text-sm text-secondary leading-relaxed break-words">{comment.text}</p>
+        {comment.text && <p className="text-sm text-secondary leading-relaxed break-words">{comment.text}</p>}
+        {comment.mediaUrl && comment.mediaType === 'video' && (
+          <video src={comment.mediaUrl} controls preload="metadata" className="mt-2 max-h-64 max-w-full rounded-lg" />
+        )}
+        {comment.mediaUrl && comment.mediaType !== 'video' && (
+          <a href={comment.mediaUrl} target="_blank" rel="noreferrer" className="mt-2 block">
+            <img src={comment.mediaUrl} alt="Media komentar" className="max-h-64 max-w-full rounded-lg object-cover" />
+          </a>
+        )}
+        {comment.giftId && (
+          <div className="mt-2 inline-flex items-center gap-2 rounded-xl border border-pink-300/40 bg-pink-500/10 px-3 py-2">
+            <span className="text-2xl">{comment.giftEmoji ?? getChatGift(comment.giftId)?.emoji ?? '🎁'}</span>
+            <span className="text-xs font-semibold">{comment.giftName ?? getChatGift(comment.giftId)?.name ?? 'Gift'}</span>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-3 mt-1">
@@ -152,6 +187,11 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
   const [loaded,     setLoaded]     = useState(false);
   const [filterErr,  setFilterErr]  = useState<string | null>(null);
   const [replyTo,    setReplyTo]    = useState<Comment | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState('');
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+  const [selectedGift, setSelectedGift] = useState<ChatGift | null>(null);
+  const [showGifts, setShowGifts] = useState(false);
   const [popupUser,  setPopupUser]  = useState<PopupUser | null>(null);
   const bottomRef  = useRef<HTMLDivElement>(null);
   const inputRef   = useRef<HTMLInputElement>(null);
@@ -170,11 +210,16 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
         return {
           id:           d.id,
           text:         data.text         ?? '',
+          mediaUrl:     data.mediaUrl     ?? data.imageUrl ?? '',
+          mediaType:    data.mediaType    ?? (data.imageUrl ? 'image' : undefined),
+          giftId:       data.giftId       ?? '',
+          giftName:     data.giftName     ?? '',
+          giftEmoji:    data.giftEmoji    ?? '',
           uid:          data.uid          ?? '',
           displayName:  data.displayName  ?? 'User',
           photoURL:     data.photoURL     ?? '',
           level:        data.level        ?? 1,
-          badge:        data.badge        ?? lvl.badge,
+          badge:        lvl.badge,
           levelName:    data.levelName    ?? lvl.name,
           levelColor:   lvl.color,
           xp:           data.xp           ?? 0,
@@ -221,9 +266,9 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
   // ── Submit comment ────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim() || !user || !profile || !db || sending) return;
+    if ((!text.trim() && !selectedMedia && !selectedGift) || !user || !profile || !db || sending) return;
 
-    const check = isCommentAllowed(text);
+    const check = text.trim() ? isCommentAllowed(text) : { ok: true, cleaned: '' };
     if (!check.ok) { setFilterErr(check.reason ?? 'Tidak diizinkan.'); return; }
     setFilterErr(null);
 
@@ -232,8 +277,15 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
     const trimmedText = check.cleaned ?? text.trim();
     
     try {
+      let mediaUrl = '';
+      if (selectedMedia) {
+        if (selectedMedia.size > 25 * 1024 * 1024) throw new Error('Ukuran media maksimal 25 MB.');
+        mediaUrl = await uploadCommentMedia(selectedMedia);
+      }
       await addDoc(collection(db, 'comments', episodeSlug, 'messages'), {
         text:         trimmedText,
+        ...(mediaUrl ? { mediaUrl, mediaType } : {}),
+        ...(selectedGift ? { giftId: selectedGift.id, giftName: selectedGift.name, giftEmoji: selectedGift.emoji } : {}),
         uid:          user.uid,
         displayName:  profile.displayName,
         photoURL:     profile.photoURL,
@@ -261,6 +313,10 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
       }
 
       setText('');
+      setSelectedMedia(null);
+      setMediaPreview('');
+      setSelectedGift(null);
+      setShowGifts(false);
       setReplyTo(null);
       await awardXP(XP_COMMENT, 0);
     } catch (err) {
@@ -365,7 +421,28 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
                   <span>{filterErr}</span>
                 </div>
               )}
+              {(mediaPreview || selectedGift) && (
+                <div className="flex items-center gap-2 rounded-app border border-border bg-surface px-2 py-1">
+                  {mediaPreview && (mediaType === 'video' ? <video src={mediaPreview} className="h-12 w-12 rounded object-cover" /> : <img src={mediaPreview} alt="Preview media" className="h-12 w-12 rounded object-cover" />)}
+                  {selectedGift && <span className="text-2xl">{selectedGift.emoji}</span>}
+                  <button type="button" onClick={() => { setSelectedMedia(null); setMediaPreview(''); setSelectedGift(null); }} className="text-muted hover:text-red-400" aria-label="Hapus lampiran"><X className="h-4 w-4" /></button>
+                </div>
+              )}
               <div className="flex gap-2">
+                <label className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-app border border-border text-muted hover:text-cyan" aria-label="Tambah foto atau video">
+                  <ImagePlus className="h-4 w-4" />
+                  <input type="file" accept="image/*,video/*" className="sr-only" onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    setSelectedMedia(file);
+                    setMediaType(file.type.startsWith('video/') ? 'video' : 'image');
+                    setMediaPreview(URL.createObjectURL(file));
+                  }} />
+                </label>
+                <div className="relative">
+                  <button type="button" onClick={() => setShowGifts((value) => !value)} className="flex h-9 w-9 items-center justify-center rounded-app border border-border text-muted hover:text-pink" aria-label="Pilih gift"><Gift className="h-4 w-4" /></button>
+                  {showGifts && <div className="absolute bottom-11 left-0 z-20 grid grid-cols-3 gap-1 rounded-xl border border-border bg-surface p-2 shadow-xl">{CHAT_GIFTS.map((gift) => <button key={gift.id} type="button" onClick={() => { setSelectedGift(gift); setShowGifts(false); }} className="rounded p-1 text-xl hover:bg-surface-2" title={gift.name}>{gift.emoji}</button>)}</div>}
+                </div>
                 <input
                   ref={inputRef}
                   type="text"
@@ -380,7 +457,7 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
                 />
                 <button
                   type="submit"
-                  disabled={!text.trim() || sending}
+                  disabled={(!text.trim() && !selectedMedia && !selectedGift) || sending}
                   aria-label="Kirim"
                   className={clsx(
                     'w-9 h-9 flex items-center justify-center rounded-app transition-all flex-shrink-0',

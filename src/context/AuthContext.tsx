@@ -32,7 +32,7 @@ import {
   signOut as firebaseSignOut, type User,
 } from 'firebase/auth';
 import {
-  doc, getDoc, setDoc, updateDoc, serverTimestamp,
+  doc, getDoc, setDoc, updateDoc, runTransaction, serverTimestamp,
   onSnapshot,
 } from 'firebase/firestore';
 import { auth, db, googleProvider, FIREBASE_READY } from '@/lib/firebase';
@@ -44,7 +44,7 @@ export type AdultStatus = 'none' | 'pending' | 'approved' | 'rejected';
 
 export interface UserProfile {
   uid:          string;
-  publicId?: string;
+  publicId?:    string;
   displayName:  string;
   email:        string;
   photoURL:     string;
@@ -285,16 +285,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const awardXP = useCallback(async (xp: number, minutes: number) => {
     if (!user || !db || xp <= 0) return;
     try {
-      const newXP       = (profile?.xp ?? 0) + xp;
-      const newMinutes  = (profile?.totalMinutes ?? 0) + minutes;
-      const newLevel    = getLevelFromXP(newXP).level;
-      await updateDoc(doc(db, 'users', user.uid), {
-        xp:           newXP,
-        totalMinutes: newMinutes,
-        level:        newLevel,
+      const userRef = doc(db, 'users', user.uid);
+      const result = await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(userRef);
+        const data = snapshot.data() ?? {};
+        const currentXP = Math.max(0, Number(data.xp ?? 0) || 0);
+        const currentMinutes = Math.max(0, Number(data.totalMinutes ?? 0) || 0);
+        const newXP = Math.floor(currentXP + xp);
+        const newMinutes = Math.floor(currentMinutes + Math.max(0, minutes));
+        const newLevel = getLevelFromXP(newXP).level;
+        transaction.set(userRef, { xp: newXP, totalMinutes: newMinutes, level: newLevel }, { merge: true });
+        return { newXP, newMinutes, newLevel };
       });
       setProfile((prev) => prev
-        ? { ...prev, xp: newXP, totalMinutes: newMinutes, level: newLevel }
+        ? { ...prev, xp: result.newXP, totalMinutes: result.newMinutes, level: result.newLevel }
         : prev
       );
     } catch (err) { console.error('[Auth] Award XP error:', err); }

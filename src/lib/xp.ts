@@ -16,7 +16,7 @@
 export interface LevelInfo {
   level:      number;
   name:       string;
-  badge:      string;   // emoji
+  badge:      string;   // compact level label
   color:      string;   // tailwind color class
   minXP:      number;
   maxXP:      number;   // XP needed for next level (0 = max)
@@ -24,22 +24,23 @@ export interface LevelInfo {
 }
 
 export const LEVELS: LevelInfo[] = [
-  { level: 1,  name: 'Newbie Wibu',     badge: '🌱', color: 'text-gray-400',   minXP: 0,    maxXP: 100,   nextLevel: 'Wibu Kasual' },
-  { level: 2,  name: 'Wibu Kasual',     badge: '📺', color: 'text-green-400',  minXP: 100,  maxXP: 300,   nextLevel: 'Anime Lover' },
-  { level: 3,  name: 'Anime Lover',     badge: '💚', color: 'text-cyan-400',   minXP: 300,  maxXP: 600,   nextLevel: 'Otaku' },
-  { level: 4,  name: 'Otaku',           badge: '⭐', color: 'text-blue-400',   minXP: 600,  maxXP: 1000,  nextLevel: 'Super Otaku' },
-  { level: 5,  name: 'Super Otaku',     badge: '🌟', color: 'text-yellow-400', minXP: 1000, maxXP: 1800,  nextLevel: 'Otaku Elite' },
-  { level: 6,  name: 'Otaku Elite',     badge: '💎', color: 'text-purple-400', minXP: 1800, maxXP: 3000,  nextLevel: 'Anime God' },
-  { level: 7,  name: 'Anime God',       badge: '👑', color: 'text-orange-400', minXP: 3000, maxXP: 5000,  nextLevel: 'Legend Wibu' },
-  { level: 8,  name: 'Legend Wibu',     badge: '🏆', color: 'text-pink-400',   minXP: 5000, maxXP: 8000,  nextLevel: 'Dewa Weeb' },
-  { level: 9,  name: 'Dewa Weeb',       badge: '⚡', color: 'text-red-400',    minXP: 8000, maxXP: 12000, nextLevel: 'Eternal Otaku' },
-  { level: 10, name: 'Eternal Otaku',   badge: '🔥', color: 'text-rose-500',   minXP: 12000, maxXP: 0,   nextLevel: '' },
+  { level: 1,  name: 'Newbie Wibu',     badge: 'L1',  color: 'text-gray-400',   minXP: 0,    maxXP: 100,   nextLevel: 'Wibu Kasual' },
+  { level: 2,  name: 'Wibu Kasual',     badge: 'L2',  color: 'text-green-400',  minXP: 100,  maxXP: 300,   nextLevel: 'Anime Lover' },
+  { level: 3,  name: 'Anime Lover',     badge: 'L3',  color: 'text-cyan-400',   minXP: 300,  maxXP: 600,   nextLevel: 'Otaku' },
+  { level: 4,  name: 'Otaku',           badge: 'L4',  color: 'text-blue-400',   minXP: 600,  maxXP: 1000,  nextLevel: 'Super Otaku' },
+  { level: 5,  name: 'Super Otaku',     badge: 'L5',  color: 'text-yellow-400', minXP: 1000, maxXP: 1800,  nextLevel: 'Otaku Elite' },
+  { level: 6,  name: 'Otaku Elite',     badge: 'L6',  color: 'text-purple-400', minXP: 1800, maxXP: 3000,  nextLevel: 'Anime God' },
+  { level: 7,  name: 'Anime God',       badge: 'L7',  color: 'text-orange-400', minXP: 3000, maxXP: 5000,  nextLevel: 'Legend Wibu' },
+  { level: 8,  name: 'Legend Wibu',     badge: 'L8',  color: 'text-pink-400',   minXP: 5000, maxXP: 8000,  nextLevel: 'Dewa Weeb' },
+  { level: 9,  name: 'Dewa Weeb',       badge: 'L9',  color: 'text-red-400',    minXP: 8000, maxXP: 12000, nextLevel: 'Eternal Otaku' },
+  { level: 10, name: 'Eternal Otaku',   badge: 'L10', color: 'text-rose-500',   minXP: 12000, maxXP: 0,    nextLevel: '' },
 ];
 
 export function getLevelFromXP(xp: number): LevelInfo {
+  const safeXP = Number.isFinite(xp) ? Math.max(0, Math.floor(xp)) : 0;
   let current = LEVELS[0]!;
   for (const lvl of LEVELS) {
-    if (xp >= lvl.minXP) current = lvl;
+    if (safeXP >= lvl.minXP) current = lvl;
     else break;
   }
   return current;
@@ -51,8 +52,9 @@ export function getXPProgress(xp: number): {
   xpNeeded:   number;
   percent:    number;
 } {
-  const current   = getLevelFromXP(xp);
-  const xpInLevel = xp - current.minXP;
+  const safeXP    = Number.isFinite(xp) ? Math.max(0, Math.floor(xp)) : 0;
+  const current   = getLevelFromXP(safeXP);
+  const xpInLevel = Math.max(0, safeXP - current.minXP);
   const xpNeeded  = current.maxXP > 0 ? current.maxXP - current.minXP : 1;
   const percent   = current.maxXP === 0 ? 100 : Math.min(100, (xpInLevel / xpNeeded) * 100);
   return { current, xpInLevel, xpNeeded, percent };

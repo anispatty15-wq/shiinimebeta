@@ -23,7 +23,7 @@ interface SectionRowProps {
   /** Fallback base path if item.href is not set, e.g. "/anime" */
   basePath:     string;
   moreHref?:    string;
-  accent?:      'cyan' | 'violet' | 'pink';
+  accent?:      'cyan' | 'violet' | 'pink' | 'yellow';
   className?:   string;
 }
 
@@ -31,6 +31,7 @@ const ACCENT_BAR: Record<string, string> = {
   cyan:   'bg-cyan',
   violet: 'bg-violet',
   pink:   'bg-pink',
+  yellow: 'bg-yellow-400',
 };
 
 export default function SectionRow({

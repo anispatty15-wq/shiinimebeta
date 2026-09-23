@@ -87,8 +87,6 @@ export default function BottomNav() {
               {/* Custom icon or fallback lucide */}
               {Icon ? (
                 <Icon active={active} />
-              ) : href === '/anime/schedule' ? (
-                <CalendarDays className={clsx('w-5 h-5', active && 'drop-shadow-[0_0_6px_rgba(0,229,255,0.7)]')} aria-hidden />
               ) : (
                 <Heart className={clsx('w-5 h-5', active && 'drop-shadow-[0_0_6px_rgba(236,72,153,0.6)]')} aria-hidden />
               )}
@@ -104,7 +102,7 @@ export default function BottomNav() {
               {active && !locked && (
                 <span className={clsx(
                   'absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full',
-                  href === '/hentai' ? 'bg-pink-400' : href === '/comic' ? 'bg-violet-400' : href === '/favorites' ? 'bg-pink-400' : 'bg-cyan'
+                  href === '/hentai' ? 'bg-pink-400' : href === '/comic' ? 'bg-violet-400' : 'bg-cyan'
                 )} />
               )}
             </div>

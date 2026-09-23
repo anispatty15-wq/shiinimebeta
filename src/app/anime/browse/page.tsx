@@ -113,8 +113,16 @@ export default function AnimeBrowsePage() {
         page:   p,
       };
 
+      const query = new URLSearchParams();
+      if (params.genre?.length) params.genre.forEach((value) => query.append('genre[]', value));
+      if (params.status?.length) params.status.forEach((value) => query.append('status[]', value));
+      if (params.type?.length) params.type.forEach((value) => query.append('type[]', value));
+      if (params.season?.length) params.season.forEach((value) => query.append('season[]', value));
+      if (params.order) query.set('order', params.order);
+      if (params.page) query.set('page', String(params.page));
+
       const result = hasFilter
-        ? await AnimeAPI.filter(params)
+        ? await AnimeAPI.filter(query.toString())
         : await AnimeAPI.getTerbaru(p);
 
       const raw    = toArray(result.data as unknown[]);
