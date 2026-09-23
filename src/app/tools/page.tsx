@@ -57,8 +57,8 @@ export default function ToolsPage() {
   };
 
   return (
-    <main className="min-h-screen pb-20 md:pb-8">
-      <div className="mx-auto max-w-6xl space-y-5 px-3 py-5 sm:px-4 sm:py-8">
+    <main className="min-h-screen min-w-0 overflow-x-hidden pb-20 md:pb-8">
+      <div className="mx-auto max-w-6xl min-w-0 space-y-5 overflow-hidden px-3 py-5 sm:px-4 sm:py-8">
         <header className="rounded-app border border-border bg-surface p-4 sm:p-6">
           <div className="flex items-start gap-3">
             <Wrench className="mt-1 h-6 w-6 shrink-0 text-cyan" />
@@ -92,13 +92,13 @@ export default function ToolsPage() {
         {results.length > 0 && (
           <section>
             <h2 className="mb-3 text-lg font-semibold text-primary">Hasil pencarian</h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               {results.map((item) => (
-                <button key={item.slug} type="button" onClick={() => void loadAnime(item)} className="overflow-hidden rounded-app border border-border bg-surface text-left hover:border-cyan/50">
-                  <div className="relative aspect-[2/3] bg-surface-2">
+                <button key={item.slug} type="button" onClick={() => void loadAnime(item)} className="min-w-0 max-w-full overflow-hidden rounded-app border border-border bg-surface text-left hover:border-cyan/50">
+                  <div className="relative aspect-[2/3] min-w-0 bg-surface-2">
                     {item.poster && <Image src={item.poster} alt={item.title} fill sizes="(max-width: 640px) 45vw, 180px" className="object-cover" />}
                   </div>
-                  <p className="line-clamp-2 p-2 text-xs font-semibold text-primary">{item.title}</p>
+                  <p className="break-words line-clamp-2 p-2 text-xs font-semibold text-primary">{item.title}</p>
                 </button>
               ))}
             </div>
@@ -107,20 +107,20 @@ export default function ToolsPage() {
 
         {toolResult && (
           <section className="grid gap-5 lg:grid-cols-[220px_1fr]">
-            <div className="rounded-app border border-border bg-surface p-3">
+            <div className="min-w-0 overflow-hidden rounded-app border border-border bg-surface p-3">
               <div className="relative aspect-[2/3] overflow-hidden rounded-lg bg-surface-2">
                 {toolResult.detail.poster && <Image src={toolResult.detail.poster} alt={toolResult.detail.title} fill sizes="220px" className="object-cover" />}
               </div>
-              <h2 className="mt-3 font-bold text-primary">{toolResult.detail.title}</h2>
-              <p className="mt-2 text-xs leading-relaxed text-secondary">{toolResult.detail.synopsis || 'Tidak ada sinopsis.'}</p>
+              <h2 className="mt-3 break-words font-bold text-primary">{toolResult.detail.title}</h2>
+              <p className="mt-2 break-words text-xs leading-relaxed text-secondary">{toolResult.detail.synopsis || 'Tidak ada sinopsis.'}</p>
               <div className="mt-3 flex flex-wrap gap-1">
                 {toolResult.detail.genres.map((genre) => <span key={genre} className="rounded bg-cyan/10 px-2 py-1 text-[0.65rem] text-cyan">{genre}</span>)}
               </div>
             </div>
-            <div className="space-y-4 rounded-app border border-border bg-surface p-4">
+            <div className="min-w-0 space-y-4 overflow-hidden rounded-app border border-border bg-surface p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-primary"><FileSearch className="h-4 w-4 text-cyan" /> Metadata & episode</div>
               <form onSubmit={loadEpisode} className="flex flex-col gap-2 sm:flex-row">
-                <select value={episodeSlug} onChange={(event) => setEpisodeSlug(event.target.value)} className="min-w-0 flex-1 rounded-app border border-border bg-surface-2 px-3 py-3 text-sm text-primary">
+                <select value={episodeSlug} onChange={(event) => setEpisodeSlug(event.target.value)} className="min-w-0 max-w-full flex-1 rounded-app border border-border bg-surface-2 px-3 py-3 text-sm text-primary">
                   {toolResult.detail.episode_list.map((episode) => <option key={episode.slug} value={episode.slug}>{episode.title}</option>)}
                 </select>
                 <button className="rounded-app bg-cyan px-4 py-3 text-sm font-semibold text-bg">{loadingEpisode ? 'Memuat...' : 'Cek episode'}</button>
@@ -136,7 +136,7 @@ export default function ToolsPage() {
                     <div className="grid gap-2 sm:grid-cols-2">
                       {toolResult.episode.download_links.flatMap((group) => group.links.map((link) => (
                         <a key={`${group.resolution}-${link.url}`} href={link.url} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-lg border border-border p-3 text-sm text-secondary hover:border-cyan/50 hover:text-cyan">
-                          <span>{group.resolution} · {link.name}</span><Download className="h-4 w-4" />
+                          <span className="min-w-0 break-words">{group.resolution} · {link.name}</span><Download className="h-4 w-4 shrink-0" />
                         </a>
                       )))}
                     </div>

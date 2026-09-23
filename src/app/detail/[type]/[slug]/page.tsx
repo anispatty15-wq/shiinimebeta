@@ -135,7 +135,7 @@ export default function DetailPage() {
     : episodeList.length > 0;
 
   return (
-    <div className="max-w-screen-xl mx-auto">
+    <div className="mx-auto min-w-0 max-w-screen-xl overflow-hidden">
       {/* ── Hero ── */}
       <div className="relative">
         {/* Background blur */}
@@ -146,7 +146,7 @@ export default function DetailPage() {
           </div>
         )}
 
-        <div className="relative z-10 flex gap-4 px-4 pt-6 pb-4">
+        <div className="relative z-10 flex min-w-0 gap-4 px-4 pb-4 pt-6">
           {/* Poster */}
           <div className="w-28 sm:w-32 flex-shrink-0 rounded-card overflow-hidden shadow-card aspect-[2/3] bg-surface-2 relative">
             {poster && !imgErr ? (
@@ -168,7 +168,7 @@ export default function DetailPage() {
 
           {/* Info */}
           <div className="flex-1 min-w-0 pt-1">
-            <h1 className="text-base sm:text-lg font-bold text-primary leading-snug line-clamp-3 mb-2">
+            <h1 className="mb-2 break-words text-base font-bold leading-snug text-primary sm:text-lg">
               {title || slug}
             </h1>
 
@@ -230,13 +230,13 @@ export default function DetailPage() {
       </div>
 
       {/* ── Body ── */}
-      <div className="px-4 pb-10 space-y-7">
+      <div className="min-w-0 space-y-7 overflow-hidden px-4 pb-10">
 
         {/* Synopsis */}
         {synopsis && (
           <section>
             <h2 className="text-sm font-semibold text-primary mb-2">Sinopsis</h2>
-            <p className="text-sm text-secondary leading-relaxed">{synopsis}</p>
+            <p className="break-words text-sm leading-relaxed text-secondary">{synopsis}</p>
           </section>
         )}
 

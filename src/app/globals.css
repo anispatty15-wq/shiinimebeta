@@ -22,6 +22,7 @@
   body {
     background-color: #FFF7FA;
     color: #111827;
+    overflow-x: hidden;
   }
 
   /* Scrollbar — webkit */

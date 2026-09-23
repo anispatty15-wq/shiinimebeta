@@ -44,7 +44,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" className="dark">
-      <body className="bg-bg text-primary antialiased">
+      <body className="min-w-0 bg-bg text-primary antialiased">
         <AntiInspect />
         <PageLoader />
         <OAuthHandler />
