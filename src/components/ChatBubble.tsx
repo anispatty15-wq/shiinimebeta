@@ -81,15 +81,36 @@ export default function ChatBubble() {
     }
     const conversationId = [user.uid, activeContact.uid].sort().join('_');
     const messagesQuery = query(collection(db, 'conversations', conversationId, 'messages'));
-    return onSnapshot(messagesQuery, (snapshot) => {
-      const next = snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as ChatMessage));
-      next.sort((a, b) => {
-        const aTime = a.createdAt?.toDate?.()?.getTime() ?? 0;
-        const bTime = b.createdAt?.toDate?.()?.getTime() ?? 0;
-        return aTime - bTime;
-      });
-      setMessages(next.slice(-40));
-    }, (error) => console.error('[ChatBubble] Message listener error:', error));
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
+    const loadMessages = async () => {
+      try {
+        const deletionDoc = await getDoc(doc(db, 'userData', user.uid, 'chatDeletions', conversationId));
+        const deletedAt = deletionDoc.exists() ? Number(deletionDoc.data().deletedAt ?? 0) : 0;
+        if (cancelled) return;
+        unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+          const next = snapshot.docs
+            .map((item) => ({ id: item.id, ...item.data() } as ChatMessage))
+            .filter((message) => {
+              const createdAt = message.createdAt?.toDate?.()?.getTime() ?? 0;
+              return !deletedAt || !createdAt || createdAt > deletedAt;
+            });
+          next.sort((a, b) => {
+            const aTime = a.createdAt?.toDate?.()?.getTime() ?? 0;
+            const bTime = b.createdAt?.toDate?.()?.getTime() ?? 0;
+            return aTime - bTime;
+          });
+          setMessages(next.slice(-40));
+        }, (error) => console.error('[ChatBubble] Message listener error:', error));
+      } catch (error) {
+        console.error('[ChatBubble] Failed to load deletion marker:', error);
+      }
+    };
+    void loadMessages();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, [user, activeContact]);
 
   const sendBubbleMessage = async (event: React.FormEvent) => {

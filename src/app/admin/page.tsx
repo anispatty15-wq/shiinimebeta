@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
-  Shield, CheckCircle2, XCircle, Clock, Bell,
+  Shield, CheckCircle2, XCircle, Clock, Bell, MessageCircle,
   RefreshCw, Users, AlertCircle, User,
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -41,6 +41,11 @@ export default function AdminPage() {
   const { notifications, markAsRead } = useNotificationsList();
   const adminRequests = notifications.filter((notification) => notification.type === 'adult_request');
   const unreadAdminRequests = adminRequests.filter((notification) => !notification.read);
+  const pendingRequestCount = requests.filter((request) => request.adultStatus === 'pending').length;
+  const openApprovalChat = (uid: string) => {
+    const message = 'Halo Admin, ini tautan akses 18+: https://shiinimebeta.vercel.app/hentai';
+    router.push(`/chat/${uid}?message=${encodeURIComponent(message)}`);
+  };
 
   // ── Redirect if not admin ──────────────────────────────────
   useEffect(() => {
@@ -154,7 +159,7 @@ export default function AdminPage() {
       </div>
 
       <div className="px-4 pt-5 space-y-4">
-        {unreadAdminRequests.length > 0 && (
+        {(unreadAdminRequests.length > 0 || pendingRequestCount > 0) && (
           <button
             type="button"
             onClick={() => Promise.all(unreadAdminRequests.map((notification) => markAsRead(notification.id)))}
@@ -162,7 +167,7 @@ export default function AdminPage() {
           >
             <span className="flex items-center gap-2 font-semibold">
               <Bell className="h-4 w-4 text-violet" />
-              {unreadAdminRequests.length} request akses 18+ baru
+              {pendingRequestCount || unreadAdminRequests.length} request akses 18+ menunggu
             </span>
             <span className="mt-1 block text-xs text-secondary">
               Notifikasi akan ditandai sudah dibaca setelah panel ini dibuka.
@@ -291,6 +296,13 @@ export default function AdminPage() {
                     >
                       <XCircle className="w-3.5 h-3.5" aria-hidden />
                       {acting === req.uid ? '…' : 'Tolak'}
+                    </button>
+                    <button
+                      onClick={() => openApprovalChat(req.uid)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-app border border-violet/40 text-violet text-xs font-semibold hover:bg-violet/10"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" aria-hidden />
+                      Kirim tautan 18+
                     </button>
                   </div>
                 )}

@@ -3,7 +3,7 @@
 // Direct message chat with another user
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { 
   ArrowLeft, Send, User, Loader2, MessageCircle, ImagePlus, Video, Gift, X
@@ -65,6 +65,7 @@ async function uploadToCloudinary(file: File): Promise<string> {
 export default function ChatPage() {
   const { uid: otherUid } = useParams<{ uid: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
@@ -85,6 +86,11 @@ export default function ChatPage() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const message = searchParams.get('message');
+    if (message) setInputText(message);
+  }, [searchParams]);
 
   useEffect(() => {
     const query = inputText.trim();
