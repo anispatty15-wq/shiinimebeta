@@ -22,7 +22,7 @@ export default function FloatingLinks() {
   const waHidden   = hidden.includes('wa');
 
   return (
-    <div className="fixed left-0 bottom-28 z-[54] flex flex-col items-start gap-2.5 select-none">
+    <div className="fixed bottom-28 left-0 z-[54] hidden select-none flex-col items-start gap-2.5 md:flex">
 
       {/* ── Wuwa ── */}
       {!wuwaHidden && (

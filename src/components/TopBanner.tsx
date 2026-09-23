@@ -71,7 +71,7 @@ export default function TopBanner({
   };
 
   return (
-    <div className="relative mb-8">
+    <div className="relative mb-8 min-w-0">
       {/* Main Banner */}
       <div className="relative aspect-[21/9] md:aspect-[21/7] rounded-app overflow-hidden bg-surface border border-border">
         {/* Background Image */}
@@ -87,7 +87,7 @@ export default function TopBanner({
         </div>
 
         {/* Content */}
-        <div className="relative h-full flex flex-col justify-end p-6 md:p-8">
+        <div className="relative flex h-full min-w-0 flex-col justify-end p-4 md:p-8">
           {/* Ranking Badge */}
           <div className={`inline-flex items-center gap-2 w-fit mb-3 px-3 py-1.5 rounded-full bg-${accentColor}/10 border border-${accentColor}/30`}>
             <TrendingUp className={`w-4 h-4 text-${accentColor}`} />
@@ -101,7 +101,7 @@ export default function TopBanner({
             href={currentItem.href}
             className="block mb-2 hover:opacity-80 transition-opacity"
           >
-            <h3 className="text-2xl md:text-3xl font-bold text-primary line-clamp-2">
+            <h3 className="break-words text-lg font-bold leading-snug text-primary sm:text-2xl md:text-3xl">
               {currentItem.title}
             </h3>
           </Link>
@@ -135,7 +135,7 @@ export default function TopBanner({
       </div>
 
       {/* Top 10 List */}
-      <div className="mt-4 grid grid-cols-5 md:grid-cols-10 gap-2">
+      <div className="mt-4 grid min-w-0 grid-cols-5 gap-2 md:grid-cols-10">
         {topItems.map((item, index) => (
           <button
             key={item.slug}

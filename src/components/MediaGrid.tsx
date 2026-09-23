@@ -28,7 +28,7 @@ export default function MediaGrid({
     : `grid-cols-${columns}`;
 
   return (
-    <div className={`grid ${gridCols} gap-4`}>
+    <div className={`grid min-w-0 ${gridCols} gap-4`}>
       {items.map((item, idx) => (
         <GridMediaCard key={`${item.slug}-${idx}`} item={item} type={type} />
       ))}
@@ -46,7 +46,7 @@ function GridMediaCard({ item, type }: { item: MediaCardType; type: ContentType 
       : item.titleIndonesian || item.title;
 
   return (
-    <Link href={href} className="group">
+    <Link href={href} className="group min-w-0">
       {/* Poster */}
       <div className="relative aspect-[2/3] rounded-app overflow-hidden bg-surface-2 mb-2">
         {item.poster ? (
@@ -93,7 +93,7 @@ function GridMediaCard({ item, type }: { item: MediaCardType; type: ContentType 
       </div>
 
       {/* Title */}
-      <h3 className="text-sm font-medium text-primary line-clamp-2 group-hover:text-cyan transition-colors mb-1">
+      <h3 className="break-words text-sm font-medium text-primary line-clamp-2 group-hover:text-cyan transition-colors mb-1">
         {title}
       </h3>
 

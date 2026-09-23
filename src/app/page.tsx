@@ -68,7 +68,7 @@ export default function HomePage() {
   const movies = useApi(useCallback(() => AnimeAPI.getMovies(), []), []);
 
   return (
-    <div className="max-w-screen-xl mx-auto py-0">
+    <div className="mx-auto min-w-0 max-w-screen-xl overflow-hidden py-0 pb-24 md:pb-8">
       {/* Hero Banner */}
       <HeroBanner 
         title="Shiiinime Stream"

@@ -239,7 +239,7 @@ export default function ChatBubble() {
 
   return (
     <div
-      className="fixed right-4 bottom-24 md:bottom-6 z-[60]"
+      className="fixed bottom-[5.5rem] right-3 z-[60] md:bottom-6 md:right-4"
       style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }}
     >
       {open && (
