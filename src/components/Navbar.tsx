@@ -164,7 +164,7 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop nav tabs */}
-        <nav className="hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-auto no-scrollbar md:flex" aria-label="Navigasi">
+        <nav className="nav-scroll hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-auto md:flex" aria-label="Navigasi">
           {NAV_LINKS.map(({ href, key }) => {
             const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
             return (
@@ -182,11 +182,8 @@ export default function Navbar() {
           })}
         </nav>
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
         {/* Desktop search */}
-        <div ref={wrapRef} className="relative hidden w-40 shrink-0 md:block lg:w-52 xl:w-64">
+        <div ref={wrapRef} className="relative hidden w-36 shrink-0 md:block lg:w-48 xl:w-56">
           <SearchBox
             query={query}
             setQuery={setQuery}
