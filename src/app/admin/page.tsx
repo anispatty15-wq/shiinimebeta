@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
-  Shield, CheckCircle2, XCircle, Clock,
+  Shield, CheckCircle2, XCircle, Clock, Bell,
   RefreshCw, Users, AlertCircle, User,
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -17,6 +17,7 @@ import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/fire
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import type { AdultStatus } from '@/context/AuthContext';
+import { useNotificationsList } from '@/hooks/useNotificationsList';
 
 interface RequestUser {
   uid:         string;
@@ -37,6 +38,9 @@ export default function AdminPage() {
   const [error,    setError]    = useState<string | null>(null);
   const [filter,   setFilter]   = useState<'pending' | 'approved' | 'rejected' | 'all' | 'members'>('pending');
   const [acting,   setActing]   = useState<string | null>(null); // uid being processed
+  const { notifications, markAsRead } = useNotificationsList();
+  const adminRequests = notifications.filter((notification) => notification.type === 'adult_request');
+  const unreadAdminRequests = adminRequests.filter((notification) => !notification.read);
 
   // ── Redirect if not admin ──────────────────────────────────
   useEffect(() => {
@@ -150,6 +154,21 @@ export default function AdminPage() {
       </div>
 
       <div className="px-4 pt-5 space-y-4">
+        {unreadAdminRequests.length > 0 && (
+          <button
+            type="button"
+            onClick={() => Promise.all(unreadAdminRequests.map((notification) => markAsRead(notification.id)))}
+            className="w-full rounded-app border border-violet/40 bg-violet/10 px-4 py-3 text-left text-sm text-primary"
+          >
+            <span className="flex items-center gap-2 font-semibold">
+              <Bell className="h-4 w-4 text-violet" />
+              {unreadAdminRequests.length} request akses 18+ baru
+            </span>
+            <span className="mt-1 block text-xs text-secondary">
+              Notifikasi akan ditandai sudah dibaca setelah panel ini dibuka.
+            </span>
+          </button>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">

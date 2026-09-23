@@ -453,3 +453,51 @@ export const updateFCMToken = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('internal', 'Failed to update FCM token');
   }
 });
+
+/**
+ * Send push notifications for notification records created by the web app.
+ * These records are also used by the in-app notification list, while this
+ * trigger makes chat and admin request alerts work when the mobile app is
+ * backgrounded or closed.
+ */
+export const onUserNotificationCreated = functions.firestore
+  .document('notifications/{notificationId}')
+  .onCreate(async (snap) => {
+    const notification = snap.data();
+    if (!['chat_message', 'adult_request'].includes(notification.type)) return null;
+
+    const userId = typeof notification.userId === 'string' ? notification.userId : '';
+    if (!userId) return null;
+
+    const userDoc = await db.collection('users').doc(userId).get();
+    const fcmToken = userDoc.data()?.fcmToken;
+    if (!fcmToken) return null;
+
+    try {
+      await messaging.send({
+        token: fcmToken,
+        notification: {
+          title: String(notification.title ?? 'Shiiinime'),
+          body: String(notification.body ?? 'Ada notifikasi baru.'),
+        },
+        data: {
+          type: String(notification.type),
+          click_action: String(notification.data?.click_action ?? (
+            notification.type === 'chat_message'
+              ? `/chat/${notification.data?.chatUid ?? ''}`
+              : '/admin'
+          )),
+        },
+      });
+    } catch (error: any) {
+      console.error('[onUserNotificationCreated] Failed to send push:', error);
+      if (error?.code === 'messaging/registration-token-not-registered' ||
+          error?.code === 'messaging/invalid-registration-token') {
+        await userDoc.ref.update({
+          fcmToken: admin.firestore.FieldValue.delete(),
+        });
+      }
+    }
+
+    return null;
+  });

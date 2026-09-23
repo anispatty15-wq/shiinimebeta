@@ -37,6 +37,8 @@ export default function NotificationToast() {
       router.push(`/anime/${notification.data.animeId}`);
     } else if (notification?.type === 'friend_request') {
       router.push('/friends');
+    } else if (notification?.type === 'adult_request') {
+      router.push('/admin');
     } else {
       router.push('/notifications');
     }
@@ -62,6 +64,8 @@ export default function NotificationToast() {
         return '👋';
       case 'friend_accepted':
         return '✨';
+      case 'adult_request':
+        return '🛡️';
       default:
         return '🔔';
     }

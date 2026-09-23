@@ -26,7 +26,7 @@ import { useAuth } from '@/context/AuthContext';
 export interface Notification {
   id: string;
   userId: string;
-  type: 'new_episode' | 'comment_reply' | 'friend_request' | 'friend_accepted' | 'chat_message' | 'announcement';
+  type: 'new_episode' | 'comment_reply' | 'friend_request' | 'friend_accepted' | 'chat_message' | 'adult_request' | 'announcement';
   senderId?: string;
   title: string;
   body: string;

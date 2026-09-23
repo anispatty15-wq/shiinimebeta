@@ -17,7 +17,7 @@ import { useAuth } from '@/context/AuthContext';
 export interface NotificationPayload {
   title: string;
   body: string;
-  type: 'new_episode' | 'comment_reply' | 'friend_request' | 'friend_accepted' | 'chat_message' | 'announcement';
+  type: 'new_episode' | 'comment_reply' | 'friend_request' | 'friend_accepted' | 'chat_message' | 'adult_request' | 'announcement';
   data?: Record<string, any>;
 }
 

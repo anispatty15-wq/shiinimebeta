@@ -32,7 +32,7 @@ import {
   signOut as firebaseSignOut, type User,
 } from 'firebase/auth';
 import {
-  doc, getDoc, setDoc, updateDoc, runTransaction, serverTimestamp,
+  doc, getDoc, setDoc, updateDoc, addDoc, collection, runTransaction, serverTimestamp,
   onSnapshot,
 } from 'firebase/firestore';
 import { auth, db, googleProvider, FIREBASE_READY } from '@/lib/firebase';
@@ -278,6 +278,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await updateDoc(doc(db, 'users', user.uid), {
         adultStatus:    'pending',
         adultRequestAt: serverTimestamp(),
+      });
+      await addDoc(collection(db, 'notifications'), {
+        userId: ADMIN_UID,
+        senderId: user.uid,
+        type: 'adult_request',
+        title: 'Request akses 18+ baru',
+        body: `${profile?.displayName ?? user.displayName ?? 'User'} mengajukan akses 18+.`,
+        data: { uid: user.uid, click_action: '/admin' },
+        read: false,
+        createdAt: serverTimestamp(),
       });
       setProfile((prev) => prev ? { ...prev, adultStatus: 'pending' } : prev);
     } catch (err) { console.error('[Auth] Request adult role error:', err); }

@@ -44,6 +44,11 @@ service cloud.firestore {
             request.resource.data.type in ['chat_message', 'friend_request', 'friend_accepted']
           ) ||
           (
+            request.resource.data.type == 'adult_request' &&
+            request.resource.data.userId == 'pp4P99R0xdgB1fk4dUjFAnZsAnK2' &&
+            request.resource.data.senderId == request.auth.uid
+          ) ||
+          (
             isAdmin() &&
             request.resource.data.type in ['new_episode', 'announcement']
           )
@@ -66,6 +71,11 @@ service cloud.firestore {
 
     // Cloud sync — history, bookmarks, watched slugs (owner only)
     match /userData/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // Per-user chat deletion markers. Messages remain available to the other participant.
+    match /userData/{uid}/chatDeletions/{conversationId} {
       allow read, write: if isOwner(uid);
     }
 

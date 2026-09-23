@@ -9,8 +9,8 @@ import {
   ArrowLeft, Send, User, Loader2, MessageCircle, ImagePlus, Video, Gift, X
 } from 'lucide-react';
 import {
-  collection, doc, getDoc, getDocs, addDoc, query,
-  orderBy, onSnapshot, serverTimestamp, deleteDoc,
+  collection, doc, getDoc, addDoc, query,
+  orderBy, onSnapshot, serverTimestamp, setDoc,
   type DocumentData,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -155,17 +155,45 @@ export default function ChatPage() {
     const conversationId = getConversationId(user.uid, otherUid);
     const messagesRef = collection(db, 'conversations', conversationId, 'messages');
     const q = query(messagesRef, orderBy('createdAt', 'asc'));
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs: Message[] = [];
-      snapshot.forEach((doc) => {
-        msgs.push({ id: doc.id, ...doc.data() } as Message);
-      });
-      setMessages(msgs);
-      setLoading(false);
-    });
+    const loadMessages = async () => {
+      try {
+        const deletionDoc = await getDoc(
+          doc(db, 'userData', user.uid, 'chatDeletions', conversationId)
+        );
+        const deletedAt = deletionDoc.exists()
+          ? Number(deletionDoc.data().deletedAt ?? 0)
+          : null;
+        if (cancelled) return;
 
-    return () => unsubscribe();
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const msgs: Message[] = [];
+          snapshot.forEach((messageDoc) => {
+            const message = { id: messageDoc.id, ...messageDoc.data() } as Message;
+            const createdAt = message.createdAt?.toMillis?.() ?? 0;
+            if (!deletedAt || !createdAt || createdAt > deletedAt) {
+              msgs.push(message);
+            }
+          });
+          setMessages(msgs);
+          setLoading(false);
+        }, (error) => {
+          console.error('Error listening to chat:', error);
+          setLoading(false);
+        });
+      } catch (error) {
+        console.error('Error loading chat:', error);
+        setLoading(false);
+      }
+    };
+
+    void loadMessages();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, [user, otherUid]);
 
   const handleSend = async (e: React.FormEvent) => {
@@ -230,16 +258,18 @@ export default function ChatPage() {
   const handleDeleteChat = async () => {
     if (!user || !otherUid || !db) return;
     const targetName = otherUser?.displayName ?? 'orang ini';
-    if (!window.confirm(`Hapus semua chat dengan ${targetName}? Tindakan ini tidak bisa dibatalkan.`)) {
+    if (!window.confirm(`Hapus chat dengan ${targetName} untuk akun kamu? Pesan tetap tersimpan untuk pengguna lain.`)) {
       return;
     }
 
     try {
       setDeletingChat(true);
       const conversationId = getConversationId(user.uid, otherUid);
-      const messagesRef = collection(db, 'conversations', conversationId, 'messages');
-      const snapshot = await getDocs(messagesRef);
-      await Promise.all(snapshot.docs.map((messageDoc) => deleteDoc(messageDoc.ref)));
+      const deletedAt = Date.now();
+      await setDoc(doc(db, 'userData', user.uid, 'chatDeletions', conversationId), {
+        deletedAt,
+        updatedAt: serverTimestamp(),
+      });
       setMessages([]);
     } catch (err) {
       console.error('Error deleting chat:', err);
@@ -324,7 +354,7 @@ export default function ChatPage() {
                 disabled={deletingChat}
                 className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
               >
-                {deletingChat ? 'Menghapus...' : 'Hapus Chat'}
+                {deletingChat ? 'Menghapus...' : 'Hapus untuk saya'}
               </button>
             </div>
           </>
