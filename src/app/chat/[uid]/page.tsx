@@ -473,10 +473,19 @@ export default function ChatPage() {
         className="fixed inset-x-0 bottom-16 z-40 flex w-full shrink-0 items-center gap-2 border-y border-border bg-surface/95 px-3 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur md:bottom-0 md:px-4"
       >
         {gifSuggestions.length > 0 && (
-          <div className="absolute bottom-16 left-3 right-3 z-30 rounded-xl border border-border bg-surface p-2 shadow-xl">
-            <div className="mb-1 flex items-center justify-between text-[0.65rem] text-muted"><span>GIF rekomendasi</span>{gifSearching && <Loader2 className="h-3 w-3 animate-spin" />}</div>
-            <div className="grid grid-cols-3 gap-1">
-              {gifSuggestions.map((gif) => <button key={gif.id} type="button" onClick={() => { setSelectedImage(null); setSelectedMediaUrl(gif.url); setMediaType('image'); setImagePreview(gif.preview); setGifSuggestions([]); }} className="overflow-hidden rounded-lg"><img src={gif.preview} alt={gif.title} className="h-14 w-full object-cover" /></button>)}
+          <div className="absolute bottom-16 left-1/2 z-30 w-[calc(100%-1.5rem)] max-w-2xl -translate-x-1/2 rounded-xl border border-border bg-surface p-3 shadow-xl">
+            <div className="mb-2 flex items-center justify-between text-xs text-muted"><span>GIF rekomendasi</span>{gifSearching && <Loader2 className="h-3 w-3 animate-spin" />}</div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {gifSuggestions.map((gif) => (
+                <button
+                  key={gif.id}
+                  type="button"
+                  onClick={() => { setSelectedImage(null); setSelectedMediaUrl(gif.url); setMediaType('image'); setImagePreview(gif.preview); setGifSuggestions([]); }}
+                  className="aspect-[4/3] overflow-hidden rounded-lg border border-border bg-surface-2 transition-transform hover:scale-[1.02]"
+                >
+                  <img src={gif.preview} alt={gif.title} className="h-full w-full object-contain" />
+                </button>
+              ))}
             </div>
           </div>
         )}
