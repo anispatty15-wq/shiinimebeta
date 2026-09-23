@@ -83,27 +83,33 @@ export default function ChatBubble() {
     const messagesQuery = query(collection(db, 'conversations', conversationId, 'messages'));
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
+    let deletedAt = 0;
+    unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+      const next = snapshot.docs
+        .map((item) => ({ id: item.id, ...item.data() } as ChatMessage))
+        .filter((message) => {
+          const createdAt = message.createdAt?.toDate?.()?.getTime() ?? 0;
+          return !deletedAt || !createdAt || createdAt > deletedAt;
+        });
+      next.sort((a, b) => {
+        const aTime = a.createdAt?.toDate?.()?.getTime() ?? 0;
+        const bTime = b.createdAt?.toDate?.()?.getTime() ?? 0;
+        return aTime - bTime;
+      });
+      setMessages(next.slice(-40));
+    }, (error) => console.error('[ChatBubble] Message listener error:', error));
+
     const loadMessages = async () => {
       try {
         const deletionDoc = await getDoc(doc(db, 'userData', user.uid, 'chatDeletions', conversationId));
-        const deletedAt = deletionDoc.exists() ? Number(deletionDoc.data().deletedAt ?? 0) : 0;
+        deletedAt = deletionDoc.exists() ? Number(deletionDoc.data().deletedAt ?? 0) : 0;
         if (cancelled) return;
-        unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-          const next = snapshot.docs
-            .map((item) => ({ id: item.id, ...item.data() } as ChatMessage))
-            .filter((message) => {
-              const createdAt = message.createdAt?.toDate?.()?.getTime() ?? 0;
-              return !deletedAt || !createdAt || createdAt > deletedAt;
-            });
-          next.sort((a, b) => {
-            const aTime = a.createdAt?.toDate?.()?.getTime() ?? 0;
-            const bTime = b.createdAt?.toDate?.()?.getTime() ?? 0;
-            return aTime - bTime;
-          });
-          setMessages(next.slice(-40));
-        }, (error) => console.error('[ChatBubble] Message listener error:', error));
+        setMessages((current) => current.filter((message) => {
+          const createdAt = message.createdAt?.toDate?.()?.getTime() ?? 0;
+          return !deletedAt || !createdAt || createdAt > deletedAt;
+        }));
       } catch (error) {
-        console.error('[ChatBubble] Failed to load deletion marker:', error);
+        console.warn('[ChatBubble] Deletion marker unavailable; showing messages:', error);
       }
     };
     void loadMessages();

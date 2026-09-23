@@ -165,40 +165,45 @@ export default function ChatPage() {
     const q = query(messagesRef, orderBy('createdAt', 'asc'));
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
+    let deletedAt = 0;
 
-    const loadMessages = async () => {
+    unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs: Message[] = [];
+      snapshot.forEach((messageDoc) => {
+        const message = { id: messageDoc.id, ...messageDoc.data() } as Message;
+        const createdAt = message.createdAt?.toMillis?.() ?? 0;
+        if (!deletedAt || !createdAt || createdAt > deletedAt) {
+          msgs.push(message);
+        }
+      });
+      setMessages(msgs);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error listening to chat:', error);
+      setLoading(false);
+      alert(`Chat tidak dapat dimuat: ${error.message}`);
+    });
+
+    const loadDeletionMarker = async () => {
       try {
         const deletionDoc = await getDoc(
           doc(db, 'userData', user.uid, 'chatDeletions', conversationId)
         );
-        const deletedAt = deletionDoc.exists()
-          ? Number(deletionDoc.data().deletedAt ?? 0)
-          : null;
         if (cancelled) return;
-        setChatDeletedAt(deletedAt && deletedAt > 0 ? deletedAt : null);
-
-        unsubscribe = onSnapshot(q, (snapshot) => {
-          const msgs: Message[] = [];
-          snapshot.forEach((messageDoc) => {
-            const message = { id: messageDoc.id, ...messageDoc.data() } as Message;
+        deletedAt = deletionDoc.exists() ? Number(deletionDoc.data().deletedAt ?? 0) : 0;
+        setChatDeletedAt(deletedAt > 0 ? deletedAt : null);
+        if (deletedAt > 0) {
+          setMessages((current) => current.filter((message) => {
             const createdAt = message.createdAt?.toMillis?.() ?? 0;
-            if (!deletedAt || !createdAt || createdAt > deletedAt) {
-              msgs.push(message);
-            }
-          });
-          setMessages(msgs);
-          setLoading(false);
-        }, (error) => {
-          console.error('Error listening to chat:', error);
-          setLoading(false);
-        });
+            return !createdAt || createdAt > deletedAt;
+          }));
+        }
       } catch (error) {
-        console.error('Error loading chat:', error);
-        setLoading(false);
+        console.warn('Chat deletion marker unavailable; showing messages:', error);
       }
     };
 
-    void loadMessages();
+    void loadDeletionMarker();
     return () => {
       cancelled = true;
       unsubscribe?.();
