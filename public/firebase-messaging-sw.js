@@ -5,29 +5,30 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-// Initialize Firebase in the service worker
-// Note: Replace with your actual Firebase config
-firebase.initializeApp({
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
-});
+let messaging;
 
-const messaging = firebase.messaging();
+async function initializeMessaging() {
+  try {
+    const response = await fetch('/api/firebase-config', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Firebase config unavailable');
+    const config = await response.json();
+    firebase.initializeApp(config);
+    messaging = firebase.messaging();
+    messaging.onBackgroundMessage((payload) => showNotification(payload));
+  } catch (error) {
+    console.error('[firebase-messaging-sw.js] Init failed:', error);
+  }
+}
 
-// Handle background messages
-messaging.onBackgroundMessage((payload) => {
+function showNotification(payload) {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
 
   const notificationTitle = payload.notification?.title || 'Shiiinime';
   const notificationOptions = {
     body: payload.notification?.body || '',
-    icon: payload.notification?.icon || '/icon.svg',
+    icon: payload.notification?.icon || '/logo.png',
     image: payload.notification?.image || payload.notification?.imageUrl,
-    badge: '/icon.svg',
+    badge: '/logo.png',
     tag: payload.data?.type || 'default',
     data: payload.data,
     requireInteraction: false,
@@ -53,7 +54,9 @@ messaging.onBackgroundMessage((payload) => {
   }
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
-});
+}
+
+initializeMessaging();
 
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {

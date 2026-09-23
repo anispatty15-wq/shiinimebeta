@@ -10,7 +10,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { getMessaging, getToken, onMessage, type MessagePayload } from 'firebase/messaging';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { app } from '@/lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { app, db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 
 export interface NotificationPayload {
@@ -182,9 +183,29 @@ export function useNotifications() {
       await updateToken({ fcmToken: token });
       console.log('FCM token saved to backend');
     } catch (error) {
+      // Keep notifications working even when Cloud Functions have not been deployed yet.
+      if (user) {
+        try {
+          await updateDoc(doc(db, 'users', user.uid), {
+            fcmToken: token,
+            fcmTokenUpdatedAt: new Date(),
+          });
+          console.warn('[useNotifications] Saved FCM token directly to user profile.');
+          return;
+        } catch (fallbackError) {
+          console.error('Error saving FCM token fallback:', fallbackError);
+        }
+      }
       console.error('Error saving FCM token to backend:', error);
     }
   };
+
+  // Re-register the device token on every app open. Mobile browsers can rotate
+  // FCM tokens, and permission may already be granted so no prompt is shown.
+  useEffect(() => {
+    if (!isSupported || !user || permission !== 'granted') return;
+    void getFCMToken();
+  }, [isSupported, user, permission, getFCMToken]);
 
   // Listen to foreground messages
   useEffect(() => {
