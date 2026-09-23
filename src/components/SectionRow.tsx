@@ -46,15 +46,17 @@ export default function SectionRow({
   className,
 }: SectionRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
-  const dragState = useRef({ active: false, moved: false, startX: 0, startScrollLeft: 0 });
+  const dragState = useRef({ active: false, moved: false, pointerType: '', startX: 0, startScrollLeft: 0 });
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    // Mouse users should click cards normally; drag scrolling is for touch/pen.
+    if (event.pointerType === 'mouse') return;
     const row = rowRef.current;
     if (!row) return;
     dragState.current = {
       active: true,
       moved: false,
+      pointerType: event.pointerType,
       startX: event.clientX,
       startScrollLeft: row.scrollLeft,
     };
@@ -76,7 +78,7 @@ export default function SectionRow({
   };
 
   const preventClickAfterDrag = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (dragState.current.moved) {
+    if (dragState.current.pointerType !== 'mouse' && dragState.current.moved) {
       event.preventDefault();
       event.stopPropagation();
       dragState.current.moved = false;
