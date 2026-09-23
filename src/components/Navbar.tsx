@@ -13,20 +13,21 @@ import { useNotificationsList } from '@/hooks/useNotificationsList';
 import { useTypingEffect } from '@/hooks/useTypingEffect';
 import type { ContentType } from '@/types/media';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage, type Language } from '@/context/LanguageContext';
 
 const NAV_LINKS = [
-  { href: '/',                    label: 'Home'    },
-  { href: '/anime',               label: 'Anime'   },
-  { href: '/donghua',             label: 'Donghua' },
-  { href: '/hentai',              label: 'Hentai'  },
-  { href: '/comic',               label: 'Komik'   },
-  { href: '/anime/schedule',      label: 'Jadwal'  },
-  { href: '/anime/browse',        label: 'Filter'  },
-  { href: '/anime/search-jikan',  label: 'Jikan'   },
-  { href: '/friends',             label: 'Teman'   },
-  { href: '/notifications',       label: 'Notifikasi' },
-  { href: '/history',             label: 'Riwayat' },
-  { href: '/favorites',           label: 'Favorit' },
+  { href: '/', key: 'home' },
+  { href: '/anime', key: 'anime' },
+  { href: '/donghua', key: 'donghua' },
+  { href: '/hentai', key: 'hentai' },
+  { href: '/comic', key: 'comic' },
+  { href: '/anime/schedule', key: 'schedule' },
+  { href: '/anime/browse', key: 'filter' },
+  { href: '/anime/search-jikan', key: 'jikan' },
+  { href: '/friends', key: 'friends' },
+  { href: '/notifications', key: 'notifications' },
+  { href: '/history', key: 'history' },
+  { href: '/favorites', key: 'favorites' },
 ] as const;
 
 // The five primary destinations are already present in BottomNav on mobile.
@@ -46,6 +47,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const router   = useRouter();
   const { isAdmin, user, signInWithGoogle } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
 
   // Debug admin status
   useEffect(() => {
@@ -162,7 +164,7 @@ export default function Navbar() {
 
         {/* Desktop nav tabs */}
         <nav className="hidden md:flex items-center gap-0.5 ml-2 overflow-x-auto no-scrollbar" aria-label="Navigasi">
-          {NAV_LINKS.map(({ href, label }) => {
+          {NAV_LINKS.map(({ href, key }) => {
             const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
             return (
               <Link
@@ -173,7 +175,7 @@ export default function Navbar() {
                   active ? 'bg-cyan/10 text-cyan' : 'text-secondary hover:text-primary hover:bg-surface'
                 )}
               >
-                {label}
+                {t(key)}
               </Link>
             );
           })}
@@ -196,12 +198,23 @@ export default function Navbar() {
           />
         </div>
 
+        <select
+          value={language}
+          onChange={(event) => setLanguage(event.target.value as Language)}
+          aria-label={t('language')}
+          className="hidden md:block h-8 rounded-app border border-border bg-surface px-2 text-xs font-semibold text-secondary"
+        >
+          <option value="id">ID</option>
+          <option value="en">EN</option>
+          <option value="ja">JP</option>
+        </select>
+
         {/* Mobile action icons */}
         <div className="md:hidden flex items-center gap-1">
           {/* Notifications icon */}
           <Link
             href="/notifications"
-            aria-label="Notifikasi"
+            aria-label={t('notifications')}
             className="w-8 h-8 flex items-center justify-center rounded-app text-secondary hover:text-primary relative"
           >
             <Bell className="w-4.5 h-4.5" aria-hidden />
@@ -215,7 +228,7 @@ export default function Navbar() {
           {/* Search icon — expands search bar */}
           <button
             onClick={() => { setShowSearch((v) => !v); setMobileOpen(false); }}
-            aria-label="Cari"
+            aria-label={t('search')}
             className="w-8 h-8 flex items-center justify-center rounded-app text-secondary hover:text-primary"
           >
             <Search className="w-4.5 h-4.5" aria-hidden />
@@ -224,7 +237,7 @@ export default function Navbar() {
           {/* Profile / login */}
           <Link
             href="/profile"
-            aria-label="Profil"
+            aria-label={t('profile')}
             className="w-8 h-8 flex items-center justify-center rounded-app text-secondary hover:text-primary"
           >
             <User className="w-4.5 h-4.5" aria-hidden />
@@ -233,7 +246,7 @@ export default function Navbar() {
           {/* Hamburger */}
           <button
             onClick={() => { setMobileOpen((v) => !v); setShowSearch(false); }}
-            aria-label={mobileOpen ? 'Tutup menu' : 'Buka menu'}
+            aria-label={mobileOpen ? t('closeMenu') : t('openMenu')}
             aria-expanded={mobileOpen}
             className="w-8 h-8 flex items-center justify-center rounded-app text-secondary hover:text-primary"
           >
@@ -282,7 +295,7 @@ export default function Navbar() {
                     className="flex items-center gap-2 px-4 py-2 text-sm text-secondary hover:text-primary hover:bg-surface-2 transition-colors"
                   >
                     <User className="w-4 h-4" />
-                    My Profile
+                    {t('myProfile')}
                   </Link>
                   
                   {/* Debug: Always show admin link for testing */}
@@ -293,7 +306,7 @@ export default function Navbar() {
                       className="flex items-center gap-2 px-4 py-2 text-sm text-violet hover:text-violet/80 hover:bg-violet/10 transition-colors"
                     >
                       <Shield className="w-4 h-4" />
-                      Admin Dashboard
+                      {t('adminDashboard')}
                     </Link>
                   ) : (
                     <div className="px-4 py-1 text-xs text-muted italic">
@@ -307,7 +320,7 @@ export default function Navbar() {
                     className="flex items-center gap-2 px-4 py-2 text-sm text-secondary hover:text-primary hover:bg-surface-2 transition-colors"
                   >
                     <Clock className="w-4 h-4" />
-                    History
+                    {t('history')}
                   </Link>
 
                   <Link
@@ -316,7 +329,7 @@ export default function Navbar() {
                     className="flex items-center gap-2 px-4 py-2 text-sm text-secondary hover:text-primary hover:bg-surface-2 transition-colors"
                   >
                     <Heart className="w-4 h-4" />
-                    Bookmarks
+                    {t('bookmarks')}
                   </Link>
 
                   <div className="border-t border-border my-1" />
@@ -331,7 +344,7 @@ export default function Navbar() {
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
-                    Logout
+                    {t('logout')}
                   </button>
                 </div>
               )}
@@ -342,7 +355,7 @@ export default function Navbar() {
               className="flex items-center gap-2 px-3 py-1.5 rounded-app bg-cyan text-bg text-sm font-semibold hover:brightness-110 transition-all"
             >
               <User className="w-4 h-4" />
-              Login
+              {t('login')}
             </button>
           )}
         </div>
@@ -371,7 +384,7 @@ export default function Navbar() {
           aria-label="Menu mobile"
           className="md:hidden absolute top-full left-0 right-0 max-h-[calc(100dvh-7rem)] overflow-y-auto border-t border-border bg-bg px-3 py-2 grid grid-cols-2 gap-1 animate-slide-up shadow-xl"
         >
-          {MOBILE_MENU_LINKS.map(({ href, label }) => {
+          {MOBILE_MENU_LINKS.map(({ href, key }) => {
             const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
             return (
               <Link
@@ -382,7 +395,7 @@ export default function Navbar() {
                   active ? 'bg-cyan/10 text-cyan' : 'text-secondary hover:text-primary hover:bg-surface'
                 )}
               >
-                {label}
+                {t(key)}
               </Link>
             );
           })}
@@ -393,23 +406,37 @@ export default function Navbar() {
               href="/admin"
               className="px-3 py-2.5 rounded-app text-sm font-medium text-violet hover:text-violet/80 hover:bg-violet/10 transition-colors flex items-center gap-1.5 col-span-2 border border-violet/30"
             >
-              <Shield className="w-4 h-4" aria-hidden /> Admin Dashboard
+              <Shield className="w-4 h-4" aria-hidden /> {t('adminDashboard')}
             </Link>
           )}
+
+          <label className="col-span-2 flex items-center justify-between px-3 py-2.5 text-sm text-secondary">
+            <span>{t('language')}</span>
+            <select
+              value={language}
+              onChange={(event) => setLanguage(event.target.value as Language)}
+              className="rounded border border-border bg-surface px-2 py-1 text-xs font-semibold text-primary"
+              aria-label={t('language')}
+            >
+              <option value="id">ID</option>
+              <option value="en">EN</option>
+              <option value="ja">JP</option>
+            </select>
+          </label>
           
           {user ? (
             <Link
               href="/profile"
               className="px-3 py-2.5 rounded-app text-sm font-medium text-secondary hover:text-primary hover:bg-surface transition-colors flex items-center gap-1.5 col-span-2"
             >
-              <User className="w-4 h-4" aria-hidden /> Profil
+              <User className="w-4 h-4" aria-hidden /> {t('profile')}
             </Link>
           ) : (
             <button
               onClick={signInWithGoogle}
               className="px-3 py-2.5 rounded-app text-sm font-medium bg-cyan text-bg hover:brightness-110 transition-all flex items-center justify-center gap-1.5 col-span-2"
             >
-              <User className="w-4 h-4" aria-hidden /> Login dengan Google
+              <User className="w-4 h-4" aria-hidden /> {t('login')} Google
             </button>
           )}
         </nav>

@@ -16,6 +16,7 @@ import ChatBubble from '@/components/ChatBubble';
 import { BookmarkProvider } from '@/context/BookmarkContext';
 import { HistoryProvider }  from '@/context/HistoryContext';
 import { AuthProvider }     from '@/context/AuthContext';
+import { LanguageProvider } from '@/context/LanguageContext';
 
 export const metadata: Metadata = {
   title:       { default: 'ShiiiNime', template: '%s | ShiiiNime' },
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AntiInspect />
         <PageLoader />
         <OAuthHandler />
+        <LanguageProvider>
         <AuthProvider>
           <HistoryProvider>
             <BookmarkProvider>
@@ -67,6 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </BookmarkProvider>
           </HistoryProvider>
         </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );
