@@ -17,6 +17,7 @@ import { isCommentAllowed } from '@/lib/wordFilter';
 import UserProfilePopup, { type PopupUser } from '@/components/UserProfilePopup';
 import { createReplyNotification } from '@/hooks/useCommentNotifier';
 import { CHAT_GIFTS, getChatGift, type ChatGift } from '@/lib/gifts';
+import { compressMedia } from '@/lib/mediaCompression';
 
 // ── Types ─────────────────────────────────────────────────────
 interface Comment {
@@ -46,6 +47,13 @@ interface Comment {
 interface CommentsProps {
   episodeSlug: string;
   contentType: 'anime' | 'hentai';
+}
+
+interface GiphyResult {
+  id: string;
+  title: string;
+  url: string;
+  preview: string;
 }
 
 // ── Avatar ────────────────────────────────────────────────────
@@ -188,14 +196,38 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
   const [filterErr,  setFilterErr]  = useState<string | null>(null);
   const [replyTo,    setReplyTo]    = useState<Comment | null>(null);
   const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
+  const [selectedMediaUrl, setSelectedMediaUrl] = useState('');
   const [mediaPreview, setMediaPreview] = useState('');
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [selectedGift, setSelectedGift] = useState<ChatGift | null>(null);
   const [showGifts, setShowGifts] = useState(false);
+  const [gifSuggestions, setGifSuggestions] = useState<GiphyResult[]>([]);
+  const [gifSearching, setGifSearching] = useState(false);
   const [popupUser,  setPopupUser]  = useState<PopupUser | null>(null);
   const bottomRef  = useRef<HTMLDivElement>(null);
   const inputRef   = useRef<HTMLInputElement>(null);
   const isHentai   = contentType === 'hentai';
+
+  useEffect(() => {
+    const queryText = text.trim();
+    if (queryText.length < 2) {
+      setGifSuggestions([]);
+      return;
+    }
+    const timer = window.setTimeout(async () => {
+      setGifSearching(true);
+      try {
+        const response = await fetch(`/api/giphy/search?q=${encodeURIComponent(queryText)}`);
+        const payload = await response.json() as { results?: GiphyResult[] };
+        setGifSuggestions(response.ok ? (payload.results ?? []).slice(0, 6) : []);
+      } catch {
+        setGifSuggestions([]);
+      } finally {
+        setGifSearching(false);
+      }
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [text]);
 
   // ── Firestore listener ────────────────────────────────────
   useEffect(() => {
@@ -278,9 +310,10 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
     
     try {
       let mediaUrl = '';
-      if (selectedMedia) {
-        if (selectedMedia.size > 25 * 1024 * 1024) throw new Error('Ukuran media maksimal 25 MB.');
-        mediaUrl = await uploadCommentMedia(selectedMedia);
+      if (selectedMediaUrl) {
+        mediaUrl = selectedMediaUrl;
+      } else if (selectedMedia) {
+        mediaUrl = await uploadCommentMedia(await compressMedia(selectedMedia));
       }
       await addDoc(collection(db, 'comments', episodeSlug, 'messages'), {
         text:         trimmedText,
@@ -314,6 +347,7 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
 
       setText('');
       setSelectedMedia(null);
+      setSelectedMediaUrl('');
       setMediaPreview('');
       setSelectedGift(null);
       setShowGifts(false);
@@ -425,7 +459,15 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
                 <div className="flex items-center gap-2 rounded-app border border-border bg-surface px-2 py-1">
                   {mediaPreview && (mediaType === 'video' ? <video src={mediaPreview} className="h-12 w-12 rounded object-cover" /> : <img src={mediaPreview} alt="Preview media" className="h-12 w-12 rounded object-cover" />)}
                   {selectedGift && <span className="text-2xl">{selectedGift.emoji}</span>}
-                  <button type="button" onClick={() => { setSelectedMedia(null); setMediaPreview(''); setSelectedGift(null); }} className="text-muted hover:text-red-400" aria-label="Hapus lampiran"><X className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => { setSelectedMedia(null); setSelectedMediaUrl(''); setMediaPreview(''); setSelectedGift(null); }} className="text-muted hover:text-red-400" aria-label="Hapus lampiran"><X className="h-4 w-4" /></button>
+                </div>
+              )}
+              {gifSuggestions.length > 0 && (
+                <div className="rounded-xl border border-border bg-surface p-2 shadow-lg">
+                  <div className="mb-1 flex items-center justify-between text-[0.65rem] text-muted"><span>GIF rekomendasi</span>{gifSearching && <span>Memuat...</span>}</div>
+                  <div className="grid grid-cols-3 gap-1">
+                    {gifSuggestions.map((gif) => <button key={gif.id} type="button" onClick={() => { setSelectedMedia(null); setSelectedMediaUrl(gif.url); setMediaType('image'); setMediaPreview(gif.preview); setGifSuggestions([]); }} className="overflow-hidden rounded-lg"><img src={gif.preview} alt={gif.title} className="h-14 w-full object-cover" /></button>)}
+                  </div>
                 </div>
               )}
               <div className="flex gap-2">
@@ -434,9 +476,12 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
                   <input type="file" accept="image/*,video/*" className="sr-only" onChange={(event) => {
                     const file = event.target.files?.[0];
                     if (!file) return;
-                    setSelectedMedia(file);
-                    setMediaType(file.type.startsWith('video/') ? 'video' : 'image');
-                    setMediaPreview(URL.createObjectURL(file));
+                    void compressMedia(file).then((compressed) => {
+                      setSelectedMedia(compressed);
+                      setSelectedMediaUrl('');
+                      setMediaType(compressed.type.startsWith('video/') ? 'video' : 'image');
+                      setMediaPreview(URL.createObjectURL(compressed));
+                    }).catch((error: Error) => alert(error.message));
                   }} />
                 </label>
                 <div className="relative">
@@ -457,7 +502,7 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
                 />
                 <button
                   type="submit"
-                  disabled={(!text.trim() && !selectedMedia && !selectedGift) || sending}
+                  disabled={(!text.trim() && !selectedMedia && !selectedMediaUrl && !selectedGift) || sending}
                   aria-label="Kirim"
                   className={clsx(
                     'w-9 h-9 flex items-center justify-center rounded-app transition-all flex-shrink-0',

@@ -16,6 +16,7 @@ import {
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { CHAT_GIFTS, getChatGift, type ChatGift } from '@/lib/gifts';
+import { compressMedia } from '@/lib/mediaCompression';
 
 interface Message {
   id: string;
@@ -34,6 +35,13 @@ interface OtherUser {
   uid: string;
   displayName: string;
   photoURL: string;
+}
+
+interface GiphyResult {
+  id: string;
+  title: string;
+  url: string;
+  preview: string;
 }
 
 async function uploadToCloudinary(file: File): Promise<string> {
@@ -65,14 +73,38 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [selectedMediaUrl, setSelectedMediaUrl] = useState('');
   const [imagePreview, setImagePreview] = useState('');
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [showGifts, setShowGifts] = useState(false);
   const [selectedGift, setSelectedGift] = useState<ChatGift | null>(null);
+  const [gifSuggestions, setGifSuggestions] = useState<GiphyResult[]>([]);
+  const [gifSearching, setGifSearching] = useState(false);
   const [deletingChat, setDeletingChat] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const query = inputText.trim();
+    if (query.length < 2) {
+      setGifSuggestions([]);
+      return;
+    }
+    const timer = window.setTimeout(async () => {
+      setGifSearching(true);
+      try {
+        const response = await fetch(`/api/giphy/search?q=${encodeURIComponent(query)}`);
+        const payload = await response.json() as { results?: GiphyResult[] };
+        setGifSuggestions(response.ok ? (payload.results ?? []).slice(0, 6) : []);
+      } catch {
+        setGifSuggestions([]);
+      } finally {
+        setGifSearching(false);
+      }
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [inputText]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -133,7 +165,7 @@ export default function ChatPage() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !otherUid || !db || (!inputText.trim() && !selectedImage && !selectedGift)) return;
+    if (!user || !otherUid || !db || (!inputText.trim() && !selectedImage && !selectedMediaUrl && !selectedGift)) return;
 
     const text = inputText.trim();
     if (text.length > 500) {
@@ -149,9 +181,10 @@ export default function ChatPage() {
       const messagesRef = collection(db, 'conversations', conversationId, 'messages');
       let mediaUrl = '';
 
-      if (selectedImage) {
-        if (selectedImage.size > 25 * 1024 * 1024) throw new Error('Ukuran media maksimal 25 MB.');
-        mediaUrl = await uploadToCloudinary(selectedImage);
+      if (selectedMediaUrl) {
+        mediaUrl = selectedMediaUrl;
+      } else if (selectedImage) {
+        mediaUrl = await uploadToCloudinary(await compressMedia(selectedImage));
       }
       
       await addDoc(messagesRef, {
@@ -175,9 +208,11 @@ export default function ChatPage() {
       // Focus back to input
       inputRef.current?.focus();
       setSelectedImage(null);
+      setSelectedMediaUrl('');
       setImagePreview('');
       setSelectedGift(null);
       setShowGifts(false);
+      setGifSuggestions([]);
     } catch (err) {
       console.error('Error sending message:', err);
       alert('Gagal mengirim pesan. Coba lagi.');
@@ -356,10 +391,18 @@ export default function ChatPage() {
         onSubmit={handleSend}
         className="fixed inset-x-0 bottom-16 z-40 flex w-full shrink-0 items-center gap-2 border-y border-border bg-surface/95 px-3 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur md:bottom-0 md:px-4"
       >
+        {gifSuggestions.length > 0 && (
+          <div className="absolute bottom-16 left-3 right-3 z-30 rounded-xl border border-border bg-surface p-2 shadow-xl">
+            <div className="mb-1 flex items-center justify-between text-[0.65rem] text-muted"><span>GIF rekomendasi</span>{gifSearching && <Loader2 className="h-3 w-3 animate-spin" />}</div>
+            <div className="grid grid-cols-3 gap-1">
+              {gifSuggestions.map((gif) => <button key={gif.id} type="button" onClick={() => { setSelectedImage(null); setSelectedMediaUrl(gif.url); setMediaType('image'); setImagePreview(gif.preview); setGifSuggestions([]); }} className="overflow-hidden rounded-lg"><img src={gif.preview} alt={gif.title} className="h-14 w-full object-cover" /></button>)}
+            </div>
+          </div>
+        )}
         {imagePreview && (
           <div className="absolute bottom-16 left-4 flex items-center gap-2 rounded-app bg-surface border border-border p-2 shadow-lg">
             {mediaType === 'video' ? <video src={imagePreview} className="h-14 w-14 rounded object-cover" /> : <img src={imagePreview} alt="Preview lampiran" className="h-14 w-14 rounded object-cover" />}
-            <button type="button" onClick={() => { setSelectedImage(null); setImagePreview(''); }} className="text-muted hover:text-red-500" aria-label="Hapus gambar">
+            <button type="button" onClick={() => { setSelectedImage(null); setSelectedMediaUrl(''); setImagePreview(''); }} className="text-muted hover:text-red-500" aria-label="Hapus media">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -382,9 +425,12 @@ export default function ChatPage() {
             onChange={(event) => {
               const file = event.target.files?.[0];
               if (!file) return;
-              setSelectedImage(file);
-              setMediaType(file.type.startsWith('video/') ? 'video' : 'image');
-              setImagePreview(URL.createObjectURL(file));
+              void compressMedia(file).then((compressed) => {
+                setSelectedImage(compressed);
+                setSelectedMediaUrl('');
+                setMediaType(compressed.type.startsWith('video/') ? 'video' : 'image');
+                setImagePreview(URL.createObjectURL(compressed));
+              }).catch((error: Error) => alert(error.message));
             }}
           />
         </label>
@@ -413,7 +459,7 @@ export default function ChatPage() {
         />
         <button
           type="submit"
-          disabled={(!inputText.trim() && !selectedImage && !selectedGift) || sending}
+          disabled={(!inputText.trim() && !selectedImage && !selectedMediaUrl && !selectedGift) || sending}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan text-bg hover:brightness-110 transition-all disabled:cursor-not-allowed disabled:opacity-50"
         >
           {sending ? (
