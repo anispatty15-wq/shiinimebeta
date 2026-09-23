@@ -6,11 +6,11 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { 
-  ArrowLeft, Send, User, Loader2, MessageCircle, ImagePlus, Video, Gift, X
+  ArrowLeft, Send, User, Loader2, MessageCircle, ImagePlus, Video, Gift, X, MoreVertical
 } from 'lucide-react';
 import {
   collection, doc, getDoc, addDoc, query,
-  orderBy, onSnapshot, serverTimestamp, setDoc, deleteDoc,
+  orderBy, onSnapshot, serverTimestamp, setDoc, deleteDoc, updateDoc,
   type DocumentData,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -29,6 +29,8 @@ interface Message {
   giftEmoji?: string;
   senderId: string;
   createdAt: any;
+  deletedForAll?: boolean;
+  deletedAt?: any;
 }
 
 interface OtherUser {
@@ -85,9 +87,30 @@ export default function ChatPage() {
   const [deletingChat, setDeletingChat] = useState(false);
   const [chatDeletedAt, setChatDeletedAt] = useState<number | null>(null);
   const [restoringChat, setRestoringChat] = useState(false);
+  const [hiddenMessageIds, setHiddenMessageIds] = useState<string[]>([]);
+  const [messageMenuId, setMessageMenuId] = useState<string | null>(null);
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
+  const [recentlyDeletedMessage, setRecentlyDeletedMessage] = useState<Message | null>(null);
+  const MESSAGE_DELETE_COOLDOWN_MS = 5 * 60 * 1000;
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const getConversationId = (uid1: string, uid2: string) => {
+    return [uid1, uid2].sort().join('_');
+  };
+  const conversationId = user && otherUid ? getConversationId(user.uid, otherUid) : '';
+
+  useEffect(() => {
+    if (!user || !conversationId) return;
+    const key = `hidden-chat-messages:${user.uid}:${conversationId}`;
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(key) ?? '[]');
+      if (Array.isArray(stored)) setHiddenMessageIds(stored.filter((id): id is string => typeof id === 'string'));
+    } catch {
+      window.localStorage.removeItem(key);
+    }
+  }, [user, conversationId]);
 
   useEffect(() => {
     const message = searchParams.get('message');
@@ -119,11 +142,6 @@ export default function ChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // Get conversation ID (sorted UIDs)
-  const getConversationId = (uid1: string, uid2: string) => {
-    return [uid1, uid2].sort().join('_');
-  };
 
   // Fetch other user info
   useEffect(() => {
@@ -308,6 +326,69 @@ export default function ChatPage() {
     }
   };
 
+  const hideMessageForMe = (messageId: string) => {
+    if (!user || !conversationId) return;
+    const next = [...new Set([...hiddenMessageIds, messageId])];
+    setHiddenMessageIds(next);
+    window.localStorage.setItem(`hidden-chat-messages:${user.uid}:${conversationId}`, JSON.stringify(next));
+    setMessageMenuId(null);
+  };
+
+  const deleteMessageForAll = async (message: Message) => {
+    if (!user || message.senderId !== user.uid || !db) return;
+    const createdAt = message.createdAt?.toMillis?.() ?? 0;
+    if (!createdAt || Date.now() - createdAt > MESSAGE_DELETE_COOLDOWN_MS) {
+      alert('Pesan hanya bisa dihapus untuk semua dalam 5 menit setelah dikirim.');
+      setMessageMenuId(null);
+      return;
+    }
+    if (!window.confirm('Hapus pesan ini untuk semua orang?')) return;
+    try {
+      setDeletingMessageId(message.id);
+      await updateDoc(doc(db, 'conversations', conversationId, 'messages', message.id), {
+        text: '',
+        imageUrl: '',
+        mediaUrl: '',
+        giftId: '',
+        giftName: '',
+        giftEmoji: '',
+        deletedForAll: true,
+        deletedAt: serverTimestamp(),
+      });
+      setRecentlyDeletedMessage(message);
+      window.setTimeout(() => {
+        setRecentlyDeletedMessage((current) => current?.id === message.id ? null : current);
+      }, MESSAGE_DELETE_COOLDOWN_MS);
+      setMessageMenuId(null);
+    } catch (error) {
+      console.error('Error deleting message for all:', error);
+      alert('Pesan gagal dihapus untuk semua.');
+    } finally {
+      setDeletingMessageId(null);
+    }
+  };
+
+  const undoDeleteMessage = async () => {
+    if (!recentlyDeletedMessage || !db) return;
+    const message = recentlyDeletedMessage;
+    try {
+      await updateDoc(doc(db, 'conversations', conversationId, 'messages', message.id), {
+        text: message.text || '',
+        imageUrl: message.imageUrl || '',
+        mediaUrl: message.mediaUrl || '',
+        giftId: message.giftId || '',
+        giftName: message.giftName || '',
+        giftEmoji: message.giftEmoji || '',
+        deletedForAll: false,
+        deletedAt: null,
+      });
+      setRecentlyDeletedMessage(null);
+    } catch (error) {
+      console.error('Error undoing message deletion:', error);
+      alert('Pesan gagal dipulihkan.');
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -418,6 +499,8 @@ export default function ChatPage() {
         ) : (
           messages.map((msg) => {
             const isMine = msg.senderId === user.uid;
+            if (hiddenMessageIds.includes(msg.id)) return null;
+            const createdAtMs = msg.createdAt?.toMillis?.() ?? 0;
             return (
               <div
                 key={msg.id}
@@ -430,9 +513,11 @@ export default function ChatPage() {
                       : 'bg-surface border border-border text-primary rounded-bl-sm'
                   }`}
                 >
-                  <p className="text-sm break-words whitespace-pre-wrap">
-                    {msg.text}
-                  </p>
+                  {msg.deletedForAll ? (
+                    <p className="text-sm italic text-muted">Pesan ini telah dihapus</p>
+                  ) : (
+                    <>
+                      <p className="text-sm break-words whitespace-pre-wrap">{msg.text}</p>
                   {msg.imageUrl && (
                     <a href={msg.imageUrl} target="_blank" rel="noreferrer" className="block mt-2">
                       <img src={msg.imageUrl} alt="Lampiran chat" className="max-w-full max-h-64 rounded-lg object-cover" />
@@ -447,6 +532,9 @@ export default function ChatPage() {
                       <p className="mt-1 text-xs font-semibold">{msg.giftName ?? getChatGift(msg.giftId)?.name ?? 'Gift'}</p>
                     </div>
                   )}
+                    </>
+                  )}
+                  <div className="relative mt-1 flex items-center justify-end gap-1">
                   {msg.createdAt && (
                     <p
                       className={`text-[0.65rem] mt-1 ${
@@ -459,6 +547,32 @@ export default function ChatPage() {
                       })}
                     </p>
                   )}
+                    <button
+                      type="button"
+                      onClick={() => setMessageMenuId(messageMenuId === msg.id ? null : msg.id)}
+                      className="rounded-full p-1 text-muted hover:bg-black/10"
+                      aria-label="Menu pesan"
+                    >
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </button>
+                    {messageMenuId === msg.id && (
+                      <div className="absolute bottom-6 right-0 z-20 min-w-44 rounded-lg border border-border bg-surface p-1 text-left text-xs shadow-xl">
+                        <button type="button" onClick={() => hideMessageForMe(msg.id)} className="block w-full rounded px-3 py-2 text-left hover:bg-surface-2">
+                          Hapus untuk saya
+                        </button>
+                        {isMine && !msg.deletedForAll && (
+                          <button
+                            type="button"
+                            disabled={deletingMessageId === msg.id || !createdAtMs || Date.now() - createdAtMs > MESSAGE_DELETE_COOLDOWN_MS}
+                            onClick={() => void deleteMessageForAll(msg)}
+                            className="block w-full rounded px-3 py-2 text-left hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Hapus untuk semua
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -466,6 +580,18 @@ export default function ChatPage() {
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {recentlyDeletedMessage && (
+        <div className="fixed bottom-28 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-xs shadow-xl md:bottom-16">
+          <span>Pesan dihapus untuk semua</span>
+          <button type="button" onClick={() => void undoDeleteMessage()} className="font-semibold text-cyan hover:underline">
+            Urungkan
+          </button>
+          <button type="button" onClick={() => setRecentlyDeletedMessage(null)} className="text-muted" aria-label="Tutup">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Input area */}
       <form

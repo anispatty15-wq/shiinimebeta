@@ -124,6 +124,15 @@ service cloud.firestore {
         (!('mediaType' in request.resource.data) || request.resource.data.mediaType in ['image', 'video']) &&
         (('text' in request.resource.data && request.resource.data.text.size() > 0) ||
          request.resource.data.keys().hasAny(['imageUrl', 'mediaUrl', 'giftId']));
+      allow update: if isLoggedIn()
+        && resource.data.senderId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'text', 'imageUrl', 'mediaUrl', 'giftId', 'giftName', 'giftEmoji', 'deletedForAll', 'deletedAt'
+        ])
+        && (
+          request.resource.data.deletedForAll == true
+          || (resource.data.deletedForAll == true && request.resource.data.deletedForAll == false)
+        );
     }
   }
 }
