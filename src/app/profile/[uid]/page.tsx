@@ -377,7 +377,7 @@ export default function ProfilePage() {
         {/* Profile Header */}
         <div className="bg-surface border border-border rounded-app overflow-hidden mb-6">
           {/* Cover image uses a real img element so animated GIF backgrounds keep moving. */}
-          <div className="relative h-36 overflow-hidden bg-gradient-to-br from-cyan/20 via-violet/20 to-pink/20">
+          <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-cyan/20 via-violet/20 to-pink/20">
             {profile.backgroundURL && (
               <>
                 <img
@@ -389,7 +389,7 @@ export default function ProfilePage() {
                 <img
                   src={profile.backgroundURL}
                   alt="Latar profil"
-                  className="absolute inset-0 h-full w-full object-contain"
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-black/10" />
               </>
@@ -640,25 +640,12 @@ export default function ProfilePage() {
                       return;
                     }
                     setBackgroundFile(file);
-                    if (file.type === 'image/gif') {
-                      setBackgroundPreview(URL.createObjectURL(file));
-                      setCropSource('');
-                      return;
-                    }
-                    setCropSource(URL.createObjectURL(file));
-                    const previewURL = URL.createObjectURL(file);
-                    const previewImage = new window.Image();
-                    previewImage.onload = () => {
-                      setCropImageSize({ width: previewImage.naturalWidth, height: previewImage.naturalHeight });
-                      URL.revokeObjectURL(previewURL);
-                    };
-                    previewImage.src = previewURL;
-                    setCropZoom(1);
-                    setCropPosition({ x: 0, y: 0 });
+                    setBackgroundPreview(URL.createObjectURL(file));
+                    setCropSource('');
                   }}
                 />
               </label>
-              <p className="mt-1 text-[0.7rem] font-normal text-muted">GIF dipertahankan tetap bergerak. Gambar biasa bisa di-crop 16:9.</p>
+              <p className="mt-1 text-[0.7rem] font-normal text-muted">Gambar akan otomatis disesuaikan ke banner 16:9 tanpa crop manual. GIF tetap bergerak.</p>
               {cropSource && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4">
                   <div className="w-full max-w-md rounded-2xl bg-surface p-4 shadow-2xl">
