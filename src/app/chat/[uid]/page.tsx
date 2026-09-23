@@ -68,6 +68,7 @@ export default function ChatPage() {
   const { user } = useAuth();
   
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
+  const [otherUserLoading, setOtherUserLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -120,6 +121,8 @@ export default function ChatPage() {
   useEffect(() => {
     if (!otherUid || !db) return;
     const firestore = db;
+    setOtherUserLoading(true);
+    setOtherUser(null);
 
     const fetchUser = async () => {
       try {
@@ -134,6 +137,8 @@ export default function ChatPage() {
         }
       } catch (err) {
         console.error('Error fetching other user:', err);
+      } finally {
+        setOtherUserLoading(false);
       }
     };
 
@@ -261,7 +266,7 @@ export default function ChatPage() {
     );
   }
 
-  if (loading) {
+  if (loading || otherUserLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -283,7 +288,7 @@ export default function ChatPage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
 
-        {otherUser && (
+        {otherUser ? (
           <>
             <div className="w-10 h-10 rounded-full overflow-hidden bg-surface-2 flex-shrink-0 relative">
               {otherUser.photoURL ? (
@@ -323,6 +328,11 @@ export default function ChatPage() {
               </button>
             </div>
           </>
+        ) : (
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-surface-2" />
+            <div className="h-3 w-28 animate-pulse rounded bg-surface-2" />
+          </div>
         )}
       </div>
 

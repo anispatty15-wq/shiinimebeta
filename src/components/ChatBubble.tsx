@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { collection, doc, getDoc, getDocs, addDoc, onSnapshot, query, serverTimestamp, where } from 'firebase/firestore';
 import { ArrowLeft, Loader2, MessageCircle, Send, Users, X } from 'lucide-react';
 import { useNotificationsList } from '@/hooks/useNotificationsList';
@@ -33,6 +34,7 @@ interface ChatMessage {
 
 export default function ChatBubble() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isAdmin } = useAuth();
   const { notifications, markAsRead } = useNotificationsList();
   const [open, setOpen] = useState(false);
@@ -206,7 +208,7 @@ export default function ChatBubble() {
     dragStart.current = null;
   };
 
-  if (!user) return null;
+  if (!user || pathname.startsWith('/chat/')) return null;
 
   return (
     <div
