@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import {
   collection, doc, getDoc, addDoc, query,
-  orderBy, onSnapshot, serverTimestamp, setDoc,
+  orderBy, onSnapshot, serverTimestamp, setDoc, deleteDoc,
   type DocumentData,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -83,6 +83,8 @@ export default function ChatPage() {
   const [gifSuggestions, setGifSuggestions] = useState<GiphyResult[]>([]);
   const [gifSearching, setGifSearching] = useState(false);
   const [deletingChat, setDeletingChat] = useState(false);
+  const [chatDeletedAt, setChatDeletedAt] = useState<number | null>(null);
+  const [restoringChat, setRestoringChat] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -173,6 +175,7 @@ export default function ChatPage() {
           ? Number(deletionDoc.data().deletedAt ?? 0)
           : null;
         if (cancelled) return;
+        setChatDeletedAt(deletedAt && deletedAt > 0 ? deletedAt : null);
 
         unsubscribe = onSnapshot(q, (snapshot) => {
           const msgs: Message[] = [];
@@ -285,6 +288,21 @@ export default function ChatPage() {
     }
   };
 
+  const handleRestoreChat = async () => {
+    if (!user || !otherUid || !db || !chatDeletedAt) return;
+    try {
+      setRestoringChat(true);
+      const conversationId = getConversationId(user.uid, otherUid);
+      await deleteDoc(doc(db, 'userData', user.uid, 'chatDeletions', conversationId));
+      setChatDeletedAt(null);
+    } catch (err) {
+      console.error('Error restoring chat:', err);
+      alert('Gagal memulihkan chat. Coba lagi.');
+    } finally {
+      setRestoringChat(false);
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -378,7 +396,19 @@ export default function ChatPage() {
           <div className="text-center py-12">
             <MessageCircle className="w-12 h-12 text-muted mx-auto mb-3" />
             <p className="text-sm text-secondary">Belum ada pesan</p>
-            <p className="text-xs text-muted mt-1">Kirim pesan pertama!</p>
+            <p className="text-xs text-muted mt-1">
+              {chatDeletedAt ? 'Chat ini disembunyikan untuk akun kamu.' : 'Kirim pesan pertama!'}
+            </p>
+            {chatDeletedAt && (
+              <button
+                type="button"
+                onClick={handleRestoreChat}
+                disabled={restoringChat}
+                className="mt-3 rounded-lg border border-cyan/40 px-3 py-2 text-xs font-semibold text-cyan disabled:opacity-50"
+              >
+                {restoringChat ? 'Memulihkan...' : 'Pulihkan pesan lama'}
+              </button>
+            )}
           </div>
         ) : (
           messages.map((msg) => {
