@@ -10,6 +10,7 @@ import { normaliseCardItem } from '@/utils/slugHelpers';
 import HeroBanner from '@/components/HeroBanner';
 import TopBanner from '@/components/TopBanner';
 import { useAuth } from '@/context/AuthContext';
+import SocialLinks from '@/components/SocialLinks';
 
 function toItems(raw: unknown, defaultStatus?: string, contentType: 'anime' | 'donghua' | 'hentai' = 'anime') {
   if (!Array.isArray(raw)) return [];
@@ -231,6 +232,8 @@ export default function HomePage() {
           accent="pink"
         />
       </div>
+
+      <SocialLinks />
     </div>
   );
 }
