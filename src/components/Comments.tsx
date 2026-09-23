@@ -446,9 +446,11 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex gap-2">
-            <Avatar photoURL={profile?.photoURL} name={profile?.displayName ?? ''} size={8} />
-            <div className="flex-1 flex flex-col gap-1.5">
+          <form onSubmit={handleSubmit} className="flex min-w-0 w-full gap-2">
+            <div className="shrink-0">
+              <Avatar photoURL={profile?.photoURL} name={profile?.displayName ?? ''} size={8} />
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
               {filterErr && (
                 <div className="flex items-center gap-1.5 text-xs text-red-400 px-1">
                   <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
@@ -470,7 +472,7 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
                   </div>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex min-w-0 w-full items-center gap-2">
                 <label className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-app border border-border text-muted hover:text-cyan" aria-label="Tambah foto atau video">
                   <ImagePlus className="h-4 w-4" />
                   <input type="file" accept="image/*,video/*" className="sr-only" onChange={(event) => {
@@ -505,7 +507,7 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
                   placeholder={replyTo ? `Balas @${replyTo.displayName}…` : 'Tulis komentar…'}
                   maxLength={500}
                   className={clsx(
-                    'flex-1 bg-surface border rounded-app px-3 py-2 text-sm text-primary placeholder:text-muted outline-none transition-colors',
+                    'min-w-0 flex-1 bg-surface border rounded-app px-3 py-2 text-sm text-primary placeholder:text-muted outline-none transition-colors',
                     filterErr ? 'border-red-400/60' : 'border-border focus:border-cyan/60'
                   )}
                 />
