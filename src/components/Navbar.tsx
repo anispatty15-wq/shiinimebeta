@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Search, Menu, X, User, Heart, History, Bell, Shield, Clock } from 'lucide-react';
+import { Search, Menu, X, User, Heart, History, Bell, Shield, Clock, Moon, Sun } from 'lucide-react';
 import Image from 'next/image';
 import { clsx } from 'clsx';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -48,7 +48,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const router   = useRouter();
   const { isAdmin, user, signInWithGoogle } = useAuth();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, theme, setTheme, t } = useLanguage();
 
   // Debug admin status
   useEffect(() => {
@@ -207,8 +207,26 @@ export default function Navbar() {
           <option value="ja">JP</option>
         </select>
 
+        <button
+          type="button"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          aria-label={theme === 'dark' ? t('lightMode') : t('darkMode')}
+          title={theme === 'dark' ? t('lightMode') : t('darkMode')}
+          className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-app border border-border bg-surface text-secondary hover:text-primary md:flex"
+        >
+          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
+
         {/* Mobile action icons */}
         <div className="md:hidden flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            aria-label={theme === 'dark' ? t('lightMode') : t('darkMode')}
+            className="flex h-8 w-8 items-center justify-center rounded-app text-secondary hover:text-primary"
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
           {/* Notifications icon */}
           <Link
             href="/notifications"

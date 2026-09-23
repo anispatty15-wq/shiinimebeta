@@ -25,6 +25,35 @@
     overflow-x: hidden;
   }
 
+  html.dark {
+    background-color: #07111F;
+  }
+
+  html.dark body {
+    background-color: #07111F;
+    color: #E6F4FF;
+  }
+
+  html.dark .bg-bg { background-color: #07111F; }
+  html.dark .bg-surface { background-color: #0D1B2A; }
+  html.dark .bg-surface-2 { background-color: #102A43; }
+  html.dark .border-border { border-color: #1B466B; }
+  html.dark .text-primary { color: #E6F4FF; }
+  html.dark .text-secondary { color: #B8CEE0; }
+  html.dark .text-muted { color: #7893AA; }
+  html.dark .bg-cyan { background-color: #00D9FF; }
+  html.dark .text-cyan { color: #00D9FF; }
+  html.dark .border-cyan { border-color: #00D9FF; }
+  html.dark .bg-pink { background-color: #008CFF; }
+  html.dark .text-pink { color: #008CFF; }
+  html.dark .border-pink { border-color: #008CFF; }
+  html.dark .bg-violet { background-color: #3667FF; }
+  html.dark .text-violet { color: #6F9BFF; }
+  html.dark .border-violet { border-color: #3667FF; }
+
+  html.dark ::-webkit-scrollbar-track { background: #07111F; }
+  html.dark ::-webkit-scrollbar-thumb { background: #1B466B; }
+
   /* Scrollbar — webkit */
   ::-webkit-scrollbar       { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: #FFF7FA; }

@@ -22,6 +22,7 @@ import { getLevelFromXP, getXPProgress } from '@/lib/xp';
 import { useFriendSystem } from '@/hooks/useFriendSystem';
 import { useFriends } from '@/hooks/useFriends';
 import { useBookmarks } from '@/context/BookmarkContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface UserProfile {
   uid: string;
@@ -100,6 +101,7 @@ export default function ProfilePage() {
   } = useFriendSystem(uid);
   const { friends: friendList } = useFriends();
   const { allBookmarks } = useBookmarks();
+  const { language, t } = useLanguage();
 
   useEffect(() => {
     if (!uid) return;
@@ -380,9 +382,9 @@ export default function ProfilePage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-md px-4">
           <User className="w-16 h-16 text-muted mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-primary mb-2">User Not Found</h2>
+          <h2 className="text-xl font-bold text-primary mb-2">{language === 'ja' ? 'ユーザーが見つかりません' : language === 'en' ? 'User Not Found' : 'Pengguna Tidak Ditemukan'}</h2>
           <p className="text-sm text-secondary mb-2">
-            Profile ini tidak ditemukan atau sedang dimuat.
+            {language === 'ja' ? 'このプロフィールは見つからないか、読み込み中です。' : language === 'en' ? 'This profile was not found or is still loading.' : 'Profil ini tidak ditemukan atau sedang dimuat.'}
           </p>
           {currentUser?.uid === uid && (
             <p className="text-xs text-yellow-400 mb-6">
@@ -395,7 +397,7 @@ export default function ProfilePage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-2 border border-border text-secondary hover:text-primary transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
-              Kembali
+              {t('back')}
             </button>
             <button
               onClick={() => window.location.reload()}
@@ -421,7 +423,7 @@ export default function ProfilePage() {
           className="inline-flex items-center gap-2 text-sm text-secondary hover:text-primary transition-colors mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          Kembali
+          {t('back')}
         </button>
 
         {/* Profile Header */}
@@ -493,7 +495,7 @@ export default function ProfilePage() {
                     className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-cyan text-bg hover:brightness-110 disabled:opacity-50"
                   >
                     <UserPlus className="w-4 h-4" />
-                    Add Friend
+                    {t('addFriend')}
                   </button>
                 )}
 
@@ -503,7 +505,7 @@ export default function ProfilePage() {
                     className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-yellow-400/10 border border-yellow-400/30 text-yellow-400 cursor-not-allowed"
                   >
                     <Clock className="w-4 h-4" />
-                    Pending
+                    {t('pending')}
                   </button>
                 )}
 
@@ -513,7 +515,7 @@ export default function ProfilePage() {
                     className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 transition-all"
                   >
                     <UserCheck className="w-4 h-4" />
-                    Accept Request
+                    {t('acceptRequest')}
                   </button>
                 )}
 
@@ -524,8 +526,8 @@ export default function ProfilePage() {
                   >
                     <UserCheck className="w-4 h-4 group-hover:hidden" />
                     <UserX className="w-4 h-4 hidden group-hover:block" />
-                    <span className="group-hover:hidden">Friends</span>
-                    <span className="hidden group-hover:inline">Remove</span>
+                    <span className="group-hover:hidden">{language === 'ja' ? '友達' : language === 'en' ? 'Friends' : 'Teman'}</span>
+                    <span className="hidden group-hover:inline">{language === 'ja' ? '削除' : language === 'en' ? 'Remove' : 'Hapus'}</span>
                   </button>
                 )}
 
@@ -539,7 +541,7 @@ export default function ProfilePage() {
                   )}
                 >
                   <Heart className={clsx('w-4 h-4', isFollowing && 'fill-pink')} />
-                  {isFollowing ? 'Following' : 'Follow'}
+                  {isFollowing ? t('following') : t('follow')}
                 </button>
 
                 <button
@@ -547,13 +549,13 @@ export default function ProfilePage() {
                   className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-surface-2 border border-border text-secondary hover:border-cyan/30 hover:text-cyan transition-all"
                 >
                   <MessageCircle className="w-4 h-4" />
-                  Chat
+                  {t('chat')}
                 </button>
                 <button
                   onClick={handleShareProfile}
                   className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-4 py-2 text-sm font-semibold text-secondary hover:border-pink/40 hover:text-pink"
                 >
-                  <Share2 className="h-4 w-4" /> Bagikan
+                  <Share2 className="h-4 w-4" /> {t('share')}
                 </button>
               </div>
             )}
@@ -562,13 +564,13 @@ export default function ProfilePage() {
             {isOwnProfile && (
               <div className="flex items-center gap-2">
                 <button onClick={startProfileEdit} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-cyan text-bg hover:brightness-110 transition-all">
-                  Edit Profile
+                  {t('editProfile')}
                 </button>
                 <button
                   onClick={handleLogout}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-surface-2 border border-border text-secondary hover:text-red-400 hover:border-red-400/40 transition-all"
                 >
-                  Logout
+                  {t('logout')}
                 </button>
               </div>
             )}
@@ -578,7 +580,7 @@ export default function ProfilePage() {
         {isOwnProfile && editingProfile && (
           <div className="bg-surface border border-border rounded-app p-5 mb-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-primary">Edit Profil</h2>
+              <h2 className="text-sm font-bold text-primary">{t('editProfile')}</h2>
               <button onClick={() => setEditingProfile(false)} className="text-sm text-muted hover:text-primary">Tutup</button>
             </div>
             {profileError && (
@@ -815,7 +817,7 @@ export default function ProfilePage() {
                   : <Shield className="w-5 h-5 text-pink" />}
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-sm font-bold text-primary">Akses Konten 18+</h2>
+                <h2 className="text-sm font-bold text-primary">{t('content18')}</h2>
                 {currentUserIsAdmin || isAdult ? (
                   <p className="text-xs text-green-600 mt-1">Akses aktif. Akun admin memiliki akses otomatis.</p>
                 ) : adultStatus === 'pending' ? (
