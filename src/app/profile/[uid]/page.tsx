@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { updateProfile as updateAuthProfile } from 'firebase/auth';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { getLevelFromXP, getXPProgress } from '@/lib/xp';
@@ -305,6 +306,10 @@ export default function ProfilePage() {
         photoURL: avatarURL,
         bio,
         backgroundURL,
+      });
+      await updateAuthProfile(currentUser, {
+        displayName: nextDisplayName,
+        photoURL: avatarURL || null,
       });
 
       setProfile((prev) => prev ? { ...prev, displayName: nextDisplayName, photoURL: avatarURL, bio, backgroundURL } : prev);

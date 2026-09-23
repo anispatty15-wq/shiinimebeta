@@ -222,6 +222,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const roles = Array.isArray(d.roles) ? d.roles : prev.roles;
               return {
                 ...prev,
+                displayName:   d.displayName ?? prev.displayName,
+                photoURL:      d.photoURL    ?? prev.photoURL,
                 roles,
                 adultStatus: (d.adultStatus as AdultStatus) ?? prev.adultStatus,
                 isAdmin: d.isAdmin ?? prev.isAdmin,

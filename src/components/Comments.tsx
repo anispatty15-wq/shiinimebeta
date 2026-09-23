@@ -248,8 +248,8 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
           giftName:     data.giftName     ?? '',
           giftEmoji:    data.giftEmoji    ?? '',
           uid:          data.uid          ?? '',
-          displayName:  data.displayName  ?? 'User',
-          photoURL:     data.photoURL     ?? '',
+          displayName:  data.uid === user?.uid ? (profile?.displayName ?? data.displayName ?? 'User') : (data.displayName ?? 'User'),
+          photoURL:     data.uid === user?.uid ? (profile?.photoURL ?? data.photoURL ?? '') : (data.photoURL ?? ''),
           level:        data.level        ?? 1,
           badge:        lvl.badge,
           levelName:    data.levelName    ?? lvl.name,
@@ -398,7 +398,11 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
           {loaded && comments.map((c) => (
             <CommentRow
               key={c.id}
-              comment={c}
+              comment={c.uid === user?.uid ? {
+                ...c,
+                displayName: profile?.displayName ?? c.displayName,
+                photoURL: profile?.photoURL ?? c.photoURL,
+              } : c}
               isHentai={isHentai}
               onReply={handleReply}
               onProfile={handleProfile}
