@@ -11,6 +11,7 @@ import {
   UserPlus, TrendingUp, ArrowLeft, Users, Award, UserCheck, UserX,
   ShieldCheck, Send, CheckCircle2, XCircle
   ,ImagePlus, ExternalLink
+   ,Search, Loader2
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -35,6 +36,12 @@ interface UserProfile {
   backgroundURL?: string;
 }
 
+interface GiphyResult {
+  id: string;
+  title: string;
+  url: string;
+  preview: string;
+}
 function isHttpURL(value: string): boolean {
   try {
     const url = new URL(value);
@@ -74,6 +81,11 @@ export default function ProfilePage() {
   const cropDrag = useState<{ x: number; y: number; startX: number; startY: number } | null>(null);
   const [profileError, setProfileError] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
+  const [giphyTarget, setGiphyTarget] = useState<'avatar' | 'background' | null>(null);
+  const [giphyQuery, setGiphyQuery] = useState('anime');
+  const [giphyResults, setGiphyResults] = useState<GiphyResult[]>([]);
+  const [giphyLoading, setGiphyLoading] = useState(false);
+  const [giphyError, setGiphyError] = useState('');
 
   const isOwnProfile = currentUser?.uid === uid;
 
@@ -311,6 +323,39 @@ export default function ProfilePage() {
     } finally {
       setSavingProfile(false);
     }
+  };
+
+  const searchGiphy = async (event?: React.FormEvent, requestedQuery?: string) => {
+    event?.preventDefault();
+    const query = requestedQuery ?? giphyQuery;
+    setGiphyLoading(true);
+    setGiphyError('');
+    try {
+      const response = await fetch(`/api/giphy/search?q=${encodeURIComponent(query.trim() || 'anime')}`);
+      const payload = await response.json() as { results?: GiphyResult[]; error?: string };
+      if (!response.ok) throw new Error(payload.error ?? 'GIPHY tidak tersedia.');
+      setGiphyResults(payload.results ?? []);
+    } catch (error) {
+      setGiphyResults([]);
+      setGiphyError(error instanceof Error ? error.message : 'Gagal mencari GIF.');
+    } finally {
+      setGiphyLoading(false);
+    }
+  };
+
+  const chooseGiphy = (result: GiphyResult) => {
+    if (giphyTarget === 'avatar') {
+      setAvatarFile(null);
+      setAvatarURLDraft(result.url);
+      setAvatarPreview(result.url);
+    }
+    if (giphyTarget === 'background') {
+      setBackgroundFile(null);
+      setBackgroundDraft(result.url);
+      setBackgroundPreview(result.url);
+      setCropSource('');
+    }
+    setGiphyTarget(null);
   };
 
   if (loading) {
@@ -552,9 +597,9 @@ export default function ProfilePage() {
                 <a href="https://www.pinterest.com/search/pins/?q=anime%20profile%20gif" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded border border-red-300/40 px-2 py-1 text-[0.7rem] text-red-500 hover:bg-red-50">
                   Pinterest <ExternalLink className="h-3 w-3" />
                 </a>
-                <a href="https://giphy.com/search/anime-profile" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded border border-cyan/40 px-2 py-1 text-[0.7rem] text-cyan hover:bg-cyan/10">
-                  GIPHY <ExternalLink className="h-3 w-3" />
-                </a>
+                <button type="button" onClick={() => { setGiphyTarget('avatar'); setGiphyQuery('anime profile'); void searchGiphy(undefined, 'anime profile'); }} className="inline-flex items-center gap-1 rounded border border-cyan/40 px-2 py-1 text-[0.7rem] text-cyan hover:bg-cyan/10">
+                  GIPHY <Search className="h-3 w-3" />
+                </button>
               </div>
               <input
                 value={avatarURLDraft}
@@ -611,9 +656,9 @@ export default function ProfilePage() {
                 <a href="https://www.pinterest.com/search/pins/?q=anime%20background%20gif" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded border border-red-300/40 px-2 py-1 text-[0.7rem] text-red-500 hover:bg-red-50">
                   Pinterest <ExternalLink className="h-3 w-3" />
                 </a>
-                <a href="https://giphy.com/search/anime-background" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded border border-cyan/40 px-2 py-1 text-[0.7rem] text-cyan hover:bg-cyan/10">
-                  GIPHY <ExternalLink className="h-3 w-3" />
-                </a>
+                <button type="button" onClick={() => { setGiphyTarget('background'); setGiphyQuery('anime background'); void searchGiphy(undefined, 'anime background'); }} className="inline-flex items-center gap-1 rounded border border-cyan/40 px-2 py-1 text-[0.7rem] text-cyan hover:bg-cyan/10">
+                  GIPHY <Search className="h-3 w-3" />
+                </button>
               </div>
               <input
                 value={backgroundDraft}
@@ -725,6 +770,34 @@ export default function ProfilePage() {
             <button onClick={saveProfile} disabled={savingProfile} className="inline-flex items-center gap-2 rounded-app bg-pink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
               {savingProfile ? 'Menyimpan...' : 'Simpan Profil'}
             </button>
+          </div>
+        )}
+
+        {isOwnProfile && giphyTarget && (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-2xl rounded-2xl bg-surface p-4 shadow-2xl">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-sm font-bold text-primary">Pilih GIF {giphyTarget === 'avatar' ? 'foto profil' : 'latar'}</h2>
+                <button type="button" onClick={() => setGiphyTarget(null)} className="text-sm text-muted hover:text-primary">Tutup</button>
+              </div>
+              <form onSubmit={(event) => void searchGiphy(event)} className="flex gap-2">
+                <input value={giphyQuery} onChange={(event) => setGiphyQuery(event.target.value)} className="min-w-0 flex-1 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-primary outline-none focus:border-cyan" placeholder="Cari GIF..." />
+                <button type="submit" className="flex items-center gap-1 rounded-lg bg-cyan px-3 py-2 text-sm font-semibold text-bg">
+                  {giphyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Cari
+                </button>
+              </form>
+              {giphyError && <p className="mt-3 text-xs text-red-500">{giphyError}</p>}
+              <div className="mt-4 grid max-h-[60vh] grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
+                {giphyResults.map((result) => (
+                  <button key={result.id} type="button" onClick={() => chooseGiphy(result)} className="group overflow-hidden rounded-lg border border-border bg-surface-2 text-left hover:border-cyan">
+                    <img src={result.preview} alt={result.title} className="h-32 w-full object-cover transition-transform group-hover:scale-105" />
+                    <span className="block truncate px-2 py-1 text-[0.65rem] text-muted">{result.title || 'GIF'}</span>
+                  </button>
+                ))}
+              </div>
+              {!giphyLoading && !giphyError && giphyResults.length === 0 && <p className="py-8 text-center text-xs text-muted">Tidak ada GIF ditemukan.</p>}
+              <p className="mt-3 text-[0.65rem] text-muted">Powered by GIPHY. Klik hasil untuk langsung memakai GIF.</p>
+            </div>
           </div>
         )}
 
