@@ -12,12 +12,17 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? '',
 };
 
-const app: FirebaseApp = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
+const hasFirebaseConfig = Object.values(firebaseConfig).every((value) => value.trim().length > 0);
+const app: FirebaseApp = hasFirebaseConfig
+  ? (getApps().length ? getApps()[0]! : initializeApp(firebaseConfig))
+  : (null as unknown as FirebaseApp);
+// Keep the existing non-null exports for consumers; runtime entry points are
+// gated by FIREBASE_READY before using them when deployment env is incomplete.
+const auth: Auth = app ? getAuth(app) : (null as unknown as Auth);
+const db: Firestore = app ? getFirestore(app) : (null as unknown as Firestore);
 
 export { app, auth, db };
 export const googleProvider = new GoogleAuthProvider();
-export const FIREBASE_READY = Boolean(firebaseConfig.apiKey);
+export const FIREBASE_READY = hasFirebaseConfig;
 export const FIREBASE_PROJECT_ID = firebaseConfig.projectId;
 export async function initFirebase() { /* no-op */ }
