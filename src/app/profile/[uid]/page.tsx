@@ -4,7 +4,6 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import {
   User, Shield, Clock, Star, Heart, MessageCircle,
@@ -359,17 +358,18 @@ export default function ProfilePage() {
 
         {/* Profile Header */}
         <div className="bg-surface border border-border rounded-app overflow-hidden mb-6">
-          {/* Cover gradient */}
-          <div
-            className="h-32 bg-gradient-to-br from-cyan/20 via-violet/20 to-pink/20 bg-cover bg-center"
-            style={profile.backgroundURL ? { backgroundImage: `url(${profile.backgroundURL})` } : undefined}
-          />
+          {/* Cover image uses a real img element so animated GIF backgrounds keep moving. */}
+          <div className="relative h-32 overflow-hidden bg-gradient-to-br from-cyan/20 via-violet/20 to-pink/20">
+            {profile.backgroundURL && (
+              <img src={profile.backgroundURL} alt="Latar profil" className="absolute inset-0 h-full w-full object-cover" />
+            )}
+          </div>
 
           <div className="px-6 pb-6 -mt-16">
             {/* Avatar */}
             <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-surface bg-surface-2 relative mb-4">
               {profile.photoURL ? (
-                <Image src={profile.photoURL} alt={profile.displayName} fill className="object-cover" />
+                <img src={profile.photoURL} alt={profile.displayName} className="absolute inset-0 h-full w-full object-cover" />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <User className="w-12 h-12 text-muted" />
@@ -545,6 +545,15 @@ export default function ProfilePage() {
                   <img src={avatarPreview} alt="Preview avatar" className="h-full w-full object-cover" />
                 </div>
               )}
+              {(avatarPreview || avatarFile) && (
+                <button
+                  type="button"
+                  onClick={() => { setAvatarFile(null); setAvatarPreview(''); }}
+                  className="mt-2 text-xs font-semibold text-red-500 hover:text-red-600"
+                >
+                  Hapus foto profil
+                </button>
+              )}
             </div>
             <label className="block text-xs font-semibold text-secondary mt-4">
               Bio
@@ -571,6 +580,11 @@ export default function ProfilePage() {
                       return;
                     }
                     setBackgroundFile(file);
+                    if (file.type === 'image/gif') {
+                      setBackgroundPreview(URL.createObjectURL(file));
+                      setCropSource('');
+                      return;
+                    }
                     setCropSource(URL.createObjectURL(file));
                     const previewURL = URL.createObjectURL(file);
                     const previewImage = new window.Image();
@@ -584,7 +598,7 @@ export default function ProfilePage() {
                   }}
                 />
               </label>
-              <p className="mt-1 text-[0.7rem] font-normal text-muted">Geser dan zoom gambar untuk memilih crop 16:9.</p>
+              <p className="mt-1 text-[0.7rem] font-normal text-muted">GIF dipertahankan tetap bergerak. Gambar biasa bisa di-crop 16:9.</p>
               {cropSource && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4">
                   <div className="w-full max-w-md rounded-2xl bg-surface p-4 shadow-2xl">
@@ -650,6 +664,15 @@ export default function ProfilePage() {
                 <div className="relative mt-2 h-24 overflow-hidden rounded-app border border-border">
                   <img src={backgroundPreview} alt="Preview latar belakang" className="h-full w-full object-cover" />
                 </div>
+              )}
+              {(backgroundPreview || backgroundDraft) && (
+                <button
+                  type="button"
+                  onClick={() => { setBackgroundFile(null); setBackgroundDraft(''); setBackgroundPreview(''); setCropSource(''); }}
+                  className="mt-2 text-xs font-semibold text-red-500 hover:text-red-600"
+                >
+                  Hapus latar dan gunakan default
+                </button>
               )}
             </div>
             <button onClick={saveProfile} disabled={savingProfile} className="inline-flex items-center gap-2 rounded-app bg-pink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
