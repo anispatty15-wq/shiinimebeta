@@ -359,9 +359,22 @@ export default function ProfilePage() {
         {/* Profile Header */}
         <div className="bg-surface border border-border rounded-app overflow-hidden mb-6">
           {/* Cover image uses a real img element so animated GIF backgrounds keep moving. */}
-          <div className="relative h-32 overflow-hidden bg-gradient-to-br from-cyan/20 via-violet/20 to-pink/20">
+          <div className="relative h-36 overflow-hidden bg-gradient-to-br from-cyan/20 via-violet/20 to-pink/20">
             {profile.backgroundURL && (
-              <img src={profile.backgroundURL} alt="Latar profil" className="absolute inset-0 h-full w-full object-cover" />
+              <>
+                <img
+                  src={profile.backgroundURL}
+                  alt=""
+                  aria-hidden
+                  className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-xl"
+                />
+                <img
+                  src={profile.backgroundURL}
+                  alt="Latar profil"
+                  className="absolute inset-0 h-full w-full object-contain"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-black/10" />
+              </>
             )}
           </div>
 
