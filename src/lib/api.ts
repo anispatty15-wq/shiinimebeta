@@ -104,6 +104,22 @@ function str(v: unknown, fallback = ''): string {
   return String(v);
 }
 
+function titleFields(o: Record<string, unknown>) {
+  const titles = o.titles && typeof o.titles === 'object'
+    ? o.titles as Record<string, unknown>
+    : {};
+  const rawTitle = o.title ?? o.name;
+  const title = typeof rawTitle === 'object' && rawTitle !== null
+    ? str((rawTitle as Record<string, unknown>).romaji ?? (rawTitle as Record<string, unknown>).default)
+    : str(rawTitle, '(Tanpa Judul)');
+  return {
+    title,
+    titleEnglish: str(o.title_english ?? o.titleEnglish ?? o.english_title ?? titles.english),
+    titleJapanese: str(o.title_japanese ?? o.titleJapanese ?? o.jp_title ?? titles.japanese),
+    titleIndonesian: str(o.title_indonesian ?? o.titleIndonesian ?? o.indonesian_title ?? titles.indonesian),
+  };
+}
+
 /** Safely coerce a value to a string[] */
 function strArr(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
@@ -142,10 +158,7 @@ function parseMediaCard(raw: unknown): MediaCard | null {
   
   return {
     slug,
-    title:   str(o.title ?? o.name, '(Tanpa Judul)'),
-    titleEnglish: str(o.title_english ?? o.titleEnglish ?? o.english_title),
-    titleJapanese: str(o.title_japanese ?? o.titleJapanese ?? o.jp_title),
-    titleIndonesian: str(o.title_indonesian ?? o.titleIndonesian ?? o.indonesian_title),
+    ...titleFields(o),
     poster:  str(o.poster ?? o.image ?? o.cover ?? o.thumbnail),
     type:    str(o.type),
     status:  str(o.status),
@@ -159,10 +172,7 @@ function parseMediaCard(raw: unknown): MediaCard | null {
 function parseAnimeDetail(raw: unknown): AnimeDetail {
   const o = (unwrap(raw) ?? {}) as Record<string, unknown>;
   return {
-    title:    str(o.title, '(Tanpa Judul)'),
-    titleEnglish: str(o.title_english ?? o.titleEnglish ?? o.english_title),
-    titleJapanese: str(o.title_japanese ?? o.titleJapanese ?? o.jp_title),
-    titleIndonesian: str(o.title_indonesian ?? o.titleIndonesian ?? o.indonesian_title),
+    ...titleFields(o),
     poster:   str(o.poster ?? o.image ?? o.cover),
     synopsis: str(o.synopsis ?? o.description ?? o.summary),
     genres:   strArr(o.genres ?? o.genre),
@@ -314,10 +324,7 @@ function parseAnimeEpisodeData(raw: unknown): AnimeEpisodeData {
 function parseHentaiDetail(raw: unknown): HentaiDetail {
   const o = (unwrap(raw) ?? {}) as Record<string, unknown>;
   return {
-    title:    str(o.title, '(Tanpa Judul)'),
-    titleEnglish: str(o.title_english ?? o.titleEnglish ?? o.english_title),
-    titleJapanese: str(o.title_japanese ?? o.titleJapanese ?? o.jp_title),
-    titleIndonesian: str(o.title_indonesian ?? o.titleIndonesian ?? o.indonesian_title),
+    ...titleFields(o),
     poster:   str(o.poster ?? o.image ?? o.cover),
     synopsis: str(o.synopsis ?? o.description ?? o.summary),
     episode_list: mapArr(o.episode_list ?? o.episodes ?? o.episodeList, (item) => {

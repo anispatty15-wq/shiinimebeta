@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { type MediaCard as MediaCardType, type ContentType } from '@/types/media';
 import { useLanguage } from '@/context/LanguageContext';
+import { getLocalizedTitle } from '@/lib/localizedTitle';
 
 interface MediaGridProps {
   items: MediaCardType[];
@@ -39,11 +40,7 @@ export default function MediaGrid({
 function GridMediaCard({ item, type }: { item: MediaCardType; type: ContentType }) {
   const href = `/detail/${type}/${item.slug}`;
   const { language } = useLanguage();
-  const title = language === 'en'
-    ? item.titleEnglish || item.title
-    : language === 'ja'
-      ? item.titleJapanese || item.title
-      : item.titleIndonesian || item.title;
+  const title = getLocalizedTitle(item, language);
 
   return (
     <Link href={href} className="group min-w-0">

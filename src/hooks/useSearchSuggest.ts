@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { useDebounce } from './useDebounce';
 import { AnimeAPI, ComicAPI, HentaiAPI, toArray } from '@/lib/api';
 import type { ContentType } from '@/types/media';
+import { useLanguage } from '@/context/LanguageContext';
+import { getLocalizedTitle } from '@/lib/localizedTitle';
 
 export interface SuggestionItem {
   slug:    string;
@@ -15,6 +17,7 @@ export interface SuggestionItem {
 }
 
 export function useSearchSuggest(query: string, type: ContentType = 'anime') {
+  const { language } = useLanguage();
   const dq = useDebounce(query.trim(), 400);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [loading,     setLoading]     = useState(false);
@@ -49,7 +52,12 @@ export function useSearchSuggest(query: string, type: ContentType = 'anime') {
           const i = it as Record<string, unknown>;
           return {
             slug:   String(i.slug  ?? ''),
-            title:  String(i.title ?? i.name ?? ''),
+            title:  getLocalizedTitle({
+              title: String(i.title ?? i.name ?? ''),
+              titleEnglish: String(i.titleEnglish ?? i.title_english ?? i.english_title ?? ''),
+              titleJapanese: String(i.titleJapanese ?? i.title_japanese ?? i.jp_title ?? ''),
+              titleIndonesian: String(i.titleIndonesian ?? i.title_indonesian ?? i.indonesian_title ?? ''),
+            }, language),
             poster: String(i.poster ?? i.image ?? i.cover ?? ''),
             sub:    String(i.type  ?? i.year  ?? i.category ?? ''),
           };
@@ -65,7 +73,7 @@ export function useSearchSuggest(query: string, type: ContentType = 'anime') {
 
     void fetchFn();
     return () => { cancelled = true; };
-  }, [dq, type]);
+  }, [dq, type, language]);
 
   return { suggestions, loading };
 }

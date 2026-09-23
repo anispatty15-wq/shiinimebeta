@@ -10,6 +10,8 @@ import { useDebounce } from '@/hooks/useDebounce';
 import MediaCard from '@/components/MediaCard';
 import { SkeletonGrid } from '@/components/SkeletonLoader';
 import type { ContentType } from '@/types/media';
+import { useLanguage } from '@/context/LanguageContext';
+import { getLocalizedTitle } from '@/lib/localizedTitle';
 
 type Tab = ContentType | 'donghua';
 const TABS: { label: string; value: Tab }[] = [
@@ -29,6 +31,7 @@ function basePath(type: Tab): string {
 function SearchContent() {
   const searchParams = useSearchParams();
   const router       = useRouter();
+  const { language, t } = useLanguage();
 
   const initialQ    = searchParams.get('q')    ?? '';
   const initialType = (searchParams.get('type') ?? 'anime') as Tab;
@@ -37,7 +40,7 @@ function SearchContent() {
   const [tab,     setTab]     = useState<Tab>(initialType);
   const [items,   setItems]   = useState<{
     slug: string; title: string; poster?: string;
-    status?: string; type?: string;
+    status?: string; type?: string; titleEnglish?: string; titleJapanese?: string; titleIndonesian?: string;
   }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
@@ -69,6 +72,9 @@ function SearchContent() {
           return {
             slug:   String(i.slug   ?? ''),
             title:  String(i.title  ?? ''),
+            titleEnglish: String(i.titleEnglish ?? i.title_english ?? i.english_title ?? ''),
+            titleJapanese: String(i.titleJapanese ?? i.title_japanese ?? i.jp_title ?? ''),
+            titleIndonesian: String(i.titleIndonesian ?? i.title_indonesian ?? i.indonesian_title ?? ''),
             poster: String(i.poster ?? i.image ?? i.cover ?? ''),
             status: String(i.status ?? ''),
             type:   String(i.type   ?? i.category ?? ''),
@@ -103,8 +109,8 @@ function SearchContent() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Cari judul…"
-          aria-label="Cari"
+          placeholder={language === 'ja' ? 'タイトルを検索…' : language === 'en' ? 'Search title…' : 'Cari judul…'}
+          aria-label={t('search')}
           className="flex-1 bg-transparent text-sm text-primary placeholder:text-muted outline-none min-w-0"
         />
         {query && (
@@ -155,13 +161,13 @@ function SearchContent() {
       ) : (
         <>
           <p className="text-xs text-muted mb-3">
-            {items.length} hasil untuk &ldquo;{query}&rdquo;
+            {items.length} {language === 'ja' ? '件の結果' : language === 'en' ? 'results for' : 'hasil untuk'} &ldquo;{query}&rdquo;
           </p>
           <div className="card-grid">
             {items.map((item) => (
               <MediaCard
                 key={item.slug}
-                item={item}
+                item={{ ...item, title: getLocalizedTitle(item, language) }}
                 contentType={tab === 'donghua' ? 'anime' : tab}
                 href={`${basePath(tab)}/${item.slug}`}
               />

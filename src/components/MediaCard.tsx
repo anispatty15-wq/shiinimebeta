@@ -10,6 +10,7 @@ import { getPoster } from '@/lib/api';
 import { useBookmarkToggle } from '@/context/BookmarkContext';
 import type { BookmarkEntry, ContentType } from '@/types/media';
 import { useLanguage } from '@/context/LanguageContext';
+import { getLocalizedTitle } from '@/lib/localizedTitle';
 
 // ── Badge ──────────────────────────────────────────────────────
 type BadgeVariant = 'ongoing' | 'completed' | 'movie' | 'hentai' | 'comic' | 'default';
@@ -126,13 +127,12 @@ export default function MediaCard({
   const type   = _type   ?? item?.type   ?? '';
   const rawPoster = _poster ?? getPoster((item ?? {}) as Record<string, unknown>);
   const { language } = useLanguage();
-  const title = _title ?? (
-    language === 'en'
-      ? item?.titleEnglish || item?.title
-      : language === 'ja'
-        ? item?.titleJapanese || item?.title
-        : item?.titleIndonesian || item?.title
-  ) ?? '';
+  const title = _title ?? getLocalizedTitle({
+    title: item?.title ?? '',
+    titleEnglish: item?.titleEnglish,
+    titleJapanese: item?.titleJapanese,
+    titleIndonesian: item?.titleIndonesian,
+  }, language);
   
   const [imgErr, setImgErr] = useState(false);
 

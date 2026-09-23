@@ -15,6 +15,7 @@ interface JikanAnime {
   mal_id: number;
   title: string;
   title_english?: string;
+  title_japanese?: string;
   images: {
     jpg: {
       large_image_url: string;
@@ -144,7 +145,7 @@ export default function JikanSearchPage() {
       </div>
       <div className="p-1.5 sm:p-3">
         <h3 className="text-[0.65rem] sm:text-sm font-semibold text-primary line-clamp-2 mb-0.5 sm:mb-1 leading-tight">
-          {language === 'en' ? anime.title_english || anime.title : language === 'ja' ? anime.title : anime.title}
+          {language === 'en' ? anime.title_english || anime.title : language === 'ja' ? anime.title_japanese || anime.title : anime.title}
         </h3>
         <div className="flex items-center gap-1 sm:gap-2 text-[0.6rem] sm:text-xs text-muted">
           {anime.episodes && <span>{anime.episodes} eps</span>}
