@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { type MediaCard as MediaCardType, type ContentType } from '@/types/media';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface MediaGridProps {
   items: MediaCardType[];
@@ -37,6 +38,12 @@ export default function MediaGrid({
 
 function GridMediaCard({ item, type }: { item: MediaCardType; type: ContentType }) {
   const href = `/detail/${type}/${item.slug}`;
+  const { language } = useLanguage();
+  const title = language === 'en'
+    ? item.titleEnglish || item.title
+    : language === 'ja'
+      ? item.titleJapanese || item.title
+      : item.titleIndonesian || item.title;
 
   return (
     <Link href={href} className="group">
@@ -45,7 +52,7 @@ function GridMediaCard({ item, type }: { item: MediaCardType; type: ContentType 
         {item.poster ? (
           <Image
             src={item.poster}
-            alt={item.title}
+            alt={title}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
             className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -87,7 +94,7 @@ function GridMediaCard({ item, type }: { item: MediaCardType; type: ContentType 
 
       {/* Title */}
       <h3 className="text-sm font-medium text-primary line-clamp-2 group-hover:text-cyan transition-colors mb-1">
-        {item.title}
+        {title}
       </h3>
 
       {/* Date */}

@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { ArrowLeft, Star, Calendar, Tv, Play, Users, MessageCircle, ExternalLink } from 'lucide-react';
 import { clsx } from 'clsx';
 import * as JikanAPI from '@/lib/jikan';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface AnimeDetail {
   mal_id: number;
@@ -94,6 +95,7 @@ interface Recommendation {
 }
 
 export default function JikanDetailPage() {
+  const { language } = useLanguage();
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
@@ -253,7 +255,9 @@ export default function JikanDetailPage() {
           <div className="space-y-4 sm:space-y-6">
             {/* Title */}
             <div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary mb-1.5 sm:mb-2">{anime.title}</h1>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary mb-1.5 sm:mb-2">
+                {language === 'en' ? anime.title_english || anime.title : anime.title}
+              </h1>
               {anime.title_english && anime.title_english !== anime.title && (
                 <p className="text-base sm:text-lg text-secondary">{anime.title_english}</p>
               )}

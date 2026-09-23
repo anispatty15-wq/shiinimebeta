@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { clsx } from 'clsx';
 import { useRouter } from 'next/navigation';
 import * as JikanAPI from '@/lib/jikan';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface JikanAnime {
   mal_id: number;
@@ -33,6 +34,7 @@ interface JikanAnime {
 }
 
 export default function JikanSearchPage() {
+  const { language } = useLanguage();
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<JikanAnime[]>([]);
@@ -142,7 +144,7 @@ export default function JikanSearchPage() {
       </div>
       <div className="p-1.5 sm:p-3">
         <h3 className="text-[0.65rem] sm:text-sm font-semibold text-primary line-clamp-2 mb-0.5 sm:mb-1 leading-tight">
-          {anime.title_english || anime.title}
+          {language === 'en' ? anime.title_english || anime.title : language === 'ja' ? anime.title : anime.title}
         </h3>
         <div className="flex items-center gap-1 sm:gap-2 text-[0.6rem] sm:text-xs text-muted">
           {anime.episodes && <span>{anime.episodes} eps</span>}

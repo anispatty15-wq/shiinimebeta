@@ -22,6 +22,7 @@ import { getWatchedSlugs } from '@/utils/watchedSlug';
 import type {
   AnimeDetail, HentaiDetail, ComicDetail, ContentType,
 } from '@/types/media';
+import { useLanguage } from '@/context/LanguageContext';
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -41,6 +42,7 @@ function badgeClass(status: string): string {
 export default function DetailPage() {
   const { type, slug } = useParams<{ type: string; slug: string }>();
   const router         = useRouter();
+  const { language }   = useLanguage();
   const [imgErr,   setImgErr]   = useState(false);
   const [showAll,  setShowAll]  = useState(false);
   const [watchedSlugs, setWatchedSlugs] = useState<Set<string>>(new Set());
@@ -67,7 +69,14 @@ export default function DetailPage() {
   const hentaiData  = contentType === 'hentai'  ? (hentaiFetch.data  as HentaiDetail | null) : null;
   const comicData   = contentType === 'comic'   ? (comicFetch.data   as ComicDetail  | null) : null;
 
-  const title    = animeData?.title  ?? donghuaData?.title  ?? hentaiData?.title  ?? comicData?.title  ?? '';
+  const titleData = animeData ?? donghuaData ?? hentaiData;
+  const title    = contentType === 'comic'
+    ? comicData?.title ?? ''
+    : language === 'en'
+      ? titleData?.titleEnglish || titleData?.title || ''
+      : language === 'ja'
+        ? titleData?.titleJapanese || titleData?.title || ''
+        : titleData?.titleIndonesian || titleData?.title || '';
   const poster   = animeData?.poster ?? donghuaData?.poster ?? hentaiData?.poster ?? comicData?.poster ?? '';
   const synopsis = animeData?.synopsis ?? donghuaData?.synopsis ?? hentaiData?.synopsis ?? comicData?.synopsis ?? '';
   const genres   = animeData?.genres ?? donghuaData?.genres ?? [];

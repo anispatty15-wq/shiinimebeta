@@ -31,6 +31,9 @@ export interface AnimeEpisodeListItem {
 /** GET /anime/animekompi/detail/:slug → envelope.data */
 export interface AnimeDetail {
   title:        string;
+  titleEnglish?: string;
+  titleJapanese?: string;
+  titleIndonesian?: string;
   poster:       string;
   synopsis:     string;
   genres:       string[];
@@ -75,6 +78,9 @@ export interface HentaiEpisodeListItem {
 /** GET /anime/nekopoi/detail/:slug → envelope.data */
 export interface HentaiDetail {
   title:        string;
+  titleEnglish?: string;
+  titleJapanese?: string;
+  titleIndonesian?: string;
   poster:       string;
   synopsis:     string;
   episode_list: HentaiEpisodeListItem[];
@@ -130,6 +136,9 @@ export interface ComicChapterData {
 export interface MediaCard {
   id?:    string;
   title:   string;
+  titleEnglish?: string;
+  titleJapanese?: string;
+  titleIndonesian?: string;
   slug:    string;
   poster:  string;
   /** Optional metadata shown under the title */

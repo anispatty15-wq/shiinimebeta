@@ -9,6 +9,7 @@ import { clsx } from 'clsx';
 import { getPoster } from '@/lib/api';
 import { useBookmarkToggle } from '@/context/BookmarkContext';
 import type { BookmarkEntry, ContentType } from '@/types/media';
+import { useLanguage } from '@/context/LanguageContext';
 
 // ── Badge ──────────────────────────────────────────────────────
 type BadgeVariant = 'ongoing' | 'completed' | 'movie' | 'hentai' | 'comic' | 'default';
@@ -77,6 +78,9 @@ export interface MediaCardItem {
   slug:     string;
   id?:      string;
   title:    string;
+  titleEnglish?: string;
+  titleJapanese?: string;
+  titleIndonesian?: string;
   poster?:  string;
   image?:   string;
   cover?:   string;
@@ -118,10 +122,17 @@ export default function MediaCard({
 }: MediaCardProps) {
   // Support both item prop (legacy) and direct props (new)
   const slug   = _slug   ?? item?.slug   ?? '';
-  const title  = _title  ?? item?.title  ?? '';
   const status = _status ?? item?.status ?? '';
   const type   = _type   ?? item?.type   ?? '';
   const rawPoster = _poster ?? getPoster((item ?? {}) as Record<string, unknown>);
+  const { language } = useLanguage();
+  const title = _title ?? (
+    language === 'en'
+      ? item?.titleEnglish || item?.title
+      : language === 'ja'
+        ? item?.titleJapanese || item?.title
+        : item?.titleIndonesian || item?.title
+  ) ?? '';
   
   const [imgErr, setImgErr] = useState(false);
 
