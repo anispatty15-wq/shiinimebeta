@@ -238,7 +238,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-8.5rem)] min-h-0 flex-col overflow-hidden bg-bg md:h-[calc(100dvh-3.5rem)]">
+    <div className="flex h-[calc(100dvh-4rem)] min-h-0 flex-col overflow-hidden bg-bg md:h-[calc(100dvh-3.5rem)]">
       {/* Header */}
       <div className="z-20 flex shrink-0 items-center gap-3 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur">
         <button
@@ -292,7 +292,7 @@ export default function ChatPage() {
       </div>
 
       {/* Messages area */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4 pb-28 md:pb-24">
         {messages.length === 0 ? (
           <div className="text-center py-12">
             <MessageCircle className="w-12 h-12 text-muted mx-auto mb-3" />
@@ -354,7 +354,7 @@ export default function ChatPage() {
       {/* Input area */}
       <form
         onSubmit={handleSend}
-        className="z-20 flex shrink-0 items-center gap-2 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur"
+        className="fixed inset-x-0 bottom-16 z-40 flex w-full shrink-0 items-center gap-2 border-y border-border bg-surface/95 px-3 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur md:bottom-0 md:px-4"
       >
         {imagePreview && (
           <div className="absolute bottom-16 left-4 flex items-center gap-2 rounded-app bg-surface border border-border p-2 shadow-lg">
@@ -364,7 +364,16 @@ export default function ChatPage() {
             </button>
           </div>
         )}
-        <label className="w-10 h-10 flex items-center justify-center rounded-full border border-border text-secondary hover:text-pink cursor-pointer flex-shrink-0" aria-label="Kirim gambar atau video">
+        {selectedGift && (
+          <div className="absolute bottom-16 left-3 flex items-center gap-2 rounded-xl border border-border bg-surface p-2 shadow-lg">
+            <span className="text-2xl">{selectedGift.emoji}</span>
+            <span className="max-w-28 truncate text-xs font-semibold text-primary">{selectedGift.name}</span>
+            <button type="button" onClick={() => setSelectedGift(null)} className="text-muted hover:text-red-500" aria-label="Hapus gift">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+        <label className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border text-secondary hover:text-pink" aria-label="Kirim gambar atau video">
           <ImagePlus className="w-5 h-5" />
           <input
             type="file"
@@ -379,8 +388,8 @@ export default function ChatPage() {
             }}
           />
         </label>
-        <div className="relative flex-shrink-0">
-          <button type="button" onClick={() => setShowGifts((value) => !value)} className="w-10 h-10 flex items-center justify-center rounded-full border border-border text-secondary hover:text-yellow-400" aria-label="Pilih gift">
+        <div className="relative shrink-0">
+          <button type="button" onClick={() => setShowGifts((value) => !value)} className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-secondary hover:text-yellow-400" aria-label="Pilih gift">
             <Gift className="w-5 h-5" />
           </button>
           {showGifts && (
@@ -400,12 +409,12 @@ export default function ChatPage() {
           onChange={(e) => setInputText(e.target.value)}
           placeholder="Tulis pesan..."
           maxLength={500}
-          className="flex-1 px-4 py-2.5 rounded-full bg-surface-2 border border-border text-sm text-primary placeholder:text-muted outline-none focus:border-cyan/60 transition-colors"
+          className="min-w-0 flex-1 rounded-full border border-border bg-surface-2 px-4 py-2.5 text-sm text-primary outline-none transition-colors placeholder:text-muted focus:border-cyan/60"
         />
         <button
           type="submit"
           disabled={(!inputText.trim() && !selectedImage && !selectedGift) || sending}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-cyan text-bg hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan text-bg hover:brightness-110 transition-all disabled:cursor-not-allowed disabled:opacity-50"
         >
           {sending ? (
             <Loader2 className="w-5 h-5 animate-spin" />
