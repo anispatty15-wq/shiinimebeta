@@ -8,7 +8,7 @@ import { clsx } from 'clsx';
 const CHANNEL_URL  = 'https://www.youtube.com/@4nzzz2003';
 const CHANNEL_NAME = 'AnzzzSenpai';
 const DISMISS_KEY  = 'Anzzzmissed';
-const SHOW_DELAY   = 5_000;
+const SHOW_DELAY   = 2_000;
 const AUTO_HIDE    = 15_000;
 
 function wasDismissedRecently(): boolean {
@@ -29,7 +29,9 @@ export default function SubBanner() {
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
-    if (wasDismissedRecently()) return;
+    // Keep the promo available on mobile as well; it is dismissed for the
+    // current view and can appear again after the cooldown.
+    if (wasDismissedRecently() && window.innerWidth >= 768) return;
     const t1 = setTimeout(() => setVisible(true), SHOW_DELAY);
     const t2 = setTimeout(() => dismiss(), SHOW_DELAY + AUTO_HIDE);
     return () => { clearTimeout(t1); clearTimeout(t2); };
@@ -62,7 +64,7 @@ export default function SubBanner() {
 
       <div
         className={clsx(
-          'fixed bottom-20 left-3 z-[55] flex items-end gap-1.5 pointer-events-none',
+          'fixed bottom-[5.5rem] left-2 z-[55] flex max-w-[calc(100vw-1rem)] items-end gap-1.5 pointer-events-none md:bottom-20 md:left-3',
           leaving ? 'sub-leave' : 'sub-enter'
         )}
         aria-live="polite"
@@ -73,13 +75,13 @@ export default function SubBanner() {
           <img
             src="/09b085a6b0b33a9a9c8529a3d2ee1914.gif"
             alt="dancing character"
-            className="w-20 h-20 object-contain drop-shadow-lg"
+            className="h-16 w-16 object-contain drop-shadow-lg sm:h-20 sm:w-20"
             style={{ imageRendering: 'auto' }}
           />
         </div>
 
         {/* Card */}
-        <div className="pointer-events-auto relative bg-surface border border-border rounded-2xl shadow-2xl p-3.5 w-52">
+        <div className="pointer-events-auto relative w-[min(13rem,calc(100vw-5.5rem))] rounded-2xl border border-border bg-surface p-3.5 shadow-2xl">
           {/* X button */}
           <button
             onClick={dismiss}
