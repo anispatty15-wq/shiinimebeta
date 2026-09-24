@@ -24,7 +24,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ChevronLeft, ChevronRight, Download,
-  Info, List, X, AlertCircle, Heart,
+  Info, List, X, AlertCircle, Heart, Share2,
 } from 'lucide-react';
 import { arrayUnion, arrayRemove, doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { clsx } from 'clsx';
@@ -115,6 +115,8 @@ export default function StreamPage() {
   const [showDrawer, setShowDrawer] = useState(false);
   const [showDebug,  setShowDebug]  = useState(false);
   const [videoLikes, setVideoLikes] = useState<string[]>([]);
+  const [videoLikeError, setVideoLikeError] = useState('');
+  const [shareMessage, setShareMessage] = useState('');
 
   // ── Fetch the episode stream data ─────────────────────────
   const animeFetch  = useApi(
@@ -181,28 +183,56 @@ export default function StreamPage() {
 
   useEffect(() => {
     setVideoLikes([]);
+    setVideoLikeError('');
     if (!FIREBASE_READY || !db || !slug) return;
+    const likeDocId = `${type}_${slug}`;
 
-    return onSnapshot(doc(db, 'videoLikes', slug), (snapshot) => {
+    return onSnapshot(doc(db, 'videoLikes', likeDocId), (snapshot) => {
       const likes = snapshot.data()?.userIds;
       setVideoLikes(Array.isArray(likes) ? likes.filter((id): id is string => typeof id === 'string') : []);
-    }, () => setVideoLikes([]));
-  }, [slug]);
+    }, () => setVideoLikeError('Jumlah like belum bisa dimuat. Pastikan Firestore Rules sudah di-deploy.'));
+  }, [slug, type]);
 
   const handleVideoLike = async () => {
-    if (!user || !db || !slug) return;
+    if (!user) {
+      setVideoLikeError(language === 'en' ? 'Login first to like this video.' : language === 'ja' ? 'いいねするにはログインしてください。' : 'Login dulu untuk menyukai video ini.');
+      return;
+    }
+    if (!db || !slug) return;
+    setVideoLikeError('');
     const liked = videoLikes.includes(user.uid);
+    const likeDocId = `${type}_${slug}`;
     setVideoLikes((current) => liked
       ? current.filter((id) => id !== user.uid)
       : [...current, user.uid]);
     try {
-      await setDoc(doc(db, 'videoLikes', slug), {
+      await setDoc(doc(db, 'videoLikes', likeDocId), {
         userIds: liked ? arrayRemove(user.uid) : arrayUnion(user.uid),
         updatedAt: new Date(),
       }, { merge: true });
     } catch (error) {
       setVideoLikes((current) => liked ? [...current, user.uid] : current.filter((id) => id !== user.uid));
+      setVideoLikeError('Like gagal disimpan. Deploy Firestore Rules lalu coba lagi.');
       console.error('[Stream] Video like failed:', error);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    const shareTitle = title || (slug ?? '').replace(/-/g, ' ');
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: shareTitle, text: `Tonton ${shareTitle} di Shiinime`, url: shareUrl });
+        return;
+      }
+      await navigator.clipboard.writeText(shareUrl);
+      setShareMessage(language === 'en' ? 'Link copied' : language === 'ja' ? 'リンクをコピーしました' : 'Link tersalin');
+      window.setTimeout(() => setShareMessage(''), 2200);
+    } catch (error) {
+      if ((error as DOMException)?.name !== 'AbortError') {
+        setShareMessage(language === 'en' ? 'Share failed' : language === 'ja' ? '共有に失敗しました' : 'Gagal membagikan');
+        window.setTimeout(() => setShareMessage(''), 2200);
+      }
     }
   };
 
@@ -410,24 +440,38 @@ export default function StreamPage() {
         title={title}
       />
 
-      <div className="flex items-center justify-between border-b border-border bg-surface px-4 py-2.5">
-        <span className="text-xs text-muted">{videoLikes.length} {language === 'en' ? 'likes' : language === 'ja' ? 'いいね' : 'like'}</span>
-        <button
-          type="button"
-          onClick={handleVideoLike}
-          disabled={!user}
-          title={user ? (language === 'en' ? 'Like video' : language === 'ja' ? '動画にいいね' : 'Like video') : (language === 'en' ? 'Login to like' : language === 'ja' ? 'ログインしていいね' : 'Login untuk like')}
-          className={clsx(
-            'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
-            videoLikes.includes(user?.uid ?? '')
-              ? isHentai ? 'border-pink bg-pink/15 text-pink' : 'border-cyan bg-cyan/15 text-cyan'
-              : 'border-border text-secondary hover:border-cyan hover:text-cyan',
-            !user && 'cursor-not-allowed opacity-60'
-          )}
-        >
-          <Heart className="h-4 w-4" fill={videoLikes.includes(user?.uid ?? '') ? 'currentColor' : 'none'} aria-hidden />
-          {language === 'en' ? 'Like' : language === 'ja' ? 'いいね' : 'Suka'}
-        </button>
+      <div className="border-b border-border bg-surface px-4 py-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted">{videoLikes.length} {language === 'en' ? 'likes' : language === 'ja' ? 'いいね' : 'like'}</span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleVideoLike}
+              title={user ? (language === 'en' ? 'Like video' : language === 'ja' ? '動画にいいね' : 'Like video') : (language === 'en' ? 'Login to like' : language === 'ja' ? 'ログインしていいね' : 'Login untuk like')}
+              className={clsx(
+                'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
+                videoLikes.includes(user?.uid ?? '')
+                  ? isHentai ? 'border-pink bg-pink/15 text-pink' : 'border-cyan bg-cyan/15 text-cyan'
+                  : 'border-border text-secondary hover:border-cyan hover:text-cyan',
+                !user && 'cursor-not-allowed opacity-60'
+              )}
+            >
+              <Heart className="h-4 w-4" fill={videoLikes.includes(user?.uid ?? '') ? 'currentColor' : 'none'} aria-hidden />
+              {language === 'en' ? 'Like' : language === 'ja' ? 'いいね' : 'Suka'}
+            </button>
+            <button
+              type="button"
+              onClick={handleShare}
+              title={language === 'en' ? 'Share video' : language === 'ja' ? '動画を共有' : 'Bagikan video'}
+              className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-secondary transition-all hover:border-cyan hover:text-cyan"
+            >
+              <Share2 className="h-4 w-4" aria-hidden />
+              {language === 'en' ? 'Share' : language === 'ja' ? '共有' : 'Bagikan'}
+            </button>
+          </div>
+        </div>
+        {videoLikeError && <p className="mt-1.5 text-right text-[0.65rem] text-pink" role="status">{videoLikeError}</p>}
+        {shareMessage && <p className="mt-1.5 text-right text-[0.65rem] text-cyan" role="status">{shareMessage}</p>}
       </div>
 
       {/* ── Timestamp reminder bar (shown after "Lanjut" clicked) ── */}
