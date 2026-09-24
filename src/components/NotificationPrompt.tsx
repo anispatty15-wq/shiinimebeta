@@ -11,7 +11,7 @@ import { Bell, X } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 
 export default function NotificationPrompt() {
-  const { isSupported, permission, requestPermission } = useNotifications();
+  const { isSupported, permission, requestPermission, pushError, isPushConfigured } = useNotifications();
   const [isDismissed, setIsDismissed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,7 +24,7 @@ export default function NotificationPrompt() {
       if (granted) {
         setIsDismissed(true);
       } else {
-        setError('Izin belum diberikan. Coba lagi atau ubah izin notifikasi dari pengaturan situs.');
+        setError(pushError || 'Izin belum diberikan. Coba lagi atau ubah izin notifikasi dari pengaturan situs.');
       }
     } catch (error) {
       console.error('Error enabling notifications:', error);
@@ -76,6 +76,7 @@ export default function NotificationPrompt() {
         </p>
         <p className="text-xs text-muted mb-3">
           Izinkan notifikasi agar chat, friend request, episode baru, dan pengumuman bisa muncul.
+          {!isPushConfigured && ' Push belum dikonfigurasi di server.'}
         </p>
         {error && <p className="mb-3 text-xs text-pink" role="alert">{error}</p>}
 

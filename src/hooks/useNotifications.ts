@@ -27,6 +27,8 @@ export function useNotifications() {
   const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [isSupported, setIsSupported] = useState(false);
   const [latestNotification, setLatestNotification] = useState<NotificationPayload | null>(null);
+  const [pushError, setPushError] = useState('');
+  const isPushConfigured = Boolean(process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY);
 
   // Check if notifications are supported
   useEffect(() => {
@@ -97,9 +99,14 @@ export function useNotifications() {
         // Get FCM token after permission granted
         // FCM is optional for foreground browser notifications. A missing
         // VAPID key must not prevent the regular Notification API from working.
-        await getFCMToken().catch((error) => {
+        const token = await getFCMToken().catch((error) => {
           console.warn('[useNotifications] FCM setup skipped:', error);
+          return null;
         });
+        if (user && !token) {
+          setPushError('Izin aktif, tetapi token push belum tersimpan. Periksa VAPID key dan Firebase service worker.');
+          return false;
+        }
         return true;
       }
       
@@ -146,7 +153,15 @@ export function useNotifications() {
 
       // Regular web browser flow
       // Register service worker first
-      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      if (!window.isSecureContext) {
+        throw new Error('Push notification membutuhkan HTTPS.');
+      }
+      if (!process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY) {
+        throw new Error('NEXT_PUBLIC_FIREBASE_VAPID_KEY belum dikonfigurasi.');
+      }
+
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+      await registration.update();
       console.log('Service Worker registered:', registration);
 
       // Wait for service worker to be ready
@@ -271,5 +286,7 @@ export function useNotifications() {
     requestPermission,
     getFCMToken,
     hasPermission: permission === 'granted',
+    pushError,
+    isPushConfigured,
   };
 }
