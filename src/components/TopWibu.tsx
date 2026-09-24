@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Trophy, User } from 'lucide-react';
 import { db, FIREBASE_READY } from '@/lib/firebase';
 import { getLevelFromXP } from '@/lib/xp';
@@ -17,6 +18,7 @@ interface TopWibuUser {
 export default function TopWibu() {
   const [users, setUsers] = useState<TopWibuUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,10 +32,10 @@ export default function TopWibu() {
       try {
         let snapshot;
         try {
-          snapshot = await getDocs(query(collection(db, 'users'), orderBy('xp', 'desc'), limit(3)));
+          snapshot = await getDocs(query(collection(db, 'users'), orderBy('xp', 'desc')));
         } catch {
           // Keep the leaderboard working when the optional Firestore index is absent.
-          snapshot = await getDocs(query(collection(db, 'users'), limit(50)));
+          snapshot = await getDocs(query(collection(db, 'users'), limit(100)));
         }
 
         const topUsers = snapshot.docs
@@ -65,6 +67,8 @@ export default function TopWibu() {
 
   if (!loading && users.length === 0) return null;
 
+  const visibleUsers = showAll ? users : users.slice(0, 3);
+
   return (
     <section className="px-4 pt-5 pb-2" aria-labelledby="top-wibu-title">
       <div className="mb-3 flex items-center gap-2">
@@ -78,12 +82,13 @@ export default function TopWibu() {
           ? [1, 2, 3].map((rank) => (
               <div key={rank} className="h-24 animate-pulse rounded-app border border-border bg-surface" />
             ))
-          : users.map((topUser, index) => {
+          : visibleUsers.map((topUser, index) => {
               const level = getLevelFromXP(topUser.xp);
               return (
-                <div
+                <Link
+                  href={`/profile/${topUser.uid}`}
                   key={topUser.uid}
-                  className="relative flex min-w-0 items-center gap-2 rounded-app border border-border bg-surface px-2.5 py-2 shadow-sm sm:gap-3 sm:px-3"
+                  className="relative flex min-w-0 flex-col items-center gap-1.5 rounded-app border border-border bg-surface px-2 py-3 text-center shadow-sm transition-colors hover:border-cyan/60 sm:flex-row sm:gap-3 sm:px-3 sm:py-2 sm:text-left"
                 >
                   <span className="absolute -top-2 -left-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-yellow-400 px-1 text-[0.6rem] font-bold text-gray-900">
                     #{index + 1}
@@ -97,14 +102,24 @@ export default function TopWibu() {
                       </div>
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-primary sm:text-sm">{topUser.displayName}</p>
-                    <p className={`truncate text-[0.62rem] font-medium ${level.color}`}>Lv.{level.level} · {level.name}</p>
+                  <div className="min-w-0 max-w-full">
+                    <p className="break-words text-[0.68rem] font-semibold leading-tight text-primary sm:text-sm">{topUser.displayName}</p>
+                    <p className={`break-words text-[0.58rem] font-medium leading-tight ${level.color}`}>Lv.{level.level} · {level.name}</p>
                   </div>
-                </div>
+                </Link>
               );
             })}
       </div>
+
+      {!loading && users.length > 3 && (
+        <button
+          type="button"
+          onClick={() => setShowAll((shown) => !shown)}
+          className="mt-3 w-full rounded-app border border-border bg-surface px-3 py-2 text-xs font-semibold text-secondary transition-colors hover:border-cyan/60 hover:text-cyan"
+        >
+          {showAll ? 'Sembunyikan daftar' : `Lihat semua Top Wibu (${users.length})`}
+        </button>
+      )}
     </section>
   );
 }

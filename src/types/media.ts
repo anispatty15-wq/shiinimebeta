@@ -36,6 +36,7 @@ export interface AnimeDetail {
   titleIndonesian?: string;
   poster:       string;
   synopsis:     string;
+  releaseDate?: string;
   genres:       string[];
   episode_list: AnimeEpisodeListItem[];
 }
@@ -83,6 +84,7 @@ export interface HentaiDetail {
   titleIndonesian?: string;
   poster:       string;
   synopsis:     string;
+  releaseDate?: string;
   episode_list: HentaiEpisodeListItem[];
 }
 
@@ -110,6 +112,7 @@ export interface ComicDetail {
   title:    string;
   poster:   string;
   synopsis: string;
+  releaseDate?: string;
   chapters: ComicChapterItem[];
 }
 

@@ -143,6 +143,17 @@ function mapArr<T>(v: unknown, fn: (item: unknown) => T | null): T[] {
   return v.map(fn).filter((x): x is T => x !== null);
 }
 
+function releaseDateValue(o: Record<string, unknown>): string {
+  const aired = o.aired;
+  const airedValue = aired && typeof aired === 'object'
+    ? (aired as Record<string, unknown>).from ?? (aired as Record<string, unknown>).start
+    : undefined;
+  return str(
+    o.release_date ?? o.releaseDate ?? o.date ?? o.year ?? o.released ??
+      o.start_date ?? o.startDate ?? o.first_air_date ?? airedValue
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // Domain parsers  — strict against the JSON contract
 // ─────────────────────────────────────────────────────────────
@@ -175,6 +186,7 @@ function parseAnimeDetail(raw: unknown): AnimeDetail {
     ...titleFields(o),
     poster:   str(o.poster ?? o.image ?? o.cover),
     synopsis: str(o.synopsis ?? o.description ?? o.summary),
+    releaseDate: releaseDateValue(o),
     genres:   strArr(o.genres ?? o.genre),
     episode_list: mapArr(o.episode_list ?? o.episodes ?? o.episodeList, (item) => {
       if (!item || typeof item !== 'object') return null;
@@ -327,6 +339,7 @@ function parseHentaiDetail(raw: unknown): HentaiDetail {
     ...titleFields(o),
     poster:   str(o.poster ?? o.image ?? o.cover),
     synopsis: str(o.synopsis ?? o.description ?? o.summary),
+    releaseDate: releaseDateValue(o),
     episode_list: mapArr(o.episode_list ?? o.episodes ?? o.episodeList, (item) => {
       if (!item || typeof item !== 'object') return null;
       const e = item as Record<string, unknown>;
@@ -350,45 +363,47 @@ function parseHentaiEpisodeData(raw: unknown): HentaiEpisodeData {
 
 function parseComicDetail(raw: unknown): ComicDetail {
   const o = (unwrap(raw) ?? {}) as Record<string, unknown>;
+  const chapters = mapArr(
+    o.chapters ?? o.chapter_list ?? o.chapterList ?? o.episode_list,
+    (item) => {
+      if (!item || typeof item !== 'object') return null;
+      const c = item as Record<string, unknown>;
+      const slug = str(c.slug ?? c.id ?? '');
+      if (!slug) return null;
+
+      // Build a clean chapter title:
+      // If API returns a slug-like title (contains hyphens, no spaces),
+      // extract the chapter number instead of showing raw slug.
+      const rawTitle = str(c.title ?? c.name ?? '');
+      const isSlugLike = rawTitle.includes('-') && !rawTitle.includes(' ');
+      let title: string;
+      if (!rawTitle || isSlugLike) {
+        const chNum = str(c.chapter ?? c.chapter_number ?? c.number ?? '');
+        if (chNum) {
+          title = `Chapter ${chNum}`;
+        } else {
+          const nums = slug.match(/\d+(\.\d+)?/g);
+          const num  = nums ? nums[nums.length - 1] : '';
+          title = num ? `Chapter ${num}` : slug;
+        }
+      } else {
+        title = rawTitle;
+      }
+
+      return {
+        title,
+        slug,
+        release_date: str(c.release_date ?? c.date ?? c.updatedAt ?? c.updated_at),
+      };
+    }
+  );
+  const chapterDates = chapters.map((chapter) => chapter.release_date).filter(Boolean).sort();
   return {
     title:    str(o.title, '(Tanpa Judul)'),
     poster:   str(o.poster ?? o.image ?? o.cover),
     synopsis: str(o.synopsis ?? o.description ?? o.summary),
-    chapters: mapArr(
-      o.chapters ?? o.chapter_list ?? o.chapterList ?? o.episode_list,
-      (item) => {
-        if (!item || typeof item !== 'object') return null;
-        const c = item as Record<string, unknown>;
-        const slug = str(c.slug ?? c.id ?? '');
-        if (!slug) return null;
-
-        // Build a clean chapter title:
-        // If API returns a slug-like title (contains hyphens, no spaces),
-        // extract the chapter number instead of showing raw slug.
-        const rawTitle = str(c.title ?? c.name ?? '');
-        const isSlugLike = rawTitle.includes('-') && !rawTitle.includes(' ');
-        let title: string;
-        if (!rawTitle || isSlugLike) {
-          // Try to extract "Chapter N" from slug like "title-chapter-45" or from number fields
-          const chNum = str(c.chapter ?? c.chapter_number ?? c.number ?? '');
-          if (chNum) {
-            title = `Chapter ${chNum}`;
-          } else {
-            const nums = slug.match(/\d+(\.\d+)?/g);
-            const num  = nums ? nums[nums.length - 1] : '';
-            title = num ? `Chapter ${num}` : slug;
-          }
-        } else {
-          title = rawTitle;
-        }
-
-        return {
-          title,
-          slug,
-          release_date: str(c.release_date ?? c.date ?? c.updatedAt ?? c.updated_at),
-        };
-      }
-    ),
+    releaseDate: releaseDateValue(o) || chapterDates[0] || '',
+    chapters,
   };
 }
 

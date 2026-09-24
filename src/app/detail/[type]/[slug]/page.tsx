@@ -11,7 +11,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   Heart, Play, BookOpen,
-  ChevronDown, ChevronUp, Star,
+  ChevronDown, ChevronUp, Star, CalendarDays,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { AnimeAPI, DonghuaAPI, HentaiAPI, ComicAPI } from '@/lib/api';
@@ -34,6 +34,19 @@ function badgeClass(status: string): string {
   if (s.includes('complete')) return 'badge badge-completed';
   if (s.includes('movie')) return 'badge badge-movie';
   return 'badge bg-white/10 border-white/10 text-secondary';
+}
+
+function formatReleaseDate(value?: string): string {
+  const raw = value?.trim();
+  if (!raw) return '';
+  if (/^\d{4}$/.test(raw)) return raw;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return parsed.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -80,6 +93,9 @@ export default function DetailPage() {
   const poster   = animeData?.poster ?? donghuaData?.poster ?? hentaiData?.poster ?? comicData?.poster ?? '';
   const synopsis = animeData?.synopsis ?? donghuaData?.synopsis ?? hentaiData?.synopsis ?? comicData?.synopsis ?? '';
   const genres   = animeData?.genres ?? donghuaData?.genres ?? [];
+  const releaseDate = formatReleaseDate(
+    contentType === 'comic' ? comicData?.releaseDate : titleData?.releaseDate
+  );
 
   const episodeList = animeData?.episode_list ?? donghuaData?.episode_list ?? hentaiData?.episode_list ?? [];
   const chapterList = comicData?.chapters ?? [];
@@ -182,6 +198,13 @@ export default function DetailPage() {
                     <span key={g} className={badgeClass(g)}>{g}</span>
                   ))}
               </div>
+            )}
+
+            {releaseDate && (
+              <p className="mb-2 flex items-center gap-1.5 text-xs text-secondary">
+                <CalendarDays className="h-3.5 w-3.5 text-cyan" aria-hidden />
+                Rilis: <span className="font-medium text-primary">{releaseDate}</span>
+              </p>
             )}
 
             {/* Counts */}
