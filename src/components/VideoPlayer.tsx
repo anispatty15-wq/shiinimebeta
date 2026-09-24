@@ -173,6 +173,30 @@ export default function VideoPlayer({
   const handleVideoLoad   = () => { setLoading(false); setErrored(false); };
   const handleVideoError  = () => { setLoading(false); setErrored(true);  };
 
+  const handleFullscreen = async () => {
+    const element = iframeRef.current ?? videoRef.current;
+    if (!element) return;
+
+    try {
+      await element.requestFullscreen?.();
+
+      // Orientation lock is supported only by some mobile browsers and must
+      // be requested after fullscreen starts.
+      if (window.matchMedia('(pointer: coarse)').matches) {
+        try {
+          const orientation = screen.orientation as ScreenOrientation & {
+            lock?: (orientation: 'landscape') => Promise<void>;
+          };
+          await orientation.lock?.('landscape');
+        } catch {
+          // Ignore unsupported browsers or browsers that deny the lock.
+        }
+      }
+    } catch {
+      // The browser can reject fullscreen when the gesture is not accepted.
+    }
+  };
+
   // ── No servers ──────────────────────────────────────────────
   if (mergedServers.length === 0) {
     return (
@@ -293,10 +317,7 @@ export default function VideoPlayer({
         {!loading && !errored && (
           <button
             aria-label="Fullscreen"
-            onClick={() => {
-              const el = iframeRef.current ?? videoRef.current;
-              el?.requestFullscreen?.();
-            }}
+            onClick={handleFullscreen}
             className="absolute bottom-3 right-3 z-10 w-8 h-8 bg-black/60 backdrop-blur-sm rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-black/80 transition-all"
           >
             <Maximize2 className="w-4 h-4" aria-hidden />

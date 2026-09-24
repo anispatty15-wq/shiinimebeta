@@ -11,6 +11,7 @@ export default function PageLoader() {
   const [visible, setVisible] = useState(false);
   const [intro, setIntro] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [introText, setIntroText] = useState('');
 
   useEffect(() => {
     const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
@@ -20,7 +21,7 @@ export default function PageLoader() {
     if (isFirstLoad) {
       sessionStorage.setItem('shiinime-intro-seen', 'true');
       setIntro(true);
-      const introDone = setTimeout(() => setIntro(false), 2300);
+      const introDone = setTimeout(() => setIntro(false), 5200);
       return () => clearTimeout(introDone);
     }
 
@@ -40,6 +41,43 @@ export default function PageLoader() {
 
     return () => clearTimeout(done);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!intro) {
+      setIntroText('');
+      return;
+    }
+
+    const phrases = ['Shiinime', 'by anzzzdecoding'];
+    let phraseIndex = 0;
+    let characterIndex = 0;
+    let deleting = false;
+    let holdTicks = 0;
+
+    const typing = window.setInterval(() => {
+      const phrase = phrases[phraseIndex];
+
+      if (!deleting) {
+        characterIndex += 1;
+        setIntroText(phrase.slice(0, characterIndex));
+        if (characterIndex === phrase.length) holdTicks += 1;
+        if (holdTicks >= 8) {
+          deleting = true;
+          holdTicks = 0;
+        }
+        return;
+      }
+
+      characterIndex -= 1;
+      setIntroText(phrase.slice(0, characterIndex));
+      if (characterIndex === 0) {
+        deleting = false;
+        phraseIndex = (phraseIndex + 1) % phrases.length;
+      }
+    }, 90);
+
+    return () => window.clearInterval(typing);
+  }, [intro]);
 
   if (!visible && !intro && !refreshing) return null;
 
@@ -83,10 +121,10 @@ export default function PageLoader() {
           55%, 80% { opacity: 1; letter-spacing: 0.18em; transform: translateY(0); }
           100% { opacity: 0; transform: translateY(-10px); }
         }
-        .intro-logo { animation: intro-logo 2.2s cubic-bezier(.2,.8,.2,1) forwards; }
-        .intro-ring { animation: intro-ring 2s ease-out .08s forwards; }
+        .intro-logo { animation: intro-logo 5.1s cubic-bezier(.2,.8,.2,1) forwards; }
+        .intro-ring { animation: intro-ring 4.8s ease-out .08s forwards; }
         .intro-spark { animation: intro-spark 1.6s ease-in-out .25s infinite; }
-        .intro-copy { animation: intro-copy 2.1s ease forwards; }
+        .intro-copy { min-height: 1.25rem; }
         @keyframes refresh-spin {
           to { transform: rotate(360deg); }
         }
@@ -99,7 +137,7 @@ export default function PageLoader() {
       `}</style>
 
       {refreshing && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#FFF7FA]/90 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#FFF7FA]/90 backdrop-blur-sm dark:bg-[#07111F]/90">
           <div className="relative flex h-24 w-24 items-center justify-center">
             <div className="refresh-spinner absolute inset-0 rounded-full border-2 border-pink/20 border-t-pink border-r-pink-400" />
             <div className="refresh-logo flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-[0_8px_24px_rgba(233,30,140,0.22)]">
@@ -110,17 +148,17 @@ export default function PageLoader() {
       )}
 
       {intro && (
-        <div className="fixed inset-0 z-[200] overflow-hidden bg-[#FFF7FA] flex items-center justify-center intro-screen">
+        <div className="fixed inset-0 z-[200] overflow-hidden bg-[#FFF7FA] text-gray-900 flex items-center justify-center intro-screen dark:bg-[#07111F] dark:text-[#E6F4FF]">
           <div className="absolute inset-0 intro-wash" />
           <div className="absolute w-56 h-56 rounded-full border-2 border-pink/30 intro-ring" />
           <div className="absolute w-72 h-72 rounded-full border border-pink/20 intro-ring [animation-delay:0.2s]" />
           <span className="absolute -translate-x-24 -translate-y-20 text-3xl text-pink intro-spark">+</span>
           <span className="absolute translate-x-24 translate-y-16 text-2xl text-pink-400 intro-spark [animation-delay:0.5s]">+</span>
-          <div className="relative flex flex-col items-center gap-4">
+          <div className="relative flex items-center gap-4">
             <div className="intro-logo">
               <img src="/logo.png" alt="Shiiinime" className="w-28 h-28 object-contain drop-shadow-[0_10px_30px_rgba(233,30,140,0.35)]" />
             </div>
-            <p className="intro-copy text-sm font-bold text-gray-900 uppercase">Shiiinime</p>
+            <p className="intro-copy min-w-[12rem] text-left text-sm font-bold text-gray-900 dark:text-[#E6F4FF]">{introText}</p>
           </div>
         </div>
       )}

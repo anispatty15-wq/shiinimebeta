@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 
 export type Language = 'id' | 'en' | 'ja';
 export type Theme = 'light' | 'dark';
@@ -70,7 +70,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = language === 'ja' ? 'ja' : language;
   }, [language]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
     document.documentElement.style.colorScheme = theme;
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
