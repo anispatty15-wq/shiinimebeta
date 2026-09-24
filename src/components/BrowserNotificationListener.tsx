@@ -56,6 +56,15 @@ export default function BrowserNotificationListener() {
           data: notification.data,
         };
 
+        window.dispatchEvent(new CustomEvent('shiinime:notification', {
+          detail: {
+            title,
+            body: options.body,
+            type: notification.type || 'announcement',
+            data: notification.data,
+          },
+        }));
+
         try {
           // Direct browser notifications work even when FCM/VAPID is not configured.
           new Notification(title, options);

@@ -30,6 +30,18 @@ export default function NotificationToast() {
     }
   }, [latestNotification]);
 
+  useEffect(() => {
+    const handleNotification = (event: Event) => {
+      const payload = (event as CustomEvent<NotificationPayload>).detail;
+      if (payload) {
+        setNotification(payload);
+        setVisible(true);
+      }
+    };
+    window.addEventListener('shiinime:notification', handleNotification);
+    return () => window.removeEventListener('shiinime:notification', handleNotification);
+  }, []);
+
   const handleClick = () => {
     if (notification?.data?.click_action) {
       router.push(notification.data.click_action);

@@ -243,7 +243,7 @@ export default function ChatBubble() {
       style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }}
     >
       {open && (
-        <div className="absolute bottom-14 right-0 z-[61] w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-pink/25 bg-white shadow-[0_12px_40px_rgba(31,24,29,0.2)] dark:bg-surface dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)]">
+        <div className="absolute bottom-14 right-0 z-[61] w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-pink/25 bg-white text-gray-900 shadow-[0_12px_40px_rgba(31,24,29,0.2)] dark:bg-[#0D1B2A] dark:text-[#E6F4FF] dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)]">
           <div className="flex items-center gap-2 border-b border-border px-4 py-3">
             {activeContact ? (
               <button onClick={() => setActiveContact(null)} className="rounded-lg p-1 text-muted hover:bg-pink/10" aria-label="Kembali ke daftar chat">
@@ -271,7 +271,7 @@ export default function ChatBubble() {
                   <p className="py-12 text-center text-xs text-muted">Belum ada pesan. Mulai chat sekarang.</p>
                 ) : messages.map((message) => (
                   <div key={message.id} className={`flex ${message.senderId === user.uid ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs ${message.senderId === user.uid ? 'bg-pink text-white' : 'bg-pink/10 text-primary'}`}>
+                    <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs ${message.senderId === user.uid ? 'bg-cyan text-bg dark:bg-cyan dark:text-bg' : 'bg-surface-2 text-primary'}`}>
                       {message.text && <p className="whitespace-pre-wrap break-words">{message.text}</p>}
                       {(message.mediaUrl || message.imageUrl) && message.mediaType !== 'video' && <a href={message.mediaUrl ?? message.imageUrl} target="_blank" rel="noreferrer" className="mt-1 block"><img src={message.mediaUrl ?? message.imageUrl} alt="Lampiran chat" className="max-h-40 max-w-full rounded-lg object-cover" /></a>}
                       {message.mediaUrl && message.mediaType === 'video' && <video src={message.mediaUrl} controls preload="metadata" className="mt-1 max-h-40 max-w-full rounded-lg" />}
@@ -397,7 +397,7 @@ export default function ChatBubble() {
           if (!dragged.current) setOpen((value) => !value);
         }}
         aria-label="Buka daftar chat"
-        className="relative flex h-12 w-12 cursor-grab touch-none items-center justify-center rounded-full bg-pink text-white shadow-[0_8px_24px_rgba(233,30,140,0.35)] transition-transform hover:scale-105 active:cursor-grabbing"
+        className="relative flex h-12 w-12 cursor-grab touch-none items-center justify-center rounded-full bg-pink text-white shadow-[0_8px_24px_rgba(233,30,140,0.35)] transition-transform hover:scale-105 active:cursor-grabbing dark:bg-cyan dark:text-bg dark:shadow-[0_8px_24px_rgba(0,217,255,0.3)]"
       >
         <MessageCircle className="h-5 w-5" aria-hidden />
       {unreadChats > 0 && (

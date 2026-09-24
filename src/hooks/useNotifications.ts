@@ -115,7 +115,7 @@ export function useNotifications() {
       console.error('Error requesting notification permission:', error);
       return false;
     }
-  }, [isSupported]);
+  }, [isSupported, user]);
 
   // Get FCM token
   const getFCMToken = useCallback(async (): Promise<string | null> => {
@@ -244,6 +244,7 @@ export function useNotifications() {
           };
 
           setLatestNotification(notification);
+          window.dispatchEvent(new CustomEvent('shiinime:notification', { detail: notification }));
 
           // Show browser notification if app is in background
           if (document.hidden) {
