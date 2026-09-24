@@ -8,7 +8,7 @@ import {
   onSnapshot, serverTimestamp,
   type Timestamp,
 } from 'firebase/firestore';
-import { MessageCircle, Send, User, LogIn, CornerDownRight, X, AlertCircle, ImagePlus, Gift } from 'lucide-react';
+import { MessageCircle, Send, User, LogIn, CornerDownRight, X, AlertCircle, ImagePlus, Gift, Clock3, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { db, FIREBASE_READY } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
@@ -55,6 +55,15 @@ interface GiphyResult {
   url: string;
   preview: string;
 }
+
+interface CommentHistoryEntry {
+  id: string;
+  episodeSlug: string;
+  text: string;
+  createdAt: number;
+}
+
+const COMMENT_HISTORY_KEY = 'shiinime-comment-history';
 
 // ── Avatar ────────────────────────────────────────────────────
 function Avatar({ photoURL, name, size = 8 }: { photoURL?: string; name: string; size?: number }) {
@@ -204,9 +213,24 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
   const [gifSuggestions, setGifSuggestions] = useState<GiphyResult[]>([]);
   const [gifSearching, setGifSearching] = useState(false);
   const [popupUser,  setPopupUser]  = useState<PopupUser | null>(null);
+  const [commentHistory, setCommentHistory] = useState<CommentHistoryEntry[]>([]);
+  const [showCommentHistory, setShowCommentHistory] = useState(false);
   const bottomRef  = useRef<HTMLDivElement>(null);
   const inputRef   = useRef<HTMLInputElement>(null);
   const isHentai   = contentType === 'hentai';
+
+  useEffect(() => {
+    if (!user) {
+      setCommentHistory([]);
+      return;
+    }
+    try {
+      const stored = JSON.parse(localStorage.getItem(`${COMMENT_HISTORY_KEY}:${user.uid}`) ?? '[]') as CommentHistoryEntry[];
+      setCommentHistory(Array.isArray(stored) ? stored : []);
+    } catch {
+      setCommentHistory([]);
+    }
+  }, [user]);
 
   useEffect(() => {
     const queryText = text.trim();
@@ -334,6 +358,17 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
         createdAt:    serverTimestamp(),
       });
 
+      const historyKey = `${COMMENT_HISTORY_KEY}:${user.uid}`;
+      const historyEntry: CommentHistoryEntry = {
+        id: `${episodeSlug}-${Date.now()}`,
+        episodeSlug,
+        text: trimmedText || (selectedGift ? `Mengirim gift ${selectedGift.name}` : 'Komentar dengan media'),
+        createdAt: Date.now(),
+      };
+      const nextHistory = [historyEntry, ...commentHistory].slice(0, 30);
+      setCommentHistory(nextHistory);
+      localStorage.setItem(historyKey, JSON.stringify(nextHistory));
+
       // Create notification if this is a reply
       if (replyTo?.id) {
         await createReplyNotification({
@@ -372,6 +407,38 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
             <span className="text-xs text-muted font-normal">({comments.length})</span>
           )}
         </h2>
+
+        {user && commentHistory.length > 0 && (
+          <div className="mb-4 rounded-app border border-border bg-surface/60 p-3">
+            <button
+              type="button"
+              onClick={() => setShowCommentHistory((shown) => !shown)}
+              className="flex w-full items-center justify-between text-xs font-semibold text-secondary hover:text-primary"
+            >
+              <span className="flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" aria-hidden /> Riwayat komentar saya</span>
+              <span className="text-[0.65rem] text-muted">{commentHistory.length} komentar</span>
+            </button>
+            {showCommentHistory && (
+              <div className="mt-3 space-y-2 border-t border-border pt-3">
+                {commentHistory.slice(0, 5).map((entry) => (
+                  <div key={entry.id} className="flex items-start justify-between gap-3 text-xs">
+                    <p className="min-w-0 flex-1 truncate text-secondary">{entry.text}</p>
+                    <time className="shrink-0 text-[0.6rem] text-muted">
+                      {new Date(entry.createdAt).toLocaleDateString('id-ID')}
+                    </time>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => { setCommentHistory([]); localStorage.removeItem(`${COMMENT_HISTORY_KEY}:${user.uid}`); }}
+                  className="flex items-center gap-1 text-[0.65rem] text-muted hover:text-pink"
+                >
+                  <Trash2 className="h-3 w-3" aria-hidden /> Hapus riwayat lokal
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Comment list */}
         <div className="space-y-3.5 mb-4 max-h-96 overflow-y-auto pr-1">

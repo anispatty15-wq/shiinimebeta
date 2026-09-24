@@ -42,12 +42,11 @@ export function useNotifications() {
         return;
       }
       
-      // Regular web browser check
-      const supported = 
+      // Browser notifications work without FCM. PushManager and a service
+      // worker are only needed for background push delivery.
+      const supported =
         typeof window !== 'undefined' &&
-        'Notification' in window &&
-        'serviceWorker' in navigator &&
-        'PushManager' in window;
+        'Notification' in window;
       
       setIsSupported(supported);
       

@@ -22,6 +22,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
+import { FIREBASE_READY } from '@/lib/firebase';
 
 export interface Notification {
   id: string;
@@ -43,7 +44,7 @@ export function useNotificationsList() {
 
   // Load notifications
   useEffect(() => {
-    if (!user) {
+    if (!user || !FIREBASE_READY || !db) {
       setNotifications([]);
       setUnreadCount(0);
       setLoading(false);

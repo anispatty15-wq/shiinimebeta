@@ -21,7 +21,7 @@ export default function PageLoader() {
     if (isFirstLoad) {
       sessionStorage.setItem('shiinime-intro-seen', 'true');
       setIntro(true);
-      const introDone = setTimeout(() => setIntro(false), 5200);
+      const introDone = setTimeout(() => setIntro(false), 4600);
       return () => clearTimeout(introDone);
     }
 
@@ -100,31 +100,41 @@ export default function PageLoader() {
           animation: bar-hide 0.3s ease forwards;
         }
         @keyframes intro-logo {
-          0% { opacity: 0; transform: scale(0.45) rotate(-12deg); filter: blur(12px); }
-          35% { opacity: 1; transform: scale(1.08) rotate(3deg); filter: blur(0); }
-          58% { transform: scale(0.96) rotate(0); }
-          78% { transform: scale(1) rotate(0); }
-          100% { opacity: 0; transform: scale(1.18) translateY(-22px); filter: blur(5px); }
+          0% { opacity: 0; transform: translateY(18px) scale(.82); filter: blur(8px); }
+          22% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+          72% { opacity: 1; transform: translateY(-3px) scale(1); }
+          100% { opacity: 0; transform: translateY(-16px) scale(.96); filter: blur(4px); }
         }
-        @keyframes intro-ring {
-          0% { opacity: 0; transform: scale(0.2) rotate(0); }
-          35% { opacity: 1; }
-          100% { opacity: 0; transform: scale(1.8) rotate(180deg); }
+        @keyframes intro-orbit {
+          0% { opacity: 0; transform: rotate(-22deg) scale(.7); }
+          22% { opacity: .8; }
+          78% { opacity: .45; transform: rotate(18deg) scale(1); }
+          100% { opacity: 0; transform: rotate(42deg) scale(1.08); }
         }
-        @keyframes intro-spark {
-          0%, 100% { opacity: 0; transform: scale(0.3) translateY(12px); }
-          45% { opacity: 1; transform: scale(1) translateY(0); }
-          80% { opacity: 0.2; transform: scale(0.7) translateY(-16px); }
+        @keyframes intro-content {
+          0% { opacity: 0; transform: translateY(14px); }
+          24% { opacity: 0; transform: translateY(14px); }
+          45% { opacity: 1; transform: translateY(0); }
+          78% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-8px); }
         }
-        @keyframes intro-copy {
-          0%, 20% { opacity: 0; letter-spacing: 0.8em; transform: translateY(10px); }
-          55%, 80% { opacity: 1; letter-spacing: 0.18em; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-10px); }
+        @keyframes intro-line {
+          0% { transform: scaleX(0); opacity: 0; }
+          35% { transform: scaleX(1); opacity: 1; }
+          82% { transform: scaleX(1); opacity: .7; }
+          100% { transform: scaleX(.65); opacity: 0; }
         }
-        .intro-logo { animation: intro-logo 5.1s cubic-bezier(.2,.8,.2,1) forwards; }
-        .intro-ring { animation: intro-ring 4.8s ease-out .08s forwards; }
-        .intro-spark { animation: intro-spark 1.6s ease-in-out .25s infinite; }
-        .intro-copy { min-height: 1.25rem; }
+        .intro-screen { background-image: linear-gradient(rgba(233,30,140,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(233,30,140,.045) 1px, transparent 1px); background-size: 34px 34px; }
+        .intro-screen::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 0%, rgba(255,247,250,.72) 88%); pointer-events: none; }
+        html.dark .intro-screen::after { background: radial-gradient(ellipse at center, transparent 0%, rgba(7,17,31,.76) 88%); }
+        .intro-orbit { animation: intro-orbit 4.4s cubic-bezier(.2,.7,.2,1) .1s forwards; }
+        .intro-logo { animation: intro-logo 4.5s cubic-bezier(.2,.8,.2,1) forwards; }
+        .intro-content { animation: intro-content 4.5s cubic-bezier(.2,.8,.2,1) forwards; }
+        .intro-line { animation: intro-line 4.2s ease-out .25s forwards; transform-origin: center; }
+        .intro-copy { min-height: 1.5rem; }
+        @media (prefers-reduced-motion: reduce) {
+          .intro-logo, .intro-orbit, .intro-content, .intro-line { animation-duration: .01ms; animation-iteration-count: 1; }
+        }
         @keyframes refresh-spin {
           to { transform: rotate(360deg); }
         }
@@ -149,16 +159,22 @@ export default function PageLoader() {
 
       {intro && (
         <div className="fixed inset-0 z-[200] overflow-hidden bg-[#FFF7FA] text-gray-900 flex items-center justify-center intro-screen dark:bg-[#07111F] dark:text-[#E6F4FF]">
-          <div className="absolute inset-0 intro-wash" />
-          <div className="absolute w-56 h-56 rounded-full border-2 border-pink/30 intro-ring" />
-          <div className="absolute w-72 h-72 rounded-full border border-pink/20 intro-ring [animation-delay:0.2s]" />
-          <span className="absolute -translate-x-24 -translate-y-20 text-3xl text-pink intro-spark">+</span>
-          <span className="absolute translate-x-24 translate-y-16 text-2xl text-pink-400 intro-spark [animation-delay:0.5s]">+</span>
-          <div className="relative flex items-center gap-4">
-            <div className="intro-logo">
-              <img src="/logo.png" alt="Shiiinime" className="w-28 h-28 object-contain drop-shadow-[0_10px_30px_rgba(233,30,140,0.35)]" />
+          <div className="intro-orbit absolute h-[min(78vw,26rem)] w-[min(78vw,26rem)] rounded-full border border-pink/25" />
+          <div className="intro-orbit absolute h-[min(58vw,19rem)] w-[min(58vw,19rem)] rounded-full border border-cyan/20 [animation-delay:.18s]" />
+          <div className="relative z-10 flex w-[min(88vw,31rem)] flex-col items-center text-center">
+            <div className="intro-logo relative flex h-28 w-28 items-center justify-center sm:h-32 sm:w-32">
+              <div className="absolute inset-3 rounded-full bg-pink/10 blur-xl dark:bg-cyan/10" />
+              <img src="/logo.png" alt="Shiiinime" className="relative h-24 w-24 object-contain drop-shadow-[0_10px_30px_rgba(233,30,140,0.35)] sm:h-28 sm:w-28" />
             </div>
-            <p className="intro-copy min-w-[12rem] text-left text-sm font-bold text-gray-900 dark:text-[#E6F4FF]">{introText}</p>
+            <div className="intro-content mt-5 flex w-full flex-col items-center">
+              <p className="text-[0.62rem] font-semibold uppercase tracking-[0.38em] text-pink/80 dark:text-cyan/80">Welcome to</p>
+              <div className="mt-2 flex min-h-10 items-center text-2xl font-bold tracking-tight sm:text-3xl">
+                <span className="text-gray-900 dark:text-[#E6F4FF]">{introText}</span>
+                <span className="ml-1 h-6 w-px bg-pink dark:bg-cyan" />
+              </div>
+              <div className="intro-line mt-5 h-px w-24 bg-gradient-to-r from-transparent via-pink to-transparent dark:via-cyan" />
+              <p className="mt-3 text-[0.65rem] font-medium uppercase tracking-[0.28em] text-gray-500 dark:text-[#7893AA]">anime · comic · donghua</p>
+            </div>
           </div>
         </div>
       )}

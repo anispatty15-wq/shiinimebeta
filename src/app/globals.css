@@ -23,6 +23,7 @@
     background-color: #FFF7FA;
     color: #111827;
     overflow-x: hidden;
+    overscroll-behavior-x: none;
   }
 
   html.dark {
@@ -85,6 +86,15 @@
 
   .nav-scroll::-webkit-scrollbar-track {
     background: transparent;
+  }
+
+  /* Keep touch scrolling fluid inside tabs, menus, and chat panels. */
+  .overflow-x-auto,
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
   }
 
   /* Focus ring */
@@ -302,9 +312,11 @@
 .scroll-row {
   scroll-behavior: smooth;
   overscroll-behavior-inline: contain;
+  scroll-padding-inline: 1rem;
   scroll-snap-type: x proximity;
   cursor: grab;
   user-select: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .scroll-row:hover .scroll-item {

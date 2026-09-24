@@ -85,6 +85,7 @@ export default function Navbar() {
   const type = pathToType(pathname);
   const { suggestions } = useSearchSuggest(query, type);
   const { unreadCount } = useNotificationsList();
+  const brandText = useTypingEffect(['Shiinime Stream'], 130, 75, 2600);
 
   useEffect(() => {
     setShowDrop(suggestions.length > 0 && query.length >= 2);
@@ -157,9 +158,15 @@ export default function Navbar() {
             height={32}
             className="flex-shrink-0"
           />
-          <div className="flex min-w-0 items-center gap-1 text-[0.9rem] sm:text-[1.05rem]">
-            <span className="truncate text-primary">Shiinime</span>
-            <span className="text-cyan">Stream</span>
+          <div className="flex min-w-[8.5rem] items-center text-[0.9rem] sm:min-w-[10.5rem] sm:text-[1.05rem]" aria-label="Shiinime Stream">
+            <span className="truncate text-primary">
+              {brandText.slice(0, 'Shiinime'.length)}
+            </span>
+            {brandText.length > 'Shiinime'.length && (
+              <span className="truncate text-cyan">
+                {brandText.slice('Shiinime'.length)}
+              </span>
+            )}
           </div>
         </Link>
 

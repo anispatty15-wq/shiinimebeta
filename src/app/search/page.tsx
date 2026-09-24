@@ -3,7 +3,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, X } from 'lucide-react';
+import { Search, X, Clock3, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { AnimeAPI, DonghuaAPI, HentaiAPI, ComicAPI, toArray } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -14,6 +14,8 @@ import { useLanguage } from '@/context/LanguageContext';
 import { getLocalizedTitle } from '@/lib/localizedTitle';
 
 type Tab = ContentType | 'donghua';
+type SearchHistoryEntry = { query: string; type: Tab; createdAt: number };
+const SEARCH_HISTORY_KEY = 'shiinime-search-history';
 const TABS: { label: string; value: Tab }[] = [
   { label: 'Anime',   value: 'anime'   },
   { label: 'Donghua', value: 'donghua' },
@@ -44,8 +46,33 @@ function SearchContent() {
   }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryEntry[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   const dq = useDebounce(query, 450);
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) ?? '[]') as SearchHistoryEntry[];
+      setSearchHistory(Array.isArray(stored) ? stored.slice(0, 8) : []);
+    } catch {
+      setSearchHistory([]);
+    }
+  }, []);
+
+  const saveSearch = useCallback((value: string, type: Tab) => {
+    const normalized = value.trim();
+    if (!normalized) return;
+    setSearchHistory((current) => {
+      const nextEntry = { query: normalized, type, createdAt: Date.now() };
+      const next = [
+        nextEntry,
+        ...current.filter((entry) => !(entry.query.toLowerCase() === normalized.toLowerCase() && entry.type === type)),
+      ].slice(0, 8);
+      localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
   const runSearch = useCallback(async (q: string, t: Tab) => {
     if (!q.trim()) { setItems([]); return; }
@@ -89,7 +116,15 @@ function SearchContent() {
     }
   }, []);
 
-  useEffect(() => { void runSearch(dq, tab); }, [dq, tab, runSearch]);
+  useEffect(() => {
+    void runSearch(dq, tab);
+    if (dq.trim()) saveSearch(dq, tab);
+  }, [dq, tab, runSearch, saveSearch]);
+
+  const clearSearchHistory = () => {
+    setSearchHistory([]);
+    localStorage.removeItem(SEARCH_HISTORY_KEY);
+  };
 
   // Sync URL params
   useEffect(() => {
@@ -108,7 +143,8 @@ function SearchContent() {
           autoFocus
           type="search"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => { setQuery(e.target.value); setShowHistory(true); }}
+          onFocus={() => setShowHistory(true)}
           placeholder={language === 'ja' ? 'タイトルを検索…' : language === 'en' ? 'Search title…' : 'Cari judul…'}
           aria-label={t('search')}
           className="flex-1 bg-transparent text-sm text-primary placeholder:text-muted outline-none min-w-0"
@@ -123,6 +159,32 @@ function SearchContent() {
           </button>
         )}
       </div>
+
+      {showHistory && searchHistory.length > 0 && (
+        <div className="mb-4 rounded-app border border-border bg-surface p-3 shadow-card">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-secondary">
+              <Clock3 className="h-3.5 w-3.5" aria-hidden /> Riwayat pencarian
+            </span>
+            <button type="button" onClick={clearSearchHistory} className="flex items-center gap-1 text-[0.65rem] text-muted hover:text-pink">
+              <Trash2 className="h-3 w-3" aria-hidden /> Hapus semua
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {searchHistory.map((entry) => (
+              <button
+                key={`${entry.type}-${entry.query}-${entry.createdAt}`}
+                type="button"
+                onClick={() => { setQuery(entry.query); setTab(entry.type); setShowHistory(false); }}
+                className="rounded-full border border-border bg-surface-2 px-3 py-1.5 text-xs text-secondary transition-colors hover:border-cyan/60 hover:text-cyan"
+              >
+                {entry.query}
+                <span className="ml-1 text-[0.6rem] text-muted">{entry.type}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 mb-5 border-b border-border">

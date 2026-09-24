@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { collection, limit, onSnapshot, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, FIREBASE_READY } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 
 type BrowserNotificationData = {
@@ -21,7 +21,7 @@ export default function BrowserNotificationListener() {
     knownIds.current = new Set();
     ready.current = false;
 
-    if (!user || !db || typeof window === 'undefined' || !('Notification' in window)) {
+    if (!user || !FIREBASE_READY || !db || typeof window === 'undefined' || !('Notification' in window)) {
       return;
     }
 
