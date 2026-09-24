@@ -84,6 +84,21 @@ function deriveSeriesSlug(episodeSlug: string): string {
   return episodeSlug; // give up, return as-is
 }
 
+function shiftEpisodeSlug(episodeSlug: string, offset: number): string {
+  const patterns = [/(episode-)(\d+)/i, /(ep-)(\d+)/i, /(-)(\d+)(?=\D*$)/];
+  for (const pattern of patterns) {
+    const match = episodeSlug.match(pattern);
+    if (!match || match.index == null) continue;
+    const currentNumber = Number(match[2]);
+    const nextNumber = currentNumber + offset;
+    if (nextNumber < 1) return '';
+    const width = match[2].length;
+    const paddedNumber = String(nextNumber).padStart(width, '0');
+    return `${episodeSlug.slice(0, match.index)}${match[1]}${paddedNumber}${episodeSlug.slice(match.index + match[0].length)}`;
+  }
+  return '';
+}
+
 // ─────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────
@@ -117,11 +132,11 @@ export default function StreamPage() {
   // Only fetches when the drawer is opened (skip=true initially)
   const animeDetailFetch  = useApi(
     useCallback(() => AnimeAPI.getDetail(seriesSlug),  [seriesSlug]),
-    [seriesSlug], null, isHentai || !showDrawer
+    [seriesSlug], null, isHentai
   );
   const hentaiDetailFetch = useApi(
     useCallback(() => HentaiAPI.getDetail(seriesSlug), [seriesSlug]),
-    [seriesSlug], null, !isHentai || !showDrawer
+    [seriesSlug], null, !isHentai
   );
 
   const detailData = isHentai
@@ -137,8 +152,11 @@ export default function StreamPage() {
   const streamUrl = rawEp?.stream_url       ?? '';
   const servers   = rawEp?.stream_servers   ?? [];
   const downloads = rawEp?.download_links   ?? [];
-  const prevSlug  = (rawEp as AnimeEpisodeData | null)?.prev_episode_slug ?? '';
-  const nextSlug  = (rawEp as AnimeEpisodeData | null)?.next_episode_slug ?? '';
+  const currentIndex = episodeList.findIndex((episode) => episode.slug === slug);
+  const listPrevSlug = currentIndex > 0 ? episodeList[currentIndex - 1]?.slug ?? '' : '';
+  const listNextSlug = currentIndex >= 0 ? episodeList[currentIndex + 1]?.slug ?? '' : '';
+  const prevSlug  = (rawEp as AnimeEpisodeData | null)?.prev_episode_slug || listPrevSlug || shiftEpisodeSlug(slug ?? '', -1);
+  const nextSlug  = (rawEp as AnimeEpisodeData | null)?.next_episode_slug || listNextSlug || shiftEpisodeSlug(slug ?? '', 1);
   const episodeLabels = language === 'en'
     ? { previous: 'Previous Episode', next: 'Next Episode', prevShort: 'Prev', nextShort: 'Next', last: 'Last episode' }
     : language === 'ja'

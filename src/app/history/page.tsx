@@ -5,19 +5,30 @@
 // Grouped by contentType with ability to clear/remove items
 // ─────────────────────────────────────────────────────────────
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { History, Trash2, Clock, Play, Book, X } from 'lucide-react';
+import { History, Trash2, Clock, Play, Book, X, MessageCircle, Heart } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useHistory } from '@/context/HistoryContext';
+import { useAuth } from '@/context/AuthContext';
 import { formatTime } from '@/utils/storage';
 
-type Tab = 'watch' | 'read';
+type Tab = 'watch' | 'read' | 'comments';
+type CommentHistoryEntry = {
+  id: string;
+  episodeSlug: string;
+  contentType?: 'anime' | 'hentai';
+  commentId?: string;
+  text: string;
+  createdAt: number;
+};
+const COMMENT_HISTORY_KEY = 'shiinime-comment-history';
 
 export default function HistoryPage() {
   const router  = useRouter();
+  const { user } = useAuth();
   const {
     watchHistory,
     readHistory,
@@ -30,13 +41,28 @@ export default function HistoryPage() {
 
   const [activeTab, setActiveTab] = useState<Tab>('watch');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [commentHistory, setCommentHistory] = useState<CommentHistoryEntry[]>([]);
 
-  const currentList = activeTab === 'watch' ? watchHistory : readHistory;
+  useEffect(() => {
+    try {
+      const userKey = user ? `${COMMENT_HISTORY_KEY}:${user.uid}` : '';
+      const stored = userKey ? JSON.parse(localStorage.getItem(userKey) ?? '[]') as CommentHistoryEntry[] : [];
+      setCommentHistory(Array.isArray(stored) ? stored : []);
+    } catch {
+      setCommentHistory([]);
+    }
+  }, [user]);
+
+  const currentList = activeTab === 'watch' ? watchHistory : activeTab === 'read' ? readHistory : commentHistory;
   const isEmpty = currentList.length === 0;
 
   const handleClear = () => {
     if (activeTab === 'watch') clearWatch();
-    else clearRead();
+    else if (activeTab === 'read') clearRead();
+    else {
+      if (user) localStorage.removeItem(`${COMMENT_HISTORY_KEY}:${user.uid}`);
+      setCommentHistory([]);
+    }
     setShowClearConfirm(false);
   };
 
@@ -85,6 +111,16 @@ export default function HistoryPage() {
           >
             <Play className="w-4 h-4 inline mr-1.5 -mt-0.5" aria-hidden />
             Ditonton ({watchHistory.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('comments')}
+            className={clsx(
+              'flex-1 py-2 rounded-lg text-sm font-semibold transition-all',
+              activeTab === 'comments' ? 'bg-pink text-white' : 'bg-surface text-secondary hover:text-primary'
+            )}
+          >
+            <MessageCircle className="w-4 h-4 inline mr-1.5 -mt-0.5" aria-hidden />
+            Komentar ({commentHistory.length})
           </button>
           <button
             onClick={() => setActiveTab('read')}
@@ -198,7 +234,7 @@ export default function HistoryPage() {
                     </button>
                   </Link>
                 ))
-              : readHistory.map((entry) => (
+              : activeTab === 'read' ? readHistory.map((entry) => (
                   <Link
                     key={entry.slug}
                     href={`/read/${entry.slug}?series=${entry.seriesSlug}`}
@@ -262,6 +298,23 @@ export default function HistoryPage() {
                       <X className="w-3.5 h-3.5" aria-hidden />
                     </button>
                   </Link>
+                )) : commentHistory.map((entry) => (
+                  <Link
+                    key={entry.id}
+                    href={`/stream/${entry.contentType ?? 'anime'}/${entry.episodeSlug}${entry.commentId ? `?comment=${encodeURIComponent(entry.commentId)}` : ''}`}
+                    className="flex items-center gap-3 rounded-app border border-border bg-surface px-3 py-3 transition-all hover:border-pink/50 hover:bg-surface-2"
+                  >
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-pink/10 text-pink">
+                      <MessageCircle className="h-5 w-5" aria-hidden />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="line-clamp-2 text-sm font-semibold text-primary">{entry.text}</h3>
+                      <p className="mt-1 text-xs text-muted">
+                        Episode: {entry.episodeSlug.replace(/-/g, ' ')} · {new Date(entry.createdAt).toLocaleDateString('id-ID')}
+                      </p>
+                    </div>
+                    <Heart className="h-4 w-4 shrink-0 text-pink/70" aria-hidden />
+                  </Link>
                 ))}
           </div>
         )}
@@ -283,7 +336,7 @@ export default function HistoryPage() {
                 <h3 className="text-sm font-bold text-primary mb-1">Hapus Semua Riwayat?</h3>
                 <p className="text-xs text-secondary leading-relaxed">
                   Tindakan ini tidak bisa dibatalkan. Semua riwayat{' '}
-                  {activeTab === 'watch' ? 'tontonan' : 'bacaan'} akan dihapus permanen.
+                  {activeTab === 'watch' ? 'tontonan' : activeTab === 'read' ? 'bacaan' : 'komentar'} akan dihapus permanen.
                 </p>
               </div>
             </div>

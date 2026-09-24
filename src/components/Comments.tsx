@@ -2,13 +2,14 @@
 // src/components/Comments.tsx — Realtime comments with like + reply + profile popup
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import {
   collection, addDoc, query, orderBy, limit,
-  onSnapshot, serverTimestamp,
+  onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove,
   type Timestamp,
 } from 'firebase/firestore';
-import { MessageCircle, Send, User, LogIn, CornerDownRight, X, AlertCircle, ImagePlus, Gift, Clock3, Trash2 } from 'lucide-react';
+import { MessageCircle, Send, User, LogIn, CornerDownRight, X, AlertCircle, ImagePlus, Gift, Clock3, Trash2, Heart } from 'lucide-react';
 import { clsx } from 'clsx';
 import { db, FIREBASE_READY } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
@@ -37,6 +38,7 @@ interface Comment {
   levelColor:  string;
   xp:          number;
   totalMinutes:number;
+  likes: string[];
   isAdmin:     boolean;
   replyTo?:    string;
   replyToName?: string;
@@ -59,6 +61,8 @@ interface GiphyResult {
 interface CommentHistoryEntry {
   id: string;
   episodeSlug: string;
+  contentType: 'anime' | 'hentai';
+  commentId?: string;
   text: string;
   createdAt: number;
 }
@@ -94,18 +98,20 @@ async function uploadCommentMedia(file: File): Promise<string> {
 
 // ── Single comment row ────────────────────────────────────────
 function CommentRow({
-  comment, isHentai,
-  onReply, onProfile,
+  comment, isHentai, currentUserId,
+  onReply, onProfile, onLike,
 }: {
   comment:    Comment;
   isHentai:   boolean;
+  currentUserId?: string;
   onReply:    (comment: Comment) => void;
   onProfile:  (comment: Comment) => void;
+  onLike:     (comment: Comment) => void;
 }) {
   const accentColor = isHentai ? 'text-pink' : 'text-cyan';
 
   return (
-    <div className={clsx('flex gap-2', comment.replyTo && 'ml-8 mt-1')}>
+    <div id={`comment-${comment.id}`} className={clsx('flex gap-2 rounded-app transition-colors', comment.replyTo && 'ml-8 mt-1')}>
       {/* Avatar — clickable */}
       <button
         onClick={() => onProfile(comment)}
@@ -189,6 +195,17 @@ function CommentRow({
             <CornerDownRight className="w-3.5 h-3.5" aria-hidden />
             Balas
           </button>
+          <button
+            onClick={() => onLike(comment)}
+            className={clsx(
+              'flex items-center gap-1 text-[0.65rem] transition-colors',
+              currentUserId && comment.likes.includes(currentUserId) ? 'text-pink' : 'text-muted hover:text-pink'
+            )}
+            aria-label="Sukai komentar"
+          >
+            <Heart className="h-3.5 w-3.5" fill={currentUserId && comment.likes.includes(currentUserId) ? 'currentColor' : 'none'} aria-hidden />
+            {comment.likes.length > 0 && comment.likes.length}
+          </button>
         </div>
       </div>
     </div>
@@ -197,6 +214,7 @@ function CommentRow({
 
 // ── Main component ────────────────────────────────────────────
 export default function Comments({ episodeSlug, contentType }: CommentsProps) {
+  const searchParams = useSearchParams();
   const { user, profile, awardXP } = useAuth();
   const [comments,   setComments]   = useState<Comment[]>([]);
   const [text,       setText]       = useState('');
@@ -218,6 +236,8 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
   const bottomRef  = useRef<HTMLDivElement>(null);
   const inputRef   = useRef<HTMLInputElement>(null);
   const isHentai   = contentType === 'hentai';
+
+  const highlightedCommentId = searchParams.get('comment');
 
   useEffect(() => {
     if (!user) {
@@ -295,6 +315,30 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
   }, [episodeSlug]);
 
   useEffect(() => {
+    if (!loaded || !highlightedCommentId) return;
+    const target = document.getElementById(`comment-${highlightedCommentId}`);
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target?.classList.add('bg-cyan/10');
+    const timeout = window.setTimeout(() => target?.classList.remove('bg-cyan/10'), 2200);
+    return () => window.clearTimeout(timeout);
+  }, [loaded, highlightedCommentId]);
+
+  const handleLike = useCallback(async (comment: Comment) => {
+    if (!user || !db) return;
+    const liked = comment.likes.includes(user.uid);
+    setComments((current) => current.map((item) => item.id === comment.id
+      ? { ...item, likes: liked ? item.likes.filter((id) => id !== user.uid) : [...item.likes, user.uid] }
+      : item));
+    try {
+      await updateDoc(doc(db, 'comments', episodeSlug, 'messages', comment.id), {
+        likes: liked ? arrayRemove(user.uid) : arrayUnion(user.uid),
+      });
+    } catch (error) {
+      console.error('[Comments] Like failed:', error);
+    }
+  }, [episodeSlug, user]);
+
+  useEffect(() => {
     if (loaded) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [comments.length, loaded]);
 
@@ -339,7 +383,7 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
       } else if (selectedMedia) {
         mediaUrl = await uploadCommentMedia(await compressMedia(selectedMedia));
       }
-      await addDoc(collection(db, 'comments', episodeSlug, 'messages'), {
+      const commentRef = await addDoc(collection(db, 'comments', episodeSlug, 'messages'), {
         text:         trimmedText,
         ...(mediaUrl ? { mediaUrl, mediaType } : {}),
         ...(selectedGift ? { giftId: selectedGift.id, giftName: selectedGift.name, giftEmoji: selectedGift.emoji } : {}),
@@ -362,6 +406,8 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
       const historyEntry: CommentHistoryEntry = {
         id: `${episodeSlug}-${Date.now()}`,
         episodeSlug,
+        contentType,
+        commentId: commentRef.id,
         text: trimmedText || (selectedGift ? `Mengirim gift ${selectedGift.name}` : 'Komentar dengan media'),
         createdAt: Date.now(),
       };
@@ -473,6 +519,8 @@ export default function Comments({ episodeSlug, contentType }: CommentsProps) {
               isHentai={isHentai}
               onReply={handleReply}
               onProfile={handleProfile}
+              currentUserId={user?.uid}
+              onLike={handleLike}
             />
           ))}
           <div ref={bottomRef} />
