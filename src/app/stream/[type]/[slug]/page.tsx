@@ -24,8 +24,9 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ChevronLeft, ChevronRight, Download,
-  Info, List, X, AlertCircle,
+  Info, List, X, AlertCircle, Heart,
 } from 'lucide-react';
+import { arrayUnion, arrayRemove, doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { clsx } from 'clsx';
 import { AnimeAPI, HentaiAPI } from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
@@ -44,6 +45,7 @@ import type {
   HentaiDetail,
 } from '@/types/media';
 import { useLanguage } from '@/context/LanguageContext';
+import { db, FIREBASE_READY } from '@/lib/firebase';
 
 // ─────────────────────────────────────────────────────────────
 // Series slug extractor
@@ -112,6 +114,7 @@ export default function StreamPage() {
 
   const [showDrawer, setShowDrawer] = useState(false);
   const [showDebug,  setShowDebug]  = useState(false);
+  const [videoLikes, setVideoLikes] = useState<string[]>([]);
 
   // ── Fetch the episode stream data ─────────────────────────
   const animeFetch  = useApi(
@@ -175,6 +178,33 @@ export default function StreamPage() {
   const [showResume,    setShowResume]   = useState(false);
   const [resumeSeconds, setResumeSeconds] = useState(0);
   const [xpToast,       setXpToast]      = useState<string | null>(null);
+
+  useEffect(() => {
+    setVideoLikes([]);
+    if (!FIREBASE_READY || !db || !slug) return;
+
+    return onSnapshot(doc(db, 'videoLikes', slug), (snapshot) => {
+      const likes = snapshot.data()?.userIds;
+      setVideoLikes(Array.isArray(likes) ? likes.filter((id): id is string => typeof id === 'string') : []);
+    }, () => setVideoLikes([]));
+  }, [slug]);
+
+  const handleVideoLike = async () => {
+    if (!user || !db || !slug) return;
+    const liked = videoLikes.includes(user.uid);
+    setVideoLikes((current) => liked
+      ? current.filter((id) => id !== user.uid)
+      : [...current, user.uid]);
+    try {
+      await setDoc(doc(db, 'videoLikes', slug), {
+        userIds: liked ? arrayRemove(user.uid) : arrayUnion(user.uid),
+        updatedAt: new Date(),
+      }, { merge: true });
+    } catch (error) {
+      setVideoLikes((current) => liked ? [...current, user.uid] : current.filter((id) => id !== user.uid));
+      console.error('[Stream] Video like failed:', error);
+    }
+  };
 
   // Initial save + check resume on episode load
   useEffect(() => {
@@ -380,6 +410,26 @@ export default function StreamPage() {
         title={title}
       />
 
+      <div className="flex items-center justify-between border-b border-border bg-surface px-4 py-2.5">
+        <span className="text-xs text-muted">{videoLikes.length} {language === 'en' ? 'likes' : language === 'ja' ? 'いいね' : 'like'}</span>
+        <button
+          type="button"
+          onClick={handleVideoLike}
+          disabled={!user}
+          title={user ? (language === 'en' ? 'Like video' : language === 'ja' ? '動画にいいね' : 'Like video') : (language === 'en' ? 'Login to like' : language === 'ja' ? 'ログインしていいね' : 'Login untuk like')}
+          className={clsx(
+            'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
+            videoLikes.includes(user?.uid ?? '')
+              ? isHentai ? 'border-pink bg-pink/15 text-pink' : 'border-cyan bg-cyan/15 text-cyan'
+              : 'border-border text-secondary hover:border-cyan hover:text-cyan',
+            !user && 'cursor-not-allowed opacity-60'
+          )}
+        >
+          <Heart className="h-4 w-4" fill={videoLikes.includes(user?.uid ?? '') ? 'currentColor' : 'none'} aria-hidden />
+          {language === 'en' ? 'Like' : language === 'ja' ? 'いいね' : 'Suka'}
+        </button>
+      </div>
+
       {/* ── Timestamp reminder bar (shown after "Lanjut" clicked) ── */}
       {showTimestampBar && resumeSeconds > 0 && (
         <div className={clsx(
@@ -525,56 +575,6 @@ export default function StreamPage() {
             </div>
             <ChevronRight className="w-4 h-4 text-muted flex-shrink-0" aria-hidden />
           </Link>
-        </div>
-      )}
-
-      {/* ── Bottom Episode Navigation ── */}
-      {(prevSlug || nextSlug) && (
-        <div className="flex gap-3 justify-center py-6 px-4 border-y border-border bg-surface/30">
-          {prevSlug ? (
-            <Link
-              href={`/stream/${type}/${prevSlug}`}
-              className={clsx(
-                'flex items-center gap-2 px-4 py-2.5 rounded-app text-sm font-semibold border transition-all',
-                isHentai 
-                  ? 'bg-surface border-pink/30 text-pink hover:bg-pink/10'
-                  : 'bg-surface border-cyan/30 text-cyan hover:bg-cyan/10'
-              )}
-            >
-              <ChevronLeft className="w-4 h-4" aria-hidden />
-              <span className="hidden xs:inline">{episodeLabels.previous}</span>
-              <span className="xs:hidden">← {episodeLabels.prevShort}</span>
-            </Link>
-          ) : <div className="w-32" />}
-
-          {seriesSlug && (
-            <Link
-              href={`/detail/${type}/${seriesSlug}`}
-              className="btn-ghost text-xs flex items-center justify-center px-3"
-            >
-              Series Info
-            </Link>
-          )}
-
-          {nextSlug ? (
-            <Link
-              href={`/stream/${type}/${nextSlug}`}
-              className={clsx(
-                'flex items-center gap-2 px-4 py-2.5 rounded-app text-sm font-semibold transition-all shadow-lg',
-                isHentai
-                  ? 'bg-pink text-white hover:brightness-110 shadow-pink/30'
-                  : 'bg-cyan text-bg hover:brightness-110 shadow-cyan/30'
-              )}
-            >
-              <span className="hidden xs:inline">{episodeLabels.next}</span>
-              <span className="xs:hidden">{episodeLabels.nextShort} →</span>
-              <ChevronRight className="w-4 h-4" aria-hidden />
-            </Link>
-          ) : (
-            <div className="w-32 flex items-center justify-center">
-              <span className="text-xs text-muted">{episodeLabels.last}</span>
-            </div>
-          )}
         </div>
       )}
 
