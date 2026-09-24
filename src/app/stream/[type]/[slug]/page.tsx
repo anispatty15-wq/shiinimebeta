@@ -43,6 +43,7 @@ import type {
   AnimeDetail,
   HentaiDetail,
 } from '@/types/media';
+import { useLanguage } from '@/context/LanguageContext';
 
 // ─────────────────────────────────────────────────────────────
 // Series slug extractor
@@ -89,6 +90,7 @@ function deriveSeriesSlug(episodeSlug: string): string {
 export default function StreamPage() {
   const { type, slug } = useParams<{ type: string; slug: string }>();
   const router         = useRouter();
+  const { language }   = useLanguage();
 
   const isHentai   = type === 'hentai';
   const seriesSlug = useMemo(() => deriveSeriesSlug(slug ?? ''), [slug]);
@@ -137,6 +139,11 @@ export default function StreamPage() {
   const downloads = rawEp?.download_links   ?? [];
   const prevSlug  = (rawEp as AnimeEpisodeData | null)?.prev_episode_slug ?? '';
   const nextSlug  = (rawEp as AnimeEpisodeData | null)?.next_episode_slug ?? '';
+  const episodeLabels = language === 'en'
+    ? { previous: 'Previous Episode', next: 'Next Episode', prevShort: 'Prev', nextShort: 'Next', last: 'Last episode' }
+    : language === 'ja'
+      ? { previous: '前のエピソード', next: '次のエピソード', prevShort: '前へ', nextShort: '次へ', last: '最終エピソード' }
+      : { previous: 'Episode Sebelumnya', next: 'Episode Berikutnya', prevShort: 'Sebelumnya', nextShort: 'Berikutnya', last: 'Episode terakhir' };
 
   // ── Watch progress tracking (iframe-compatible) ──────────
   // Since we can't access video events from cross-origin iframe,
@@ -399,8 +406,8 @@ export default function StreamPage() {
           {prevSlug && (
             <Link
               href={`/stream/${type}/${prevSlug}`}
-              aria-label="Episode sebelumnya"
-              title="Episode sebelumnya"
+              aria-label={episodeLabels.previous}
+              title={episodeLabels.previous}
               className={clsx(
                 'w-8 h-8 flex items-center justify-center rounded-app border transition-all',
                 isHentai
@@ -416,8 +423,8 @@ export default function StreamPage() {
           {nextSlug && (
             <Link
               href={`/stream/${type}/${nextSlug}`}
-              aria-label="Episode berikutnya"
-              title="Episode berikutnya"
+              aria-label={episodeLabels.next}
+              title={episodeLabels.next}
               className={clsx(
                 'w-8 h-8 flex items-center justify-center rounded-app transition-all font-bold shadow-glow',
                 isHentai
@@ -517,8 +524,8 @@ export default function StreamPage() {
               )}
             >
               <ChevronLeft className="w-4 h-4" aria-hidden />
-              <span className="hidden xs:inline">Episode Sebelumnya</span>
-              <span className="xs:hidden">← Prev</span>
+              <span className="hidden xs:inline">{episodeLabels.previous}</span>
+              <span className="xs:hidden">← {episodeLabels.prevShort}</span>
             </Link>
           ) : <div className="w-32" />}
 
@@ -541,13 +548,13 @@ export default function StreamPage() {
                   : 'bg-cyan text-bg hover:brightness-110 shadow-cyan/30'
               )}
             >
-              <span className="hidden xs:inline">Episode Berikutnya</span>
-              <span className="xs:hidden">Next →</span>
+              <span className="hidden xs:inline">{episodeLabels.next}</span>
+              <span className="xs:hidden">{episodeLabels.nextShort} →</span>
               <ChevronRight className="w-4 h-4" aria-hidden />
             </Link>
           ) : (
             <div className="w-32 flex items-center justify-center">
-              <span className="text-xs text-muted">Episode terakhir</span>
+              <span className="text-xs text-muted">{episodeLabels.last}</span>
             </div>
           )}
         </div>

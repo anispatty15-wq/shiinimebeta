@@ -93,12 +93,13 @@ export default function DetailPage() {
   const poster   = animeData?.poster ?? donghuaData?.poster ?? hentaiData?.poster ?? comicData?.poster ?? '';
   const synopsis = animeData?.synopsis ?? donghuaData?.synopsis ?? hentaiData?.synopsis ?? comicData?.synopsis ?? '';
   const genres   = animeData?.genres ?? donghuaData?.genres ?? [];
-  const releaseDate = formatReleaseDate(
-    contentType === 'comic' ? comicData?.releaseDate : titleData?.releaseDate
-  );
-
   const episodeList = animeData?.episode_list ?? donghuaData?.episode_list ?? hentaiData?.episode_list ?? [];
   const chapterList = comicData?.chapters ?? [];
+  const releaseDate = formatReleaseDate(
+    contentType === 'comic'
+      ? comicData?.releaseDate || chapterList.map((chapter) => chapter.release_date).filter(Boolean).sort()[0]
+      : titleData?.releaseDate || episodeList.map((episode) => 'date' in episode ? episode.date : '').filter(Boolean).sort()[0]
+  );
 
   const allItems = contentType === 'comic' ? chapterList : episodeList;
   const visibleItems = showAll ? allItems : allItems.slice(0, 20);
@@ -158,7 +159,7 @@ export default function DetailPage() {
         {poster && !imgErr && (
           <div className="absolute inset-0 overflow-hidden h-56" aria-hidden>
             <Image src={poster} alt="" fill className="object-cover blur-2xl scale-110 opacity-[0.18]" priority />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-bg/60 to-bg" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#FFF7FA]/75 to-[#FFF7FA] dark:via-[#07111F]/80 dark:to-[#07111F]" />
           </div>
         )}
 

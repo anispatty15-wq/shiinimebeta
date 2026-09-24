@@ -74,6 +74,7 @@ export interface AnimeEpisodeData {
 export interface HentaiEpisodeListItem {
   title: string;
   slug:  string;
+  date?: string;
 }
 
 /** GET /anime/nekopoi/detail/:slug → envelope.data */

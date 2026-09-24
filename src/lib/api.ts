@@ -154,6 +154,27 @@ function releaseDateValue(o: Record<string, unknown>): string {
   );
 }
 
+function streamUrlValue(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object') return '';
+  const o = value as Record<string, unknown>;
+  return str(o.url ?? o.link ?? o.href ?? o.src ?? o.iframe ?? o.embed ?? o.file ?? o.stream_url ?? o.streamUrl);
+}
+
+function findNestedStreamUrls(value: unknown, depth = 0): string[] {
+  if (depth > 4 || value == null) return [];
+  if (typeof value === 'string' && /^https?:\/\//i.test(value)) return [value];
+  if (Array.isArray(value)) return value.flatMap((item) => findNestedStreamUrls(item, depth + 1));
+  if (typeof value !== 'object') return [];
+
+  const object = value as Record<string, unknown>;
+  return Object.entries(object).flatMap(([key, item]) => {
+    const normalizedKey = key.toLowerCase();
+    const isStreamField = /stream|source|player|video|server|embed|iframe|url|link/.test(normalizedKey);
+    return isStreamField ? findNestedStreamUrls(item, depth + 1) : [];
+  });
+}
+
 // ─────────────────────────────────────────────────────────────
 // Domain parsers  — strict against the JSON contract
 // ─────────────────────────────────────────────────────────────
@@ -234,7 +255,7 @@ function parseAnimeEpisodeData(raw: unknown): AnimeEpisodeData {
         const nested = nestedArr.map((n) => {
           if (!n || typeof n !== 'object') return null;
           const ni = n as Record<string, unknown>;
-          const url = str(ni.url ?? ni.link ?? ni.src ?? ni.iframe ?? ni.embed ?? ni.file);
+          const url = streamUrlValue(ni);
           if (!url) return null;
           return {
             name: str(ni.name ?? ni.server ?? ni.host, quality || 'Server'),
@@ -244,7 +265,7 @@ function parseAnimeEpisodeData(raw: unknown): AnimeEpisodeData {
         return nested.length > 0 ? nested : null;
       }
 
-      const url = str(s.url ?? s.link ?? s.src ?? s.iframe ?? s.embed ?? s.file ?? s.streamUrl);
+      const url = streamUrlValue(s);
       if (!url) return null;
       return {
         name: str(s.name ?? s.server ?? s.host ?? s.label, 'Server'),
@@ -266,7 +287,7 @@ function parseAnimeEpisodeData(raw: unknown): AnimeEpisodeData {
           inner.forEach((s) => {
             if (!s || typeof s !== 'object') return;
             const si = s as Record<string, unknown>;
-            const url = str(si.url ?? si.link ?? si.src ?? si.iframe ?? si.embed);
+            const url = streamUrlValue(si);
             if (url) {
               stream_servers.push({
                 name: str(si.name ?? si.server, quality || 'Server'),
@@ -282,7 +303,7 @@ function parseAnimeEpisodeData(raw: unknown): AnimeEpisodeData {
   // 3. Single iframe/embed URL at the top level
   if (stream_servers.length === 0) {
     const directUrl = str(
-      o.stream_url  ?? o.streamUrl  ??
+      o.stream_url  ?? o.streamUrl  ?? o.stream ?? o.video ?? o.player ??
       o.iframe_url  ?? o.iframeUrl  ??
       o.embed_url   ?? o.embedUrl   ??
       o.video_url   ?? o.videoUrl   ??
@@ -292,6 +313,14 @@ function parseAnimeEpisodeData(raw: unknown): AnimeEpisodeData {
     if (directUrl) {
       stream_servers.push({ name: 'Server 1', url: directUrl });
     }
+  }
+
+  if (stream_servers.length === 0) {
+    const nestedUrls = [...new Set(findNestedStreamUrls(o))];
+    stream_servers = nestedUrls.map((url, index) => ({
+      name: `Server ${index + 1}`,
+      url,
+    }));
   }
 
   // ── Download links ────────────────────────────────────────────
@@ -321,7 +350,7 @@ function parseAnimeEpisodeData(raw: unknown): AnimeEpisodeData {
     }
   );
 
-  const stream_url = stream_servers[0]?.url ?? str(o.stream_url ?? o.streamUrl ?? o.url);
+  const stream_url = stream_servers[0]?.url ?? streamUrlValue(o.stream_url ?? o.streamUrl ?? o.url ?? o.video ?? o.player);
 
   return {
     title:             str(o.title ?? o.episodeTitle ?? o.episode_title, '(Tanpa Judul)'),
@@ -345,7 +374,7 @@ function parseHentaiDetail(raw: unknown): HentaiDetail {
       const e = item as Record<string, unknown>;
       const slug = str(e.slug ?? e.id ?? '');
       if (!slug) return null;
-      return { title: str(e.title ?? e.name, `Ep.${slug}`), slug };
+      return { title: str(e.title ?? e.name, `Ep.${slug}`), slug, date: str(e.date ?? e.release_date) };
     }),
   };
 }
