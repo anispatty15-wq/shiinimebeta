@@ -8,24 +8,27 @@
 
 import { useState, useEffect } from 'react';
 import { Bell, X } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 
 export default function NotificationPrompt() {
-  const { user } = useAuth();
   const { isSupported, permission, requestPermission } = useNotifications();
   const [isDismissed, setIsDismissed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleEnable = async () => {
     setIsLoading(true);
+    setError('');
     try {
       const granted = await requestPermission();
       if (granted) {
         setIsDismissed(true);
+      } else {
+        setError('Izin belum diberikan. Coba lagi atau ubah izin notifikasi dari pengaturan situs.');
       }
     } catch (error) {
       console.error('Error enabling notifications:', error);
+      setError('Browser menolak permintaan. Pastikan situs dibuka melalui HTTPS.');
     } finally {
       setIsLoading(false);
     }
@@ -36,12 +39,10 @@ export default function NotificationPrompt() {
   };
 
   // Don't show if:
-  // - User not logged in
   // - Already dismissed
   // - Not supported
   // - Permission already granted or denied
   if (
-    !user ||
     isDismissed ||
     !isSupported ||
     permission !== 'default'
@@ -74,8 +75,9 @@ export default function NotificationPrompt() {
           Dapatkan notifikasi browser saat ada chat, friend request, anime terbaru, pengumuman admin, dan aktivitas lainnya.
         </p>
         <p className="text-xs text-muted mb-3">
-          Jika sebelumnya memilih Blokir, tekan ikon kunci di address bar lalu ubah Notifikasi menjadi Izinkan.
+          Izinkan notifikasi agar chat, friend request, episode baru, dan pengumuman bisa muncul.
         </p>
+        {error && <p className="mb-3 text-xs text-pink" role="alert">{error}</p>}
 
         {/* Actions */}
         <div className="flex gap-2">

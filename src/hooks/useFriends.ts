@@ -36,7 +36,7 @@ export interface User {
   publicId?: string;
   displayName: string;
   photoURL?: string;
-  email?: string;
+  xp?: number;
 }
 
 export interface FriendRequest {
@@ -176,7 +176,7 @@ export function useFriends() {
           publicId: doc.data().publicId,
           displayName: doc.data().displayName,
           photoURL: doc.data().photoURL,
-          email: doc.data().email,
+          xp: Number(doc.data().xp ?? 0),
         }))
         .filter((u) => u.displayName?.toLowerCase().includes(normalized) || u.publicId === searchTerm.trim())
         .filter((u) => u.uid !== user.uid); // Exclude current user

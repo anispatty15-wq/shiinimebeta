@@ -11,6 +11,8 @@ import HeroBanner from '@/components/HeroBanner';
 import TopBanner from '@/components/TopBanner';
 import { useAuth } from '@/context/AuthContext';
 import SocialLinks from '@/components/SocialLinks';
+import TopWibu from '@/components/TopWibu';
+import PopularSearches from '@/components/PopularSearches';
 
 function toItems(raw: unknown, defaultStatus?: string, contentType: 'anime' | 'donghua' | 'hentai' = 'anime') {
   if (!Array.isArray(raw)) return [];
@@ -70,6 +72,9 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto min-w-0 max-w-screen-xl overflow-hidden py-0 pb-24 md:pb-8">
+      <TopWibu />
+      <PopularSearches />
+
       {/* Hero Banner */}
       <HeroBanner 
         title="Shiiinime Stream"

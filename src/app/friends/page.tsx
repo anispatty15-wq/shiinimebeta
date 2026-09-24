@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { useFriends, type User } from '@/hooks/useFriends';
 import { useAuth } from '@/context/AuthContext';
 import { useDebounce } from '@/hooks/useDebounce';
+import { getLevelFromXP } from '@/lib/xp';
 
 export default function FriendsPage() {
   const { user } = useAuth();
@@ -405,9 +406,9 @@ export default function FriendsPage() {
                       {searchUser.publicId && (
                         <p className="text-xs text-pink">ID: {searchUser.publicId}</p>
                       )}
-                      {searchUser.email && (
-                        <p className="text-xs text-muted truncate">{searchUser.email}</p>
-                      )}
+                      <p className="text-xs text-secondary">
+                        Level {getLevelFromXP(searchUser.xp ?? 0).level} · {getLevelFromXP(searchUser.xp ?? 0).name}
+                      </p>
                     </div>
 
                     {/* Action */}

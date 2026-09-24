@@ -67,7 +67,7 @@ function SearchContent() {
       const nextEntry = { query: normalized, type, createdAt: Date.now() };
       const next = [
         nextEntry,
-        ...current.filter((entry) => !(entry.query.toLowerCase() === normalized.toLowerCase() && entry.type === type)),
+        ...current.filter((entry) => entry.query.toLowerCase() !== normalized.toLowerCase()),
       ].slice(0, 8);
       localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next));
       return next;
@@ -126,6 +126,12 @@ function SearchContent() {
     localStorage.removeItem(SEARCH_HISTORY_KEY);
   };
 
+  const removeSearchHistory = (entry: SearchHistoryEntry) => {
+    const next = searchHistory.filter((item) => item.createdAt !== entry.createdAt);
+    setSearchHistory(next);
+    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next));
+  };
+
   // Sync URL params
   useEffect(() => {
     const params = new URLSearchParams();
@@ -170,17 +176,28 @@ function SearchContent() {
               <Trash2 className="h-3 w-3" aria-hidden /> Hapus semua
             </button>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-1">
             {searchHistory.map((entry) => (
-              <button
+              <div
                 key={`${entry.type}-${entry.query}-${entry.createdAt}`}
-                type="button"
-                onClick={() => { setQuery(entry.query); setTab(entry.type); setShowHistory(false); }}
-                className="rounded-full border border-border bg-surface-2 px-3 py-1.5 text-xs text-secondary transition-colors hover:border-cyan/60 hover:text-cyan"
+                className="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-surface-2"
               >
-                {entry.query}
-                <span className="ml-1 text-[0.6rem] text-muted">{entry.type}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => { setQuery(entry.query); setTab(entry.type); setShowHistory(false); }}
+                  className="min-w-0 flex-1 truncate text-left text-xs text-secondary hover:text-cyan"
+                >
+                  {entry.query}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeSearchHistory(entry)}
+                  aria-label={`Hapus riwayat ${entry.query}`}
+                  className="shrink-0 rounded p-1 text-muted hover:bg-pink/10 hover:text-pink"
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              </div>
             ))}
           </div>
         </div>
