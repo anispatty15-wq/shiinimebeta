@@ -190,7 +190,14 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
     }
   };
 
-  useEffect(() => () => { void leaveRoom(); }, [leaveRoom]);
+  useEffect(() => () => {
+    localStream.current?.getTracks().forEach((track) => track.stop());
+    peerConnections.current.forEach(({ connection, audio }) => {
+      connection.close();
+      audio?.remove();
+    });
+    peerConnections.current.clear();
+  }, []);
 
   const joinRoom = useCallback(async () => {
     if (!db || !user || !room) return;
