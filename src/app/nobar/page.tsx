@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowRight, Lock, LogIn, Plus, Radio, Users } from 'lucide-react';
-import { collection, limit, onSnapshot, query } from 'firebase/firestore';
+import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { db, FIREBASE_READY } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
@@ -33,7 +33,7 @@ export default function WatchPartyLobby() {
 
   useEffect(() => {
     if (!db || !FIREBASE_READY) return;
-    return onSnapshot(query(collection(db, 'watchRooms'), limit(30)), (snapshot) => {
+    return onSnapshot(query(collection(db, 'watchRooms'), orderBy('lastActiveAt', 'desc'), limit(30)), (snapshot) => {
       const nextRooms = snapshot.docs
         .map((snapshotDoc) => {
           const data = snapshotDoc.data();
@@ -45,6 +45,7 @@ export default function WatchPartyLobby() {
             episodeSlug: String(data.episodeSlug ?? ''),
             streamUrl: String(data.streamUrl ?? ''),
             visibility: data.visibility === 'private' ? 'private' : 'public',
+            lastActiveAt: data.lastActiveAt?.toDate?.(),
             createdAt: data.createdAt?.toDate?.() ?? new Date(0),
             updatedAt: data.updatedAt?.toDate?.() ?? new Date(0),
           } as WatchPartyRoom;
@@ -80,6 +81,7 @@ export default function WatchPartyLobby() {
         episodeSlug,
         streamUrl: '',
         visibility: form.visibility,
+        lastActiveAt: serverTimestamp(),
         ...(form.visibility === 'private' ? { passwordHash: await hashWatchPartyPassword(form.password) } : {}),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),

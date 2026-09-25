@@ -9,6 +9,7 @@ export interface WatchPartyRoom {
   streamUrl: string;
   visibility: WatchPartyVisibility;
   passwordHash?: string;
+  lastActiveAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }

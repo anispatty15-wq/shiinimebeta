@@ -72,6 +72,7 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
         streamUrl: String(data.streamUrl ?? ''),
         visibility: data.visibility === 'private' ? 'private' : 'public',
         passwordHash: typeof data.passwordHash === 'string' ? data.passwordHash : undefined,
+        lastActiveAt: data.lastActiveAt?.toDate?.(),
         createdAt: data.createdAt?.toDate?.(),
         updatedAt: data.updatedAt?.toDate?.(),
       });
@@ -89,6 +90,15 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
     setStreamUrl(room.streamUrl);
     if (room.visibility === 'public' || room.hostId === user?.uid) setAccessGranted(true);
   }, [room, user?.uid]);
+
+  useEffect(() => {
+    if (!db || !user || !room || !isHost || !accessGranted) return;
+    const roomRef = doc(db, 'watchRooms', roomId);
+    const refreshActivity = () => updateDoc(roomRef, { lastActiveAt: serverTimestamp() }).catch(() => {});
+    refreshActivity();
+    const interval = window.setInterval(refreshActivity, 30000);
+    return () => window.clearInterval(interval);
+  }, [accessGranted, isHost, room, roomId, user]);
 
   useEffect(() => {
     if (!db || !roomId || !accessGranted || !user) return;
@@ -170,13 +180,18 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
       return;
     }
     setAccessError('');
-    await setDoc(doc(db, 'watchRooms', roomId, 'members', user.uid), {
-      displayName: user.displayName ?? 'User',
-      photoURL: user.photoURL ?? '',
-      joinedAt: serverTimestamp(),
-      voiceEnabled: false,
-    }, { merge: true });
-    setAccessGranted(true);
+    try {
+      await setDoc(doc(db, 'watchRooms', roomId, 'members', user.uid), {
+        displayName: user.displayName ?? 'User',
+        photoURL: user.photoURL ?? '',
+        joinedAt: serverTimestamp(),
+        voiceEnabled: false,
+      }, { merge: true });
+      setAccessGranted(true);
+    } catch (error) {
+      console.error('[WatchParty] join room failed:', error);
+      setAccessError('Gagal masuk room. Periksa koneksi atau login kamu.');
+    }
   }, [password, room, roomId, user]);
 
   const copyInvite = async () => {
