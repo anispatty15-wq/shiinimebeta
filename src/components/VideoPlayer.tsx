@@ -129,9 +129,18 @@ export default function VideoPlayer({
   };
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || playbackRole !== 'viewer' || !syncPlayback || syncPlayback.revision <= lastSyncRevision.current) return;
+    if (playbackRole !== 'viewer' || !syncPlayback || syncPlayback.revision <= lastSyncRevision.current) return;
     lastSyncRevision.current = syncPlayback.revision;
+    const iframe = iframeRef.current;
+    if (iframe) {
+      iframe.contentWindow?.postMessage({
+        type: 'shiinime-watch-party-playback',
+        action: syncPlayback.isPlaying ? 'play' : 'pause',
+        position: syncPlayback.position,
+      }, '*');
+    }
+    const video = videoRef.current;
+    if (!video) return;
     const drift = Math.abs(video.currentTime - syncPlayback.position);
     if (drift > 0.75) video.currentTime = syncPlayback.position;
     if (syncPlayback.isPlaying && video.paused) void video.play().catch(() => {});

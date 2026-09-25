@@ -28,6 +28,7 @@ interface PeerConnectionState {
   audio?: HTMLAudioElement;
   analyser?: AnalyserNode;
   speaking?: boolean;
+  pendingCandidates?: RTCIceCandidateInit[];
 }
 
 const rtcConfig: RTCConfiguration = {
@@ -159,6 +160,19 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
         };
       }));
     });
+  }, [accessGranted, roomId, user]);
+
+  useEffect(() => {
+    if (!db || !user || !accessGranted) return;
+    const removeMember = () => {
+      void deleteDoc(doc(db, 'watchRooms', roomId, 'members', user.uid)).catch(() => {});
+    };
+    window.addEventListener('pagehide', removeMember);
+    window.addEventListener('beforeunload', removeMember);
+    return () => {
+      window.removeEventListener('pagehide', removeMember);
+      window.removeEventListener('beforeunload', removeMember);
+    };
   }, [accessGranted, roomId, user]);
 
   const leaveRoom = useCallback(async () => {
@@ -375,13 +389,23 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
         }
         if (signal.type === 'offer') {
           await peer.setRemoteDescription(signal.payload as RTCSessionDescriptionInit);
+          const state = peerConnections.current.get(signal.senderId);
+          for (const candidate of state?.pendingCandidates ?? []) {
+            await peer.addIceCandidate(candidate).catch(() => {});
+          }
+          if (state) state.pendingCandidates = [];
           const answer = await peer.createAnswer();
           await peer.setLocalDescription(answer);
           await setDoc(doc(signalQuery), { senderId: user.uid, recipientId: signal.senderId, type: 'answer', payload: answer, createdAt: serverTimestamp() });
         } else if (signal.type === 'answer') {
           await peer.setRemoteDescription(signal.payload as RTCSessionDescriptionInit);
         } else if (signal.type === 'candidate') {
-          await peer.addIceCandidate(signal.payload as RTCIceCandidateInit).catch(() => {});
+          if (peer.remoteDescription) {
+            await peer.addIceCandidate(signal.payload as RTCIceCandidateInit).catch(() => {});
+          } else {
+            const state = peerConnections.current.get(signal.senderId);
+            if (state) state.pendingCandidates = [...(state.pendingCandidates ?? []), signal.payload as RTCIceCandidateInit];
+          }
         }
         await deleteDoc(signalDoc.ref).catch(() => {});
       }
