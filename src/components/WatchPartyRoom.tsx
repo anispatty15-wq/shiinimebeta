@@ -33,8 +33,9 @@ const rtcConfig: RTCConfiguration = {
 };
 
 export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomProps) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [room, setRoom] = useState<WatchPartyRoom | null>(null);
+  const [roomError, setRoomError] = useState('');
   const [members, setMembers] = useState<WatchPartyMember[]>([]);
   const [password, setPassword] = useState('');
   const [accessGranted, setAccessGranted] = useState(false);
@@ -53,10 +54,12 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
   const isHost = room?.hostId === user?.uid;
 
   useEffect(() => {
-    if (!db || !roomId) return;
+    if (authLoading || !db || !roomId || !user) return;
+    setRoomError('');
     return onSnapshot(doc(db, 'watchRooms', roomId), (snapshot) => {
       if (!snapshot.exists()) {
         setRoom(null);
+        setRoomError('Room tidak ditemukan atau sudah ditutup.');
         return;
       }
       const data = snapshot.data();
@@ -72,8 +75,12 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
         createdAt: data.createdAt?.toDate?.(),
         updatedAt: data.updatedAt?.toDate?.(),
       });
+    }, (error) => {
+      console.error('[WatchParty] room listener failed:', error);
+      setRoom(null);
+      setRoomError('Room belum bisa dibuka. Periksa koneksi dan login kamu.');
     });
-  }, [roomId]);
+  }, [authLoading, roomId, user]);
 
   useEffect(() => {
     if (!room) return;
@@ -107,7 +114,19 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
 
   const leaveRoom = useCallback(async () => {
     if (db && user && accessGranted) {
-      await deleteDoc(doc(db, 'watchRooms', roomId, 'members', user.uid)).catch(() => {});
+      if (isHost) {
+        const memberSnapshot = await getDocs(collection(db, 'watchRooms', roomId, 'members')).catch(() => null);
+        const signalSnapshot = await getDocs(collection(db, 'watchRooms', roomId, 'signals')).catch(() => null);
+        if (memberSnapshot && signalSnapshot) {
+          const batch = writeBatch(db);
+          memberSnapshot.docs.forEach((member) => batch.delete(member.ref));
+          signalSnapshot.docs.forEach((signal) => batch.delete(signal.ref));
+          batch.delete(doc(db, 'watchRooms', roomId));
+          await batch.commit().catch(() => {});
+        }
+      } else {
+        await deleteDoc(doc(db, 'watchRooms', roomId, 'members', user.uid)).catch(() => {});
+      }
     }
     localStream.current?.getTracks().forEach((track) => track.stop());
     peerConnections.current.forEach(({ connection, audio }) => {
@@ -116,7 +135,7 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
     });
     peerConnections.current.clear();
     onLeave?.();
-  }, [accessGranted, onLeave, roomId, user]);
+  }, [accessGranted, isHost, onLeave, roomId, user]);
 
   const deleteRoom = async () => {
     if (!db || !user || !isHost) return;
@@ -287,7 +306,11 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
     });
   }, [accessGranted, members, roomId, user, voiceEnabled]);
 
-  if (!room) return <div className="flex min-h-[60vh] items-center justify-center text-secondary">Room tidak ditemukan atau sudah ditutup.</div>;
+  if (authLoading) return <div className="flex min-h-[60vh] items-center justify-center text-secondary">Memuat room...</div>;
+
+  if (!user) return <div className="flex min-h-[60vh] items-center justify-center text-secondary">Login untuk masuk ke room nobar.</div>;
+
+  if (!room) return <div className="flex min-h-[60vh] items-center justify-center text-secondary">{roomError || 'Memuat room...'}</div>;
 
   if (!accessGranted) return (
     <div className="mx-auto flex min-h-[65vh] max-w-md flex-col items-center justify-center px-4 text-center">
