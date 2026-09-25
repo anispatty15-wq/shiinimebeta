@@ -115,10 +115,6 @@ export default function WatchPartyLobby() {
     }
   };
 
-  if (selectedRoomId) {
-    return <WatchPartyRoomView roomId={selectedRoomId} onLeave={() => setSelectedRoomId(null)} />;
-  }
-
   if (authLoading) return <div className="flex min-h-[60vh] items-center justify-center text-secondary">Memuat nobar...</div>;
 
   if (!user) {
@@ -132,6 +128,10 @@ export default function WatchPartyLobby() {
         </button>
       </div>
     );
+  }
+
+  if (selectedRoomId) {
+    return <WatchPartyRoomView roomId={selectedRoomId} onLeave={() => setSelectedRoomId(null)} />;
   }
 
   return (
