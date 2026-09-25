@@ -55,6 +55,7 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
   const [speakingUsers, setSpeakingUsers] = useState<string[]>([]);
   const [playback, setPlayback] = useState<WatchPartyPlayback | undefined>();
   const playbackRevision = useRef(0);
+  const resolvingEpisode = useRef('');
   const audioContext = useRef<AudioContext | null>(null);
   const localSpeakingFrame = useRef<number | null>(null);
   const peerConnections = useRef(new Map<string, PeerConnectionState>());
@@ -130,6 +131,28 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
     setStreamUrl(room.streamUrl);
     if (room.visibility === 'public' || room.hostId === user?.uid) setAccessGranted(true);
   }, [room, user?.uid]);
+
+  useEffect(() => {
+    if (!db || !room || !isHost || !accessGranted || room.streamUrl || !room.episodeSlug) return;
+    const resolveKey = `${roomId}:${room.episodeSlug}`;
+    if (resolvingEpisode.current === resolveKey) return;
+    resolvingEpisode.current = resolveKey;
+    void AnimeAPI.getEpisode(room.episodeSlug).then(async (result) => {
+      const nextEpisode = result.data;
+      const nextStreamUrl = nextEpisode.stream_url || nextEpisode.stream_servers?.[0]?.url || '';
+      if (!nextStreamUrl) throw new Error('Episode tidak memiliki stream');
+      const nextTitle = nextEpisode.title || room.title;
+      await updateDoc(doc(db, 'watchRooms', roomId), {
+        title: nextTitle,
+        streamUrl: nextStreamUrl,
+        updatedAt: serverTimestamp(),
+      });
+    }).catch((error) => {
+      console.error('[WatchParty] resolve room stream failed:', error);
+      resolvingEpisode.current = '';
+      setVoiceError('Stream episode belum tersedia. Host perlu memilih episode lalu menerapkannya.');
+    });
+  }, [accessGranted, isHost, room, roomId]);
 
   useEffect(() => {
     if (!db || !user || !room || !isHost || !accessGranted) return;
