@@ -35,6 +35,7 @@ const rtcConfig: RTCConfiguration = {
 export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomProps) {
   const { user, loading: authLoading } = useAuth();
   const [room, setRoom] = useState<WatchPartyRoom | null>(null);
+  const [roomLoading, setRoomLoading] = useState(true);
   const [roomError, setRoomError] = useState('');
   const [members, setMembers] = useState<WatchPartyMember[]>([]);
   const [password, setPassword] = useState('');
@@ -54,11 +55,27 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
   const isHost = room?.hostId === user?.uid;
 
   useEffect(() => {
-    if (authLoading || !db || !roomId || !user) return;
+    if (authLoading) return;
+    if (!roomId) {
+      setRoomLoading(false);
+      setRoomError('ID room tidak valid.');
+      return;
+    }
+    if (!db) {
+      setRoomLoading(false);
+      setRoomError('Firebase belum siap. Muat ulang halaman.');
+      return;
+    }
+    if (!user) {
+      setRoomLoading(false);
+      return;
+    }
     setRoomError('');
+    setRoomLoading(true);
     return onSnapshot(doc(db, 'watchRooms', roomId), (snapshot) => {
       if (!snapshot.exists()) {
         setRoom(null);
+        setRoomLoading(false);
         setRoomError('Room tidak ditemukan atau sudah ditutup.');
         return;
       }
@@ -76,9 +93,11 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
         createdAt: data.createdAt?.toDate?.(),
         updatedAt: data.updatedAt?.toDate?.(),
       });
+      setRoomLoading(false);
     }, (error) => {
       console.error('[WatchParty] room listener failed:', error);
       setRoom(null);
+      setRoomLoading(false);
       setRoomError('Room belum bisa dibuka. Periksa koneksi dan login kamu.');
     });
   }, [authLoading, roomId, user]);
@@ -325,7 +344,9 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
 
   if (!user) return <div className="flex min-h-[60vh] items-center justify-center text-secondary">Login untuk masuk ke room nobar.</div>;
 
-  if (!room) return <div className="flex min-h-[60vh] items-center justify-center text-secondary">{roomError || 'Memuat room...'}</div>;
+  if (roomLoading) return <div className="flex min-h-[60vh] items-center justify-center text-secondary">Memuat room...</div>;
+
+  if (!room) return <div className="flex min-h-[60vh] items-center justify-center text-secondary">{roomError || 'Room tidak ditemukan atau sudah ditutup.'}</div>;
 
   if (!accessGranted) return (
     <div className="mx-auto flex min-h-[65vh] max-w-md flex-col items-center justify-center px-4 text-center">
