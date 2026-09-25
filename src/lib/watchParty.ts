@@ -12,6 +12,13 @@ export interface WatchPartyRoom {
   lastActiveAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
+  playback?: WatchPartyPlayback;
+}
+
+export interface WatchPartyPlayback {
+  position: number;
+  isPlaying: boolean;
+  updatedAt?: Date;
 }
 
 export interface WatchPartyMember {

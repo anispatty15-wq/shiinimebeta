@@ -80,6 +80,9 @@ interface VideoPlayerProps {
   title?:          string;
   poster?:         string;
   onServerChange?: (server: StreamServer) => void;
+  playbackRole?: 'host' | 'viewer';
+  syncPlayback?: { position: number; isPlaying: boolean; revision: number };
+  onPlaybackChange?: (state: { position: number; isPlaying: boolean }) => void;
 }
 
 export default function VideoPlayer({
@@ -88,6 +91,9 @@ export default function VideoPlayer({
   title,
   poster,
   onServerChange,
+  playbackRole = 'viewer',
+  syncPlayback,
+  onPlaybackChange,
 }: VideoPlayerProps) {
   // Merge defaultUrl into servers list
   const mergedServers: StreamServer[] = (() => {
@@ -110,6 +116,27 @@ export default function VideoPlayer({
   const [resolvedUrl, setResolvedUrl] = useState<string>(''); // after embed extraction
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const videoRef  = useRef<HTMLVideoElement>(null);
+  const lastSyncRevision = useRef(0);
+  const lastPlaybackPublish = useRef(0);
+
+  const publishPlayback = (isPlaying: boolean) => {
+    const video = videoRef.current;
+    if (playbackRole !== 'host' || !video || !onPlaybackChange) return;
+    const now = Date.now();
+    if (isPlaying && now - lastPlaybackPublish.current < 2000) return;
+    lastPlaybackPublish.current = now;
+    onPlaybackChange({ position: video.currentTime, isPlaying });
+  };
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || playbackRole !== 'viewer' || !syncPlayback || syncPlayback.revision <= lastSyncRevision.current) return;
+    lastSyncRevision.current = syncPlayback.revision;
+    const drift = Math.abs(video.currentTime - syncPlayback.position);
+    if (drift > 0.75) video.currentTime = syncPlayback.position;
+    if (syncPlayback.isPlaying && video.paused) void video.play().catch(() => {});
+    if (!syncPlayback.isPlaying && !video.paused) video.pause();
+  }, [playbackRole, syncPlayback]);
 
   // Reset state when active server changes
   useEffect(() => {
@@ -285,12 +312,16 @@ export default function VideoPlayer({
             ref={videoRef}
             key={finalUrl}
             src={finalUrl}
-            controls
+            controls={playbackRole === 'host'}
             playsInline
             poster={poster}
             className={clsx('w-full h-full', loading ? 'opacity-0' : 'opacity-100')}
             onCanPlay={handleVideoLoad}
             onError={handleVideoError}
+            onTimeUpdate={() => publishPlayback(true)}
+            onPlay={() => publishPlayback(true)}
+            onPause={() => publishPlayback(false)}
+            onSeeked={() => publishPlayback(!videoRef.current?.paused)}
           />
         )}
 

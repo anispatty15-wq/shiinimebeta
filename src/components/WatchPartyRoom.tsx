@@ -7,7 +7,7 @@ import { AnimeAPI } from '@/lib/api';
 import VideoPlayer from '@/components/VideoPlayer';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
-import { hashWatchPartyPassword, type WatchPartyMember, type WatchPartyRoom } from '@/lib/watchParty';
+import { hashWatchPartyPassword, type WatchPartyMember, type WatchPartyPlayback, type WatchPartyRoom } from '@/lib/watchParty';
 import AnimeEpisodePicker from '@/components/AnimeEpisodePicker';
 
 interface WatchPartyRoomProps {
@@ -26,6 +26,8 @@ interface SignalMessage {
 interface PeerConnectionState {
   connection: RTCPeerConnection;
   audio?: HTMLAudioElement;
+  analyser?: AnalyserNode;
+  speaking?: boolean;
 }
 
 const rtcConfig: RTCConfiguration = {
@@ -49,6 +51,11 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [voiceError, setVoiceError] = useState('');
   const [connectedVoiceUsers, setConnectedVoiceUsers] = useState(0);
+  const [speakingUsers, setSpeakingUsers] = useState<string[]>([]);
+  const [playback, setPlayback] = useState<WatchPartyPlayback | undefined>();
+  const playbackRevision = useRef(0);
+  const audioContext = useRef<AudioContext | null>(null);
+  const localSpeakingFrame = useRef<number | null>(null);
   const peerConnections = useRef(new Map<string, PeerConnectionState>());
   const localStream = useRef<MediaStream | null>(null);
 
@@ -92,7 +99,20 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
         lastActiveAt: data.lastActiveAt?.toDate?.(),
         createdAt: data.createdAt?.toDate?.(),
         updatedAt: data.updatedAt?.toDate?.(),
+        playback: data.playback ? {
+          position: Math.max(0, Number(data.playback.position) || 0),
+          isPlaying: data.playback.isPlaying === true,
+          updatedAt: data.playback.updatedAt?.toDate?.(),
+        } : undefined,
       });
+      if (data.playback) {
+        setPlayback({
+          position: Math.max(0, Number(data.playback.position) || 0),
+          isPlaying: data.playback.isPlaying === true,
+          updatedAt: data.playback.updatedAt?.toDate?.(),
+        });
+        playbackRevision.current += 1;
+      }
       setRoomLoading(false);
     }, (error) => {
       console.error('[WatchParty] room listener failed:', error);
@@ -163,6 +183,7 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
       audio?.remove();
     });
     peerConnections.current.clear();
+    audioContext.current?.close().catch(() => {});
     onLeave?.();
   }, [accessGranted, isHost, onLeave, roomId, user]);
 
@@ -197,7 +218,15 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
       audio?.remove();
     });
     peerConnections.current.clear();
+    audioContext.current?.close().catch(() => {});
   }, []);
+
+  const publishPlayback = useCallback(async (state: { position: number; isPlaying: boolean }) => {
+    if (!db || !isHost) return;
+    await updateDoc(doc(db, 'watchRooms', roomId), {
+      playback: { position: state.position, isPlaying: state.isPlaying, updatedAt: serverTimestamp() },
+    }).catch(() => {});
+  }, [isHost, roomId]);
 
   const joinRoom = useCallback(async () => {
     if (!db || !user || !room) return;
@@ -239,6 +268,7 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
         episodeSlug: episodeSlug.trim(),
         title: nextTitle,
         streamUrl: nextStreamUrl,
+        playback: { position: 0, isPlaying: false, updatedAt: serverTimestamp() },
         updatedAt: serverTimestamp(),
       });
       setEpisodeTitle(nextTitle);
@@ -271,6 +301,30 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
   };
 
   useEffect(() => {
+    if (!voiceEnabled || !user || !localStream.current) return;
+    const context = audioContext.current ?? new AudioContext();
+    audioContext.current = context;
+    void context.resume().catch(() => {});
+    const analyser = context.createAnalyser();
+    analyser.fftSize = 512;
+    context.createMediaStreamSource(localStream.current).connect(analyser);
+    const levels = new Uint8Array(analyser.fftSize);
+    const updateSpeaking = () => {
+      analyser.getByteTimeDomainData(levels);
+      const loud = levels.some((value) => Math.abs(value - 128) > 18);
+      setSpeakingUsers((current) => loud
+        ? [...new Set([...current, user.uid])]
+        : current.filter((uid) => uid !== user.uid));
+      localSpeakingFrame.current = requestAnimationFrame(updateSpeaking);
+    };
+    updateSpeaking();
+    return () => {
+      if (localSpeakingFrame.current !== null) cancelAnimationFrame(localSpeakingFrame.current);
+      setSpeakingUsers((current) => current.filter((uid) => uid !== user.uid));
+    };
+  }, [user, voiceEnabled]);
+
+  useEffect(() => {
     if (!db || !user || !accessGranted || !voiceEnabled) return;
     const signalQuery = collection(db, 'watchRooms', roomId, 'signals');
     return onSnapshot(query(signalQuery, where('recipientId', '==', user.uid)), async (snapshot) => {
@@ -283,9 +337,30 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
           peer.ontrack = (event) => {
             const audio = document.createElement('audio');
             audio.autoplay = true;
+            audio.playsInline = true;
+            audio.volume = 1;
             audio.srcObject = event.streams[0] ?? null;
             document.body.appendChild(audio);
-            peerConnections.current.set(signal.senderId, { connection: peer, audio });
+            void audio.play().catch(() => {});
+            const context = audioContext.current ?? new AudioContext();
+            audioContext.current = context;
+            const analyser = context.createAnalyser();
+            analyser.fftSize = 512;
+            context.createMediaStreamSource(event.streams[0]).connect(analyser);
+            const levels = new Uint8Array(analyser.fftSize);
+            const updateSpeaking = () => {
+              const state = peerConnections.current.get(signal.senderId);
+              if (!state || state.audio !== audio) return;
+              analyser.getByteTimeDomainData(levels);
+              const loud = levels.some((value) => Math.abs(value - 128) > 18);
+              if (loud !== state.speaking) {
+                state.speaking = loud;
+                setSpeakingUsers((current) => loud ? [...new Set([...current, signal.senderId])] : current.filter((uid) => uid !== signal.senderId));
+              }
+              requestAnimationFrame(updateSpeaking);
+            };
+            peerConnections.current.set(signal.senderId, { connection: peer, audio, analyser });
+            updateSpeaking();
           };
           localStream.current?.getTracks().forEach((track) => peer.addTrack(track, localStream.current!));
           peer.onicecandidate = (event) => {
@@ -379,7 +454,7 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <main className="min-w-0">
-          <VideoPlayer defaultUrl={streamUrl} servers={[]} title={episodeTitle} />
+          <VideoPlayer defaultUrl={streamUrl} servers={[]} title={episodeTitle} playbackRole={isHost ? 'host' : 'viewer'} syncPlayback={playback ? { position: playback.position + (playback.isPlaying && playback.updatedAt ? (Date.now() - playback.updatedAt.getTime()) / 1000 : 0), isPlaying: playback.isPlaying, revision: playbackRevision.current } : undefined} onPlaybackChange={publishPlayback} />
           <div className="mt-3 rounded-app border border-border bg-surface p-4">
             <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs text-muted">Episode aktif</p><p className="mt-1 text-sm font-semibold text-primary">{episodeTitle || episodeSlug}</p></div><div className="flex items-center gap-2 text-xs text-secondary"><Volume2 className="h-4 w-4 text-cyan" /> {connectedVoiceUsers} voice terhubung</div></div>
             {isHost && <div className="mt-4 border-t border-border pt-3"><div className="mb-2 flex items-center gap-2 text-xs font-semibold text-primary"><Settings2 className="h-4 w-4 text-cyan" /> Ganti anime atau episode</div><AnimeEpisodePicker value={episodeSlug} onChange={(episode) => setEpisodeSlug(episode.slug)} /><button disabled={savingEpisode || !episodeSlug} onClick={() => void updateEpisode()} className="mt-2 rounded-app bg-cyan px-3 py-2 text-xs font-semibold text-bg disabled:opacity-50">{savingEpisode ? 'Memuat...' : 'Terapkan episode terpilih'}</button></div>}
@@ -388,7 +463,7 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
         </main>
         <aside className="rounded-app border border-border bg-surface p-4">
           <div className="flex items-center justify-between"><h2 className="flex items-center gap-2 text-sm font-bold text-primary"><Users className="h-4 w-4 text-cyan" /> Peserta</h2><button onClick={() => void toggleVoice()} className={`flex items-center gap-1.5 rounded-app px-2.5 py-1.5 text-xs font-semibold ${voiceEnabled ? 'bg-red-400/15 text-red-400' : 'bg-cyan/10 text-cyan'}`}>{voiceEnabled ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />} {voiceEnabled ? 'Matikan' : 'Voice'}</button></div>
-          <div className="mt-3 space-y-2">{members.map((member) => <div key={member.uid} className="flex items-center gap-2 rounded-app bg-bg px-2.5 py-2"><div className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan/15 text-xs font-bold text-cyan">{member.displayName.slice(0, 1).toUpperCase()}</div><span className="min-w-0 flex-1 truncate text-xs text-primary">{member.displayName}{member.uid === room.hostId ? ' (Host)' : ''}</span>{member.voiceEnabled && <Mic className="h-3.5 w-3.5 text-green-400" />}</div>)}</div>
+          <div className="mt-3 space-y-2">{members.map((member) => <div key={member.uid} className="flex items-center gap-2 rounded-app bg-bg px-2.5 py-2"><div className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan/15 text-xs font-bold text-cyan">{member.displayName.slice(0, 1).toUpperCase()}</div><span className="min-w-0 flex-1 truncate text-xs text-primary">{member.displayName}{member.uid === room.hostId ? ' (Host)' : ''}</span>{member.voiceEnabled && <Mic className={`h-3.5 w-3.5 ${speakingUsers.includes(member.uid) ? 'text-green-400 animate-pulse' : 'text-secondary'}`} />}</div>)}</div>
           <div className="mt-4 border-t border-border pt-3"><p className="text-xs leading-relaxed text-muted">Bagikan tautan room ini untuk mengundang teman. Room private tetap membutuhkan password.</p><button onClick={() => void copyInvite()} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-app border border-border py-2 text-xs font-semibold text-secondary hover:text-primary"><Copy className="h-3.5 w-3.5" /> Salin tautan undangan</button></div>
         </aside>
       </div>
