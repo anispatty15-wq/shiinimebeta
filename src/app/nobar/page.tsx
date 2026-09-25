@@ -74,7 +74,8 @@ export default function WatchPartyLobby() {
       const { doc, serverTimestamp, setDoc, collection } = await import('firebase/firestore');
       const { createWatchPartyId } = await import('@/lib/watchParty');
       const roomId = createWatchPartyId();
-      await setDoc(doc(collection(db, 'watchRooms'), roomId), {
+      await Promise.race([
+        setDoc(doc(collection(db, 'watchRooms'), roomId), {
         hostId: user.uid,
         hostName: user.displayName ?? 'Host',
         title,
@@ -85,13 +86,9 @@ export default function WatchPartyLobby() {
         ...(form.visibility === 'private' ? { passwordHash: await hashWatchPartyPassword(form.password) } : {}),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      });
-      await setDoc(doc(db, 'watchRooms', roomId, 'members', user.uid), {
-        displayName: user.displayName ?? 'User',
-        photoURL: user.photoURL ?? '',
-        joinedAt: serverTimestamp(),
-        voiceEnabled: false,
-      });
+        }),
+        new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error('Room creation timeout')), 12000)),
+      ]);
       setForm(EMPTY_FORM);
       setShowCreate(false);
       router.push(`/nobar/${roomId}`);
