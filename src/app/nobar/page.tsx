@@ -6,6 +6,7 @@ import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestor
 import { useRouter } from 'next/navigation';
 import { db, FIREBASE_READY } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
+import { AnimeAPI } from '@/lib/api';
 import { hashWatchPartyPassword, type WatchPartyRoom } from '@/lib/watchParty';
 import WatchPartyRoomView from '@/components/WatchPartyRoom';
 import AnimeEpisodePicker from '@/components/AnimeEpisodePicker';
@@ -73,14 +74,18 @@ export default function WatchPartyLobby() {
     try {
       const { doc, serverTimestamp, setDoc, collection } = await import('firebase/firestore');
       const { createWatchPartyId } = await import('@/lib/watchParty');
+      const episodeResult = await AnimeAPI.getEpisode(episodeSlug);
+      const episode = episodeResult.data;
+      const streamUrl = episode.stream_url || episode.stream_servers?.[0]?.url || '';
+      if (!streamUrl) throw new Error('Episode stream tidak tersedia');
       const roomId = createWatchPartyId();
       await Promise.race([
         setDoc(doc(collection(db, 'watchRooms'), roomId), {
         hostId: user.uid,
         hostName: user.displayName ?? 'Host',
-        title,
+        title: form.title.trim() || episode.title || title,
         episodeSlug,
-        streamUrl: '',
+        streamUrl,
         visibility: form.visibility,
         lastActiveAt: serverTimestamp(),
         ...(form.visibility === 'private' ? { passwordHash: await hashWatchPartyPassword(form.password) } : {}),
