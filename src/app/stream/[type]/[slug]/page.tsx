@@ -521,13 +521,14 @@ export default function StreamPage() {
               aria-label={episodeLabels.previous}
               title={episodeLabels.previous}
               className={clsx(
-                'w-8 h-8 flex items-center justify-center rounded-app border transition-all',
+                'h-8 flex items-center justify-center gap-1 px-2 rounded-app border transition-all text-[11px] font-semibold',
                 isHentai
                   ? 'bg-pink/15 border-pink/30 text-pink hover:bg-pink hover:text-white'
                   : 'bg-cyan/15 border-cyan/30 text-cyan hover:bg-cyan hover:text-bg'
               )}
             >
               <ChevronLeft className="w-4 h-4 font-bold" aria-hidden />
+              <span>{episodeLabels.prevShort}</span>
             </Link>
           )}
 
@@ -538,12 +539,13 @@ export default function StreamPage() {
               aria-label={episodeLabels.next}
               title={episodeLabels.next}
               className={clsx(
-                'w-8 h-8 flex items-center justify-center rounded-app transition-all font-bold shadow-glow',
+                'h-8 flex items-center justify-center gap-1 px-2 rounded-app transition-all text-[11px] font-bold shadow-glow',
                 isHentai
                   ? 'bg-pink text-white hover:brightness-110 shadow-pink/50'
                   : 'bg-cyan text-bg hover:brightness-110 shadow-cyan/50'
               )}
             >
+              <span>{episodeLabels.nextShort}</span>
               <ChevronRight className="w-4 h-4 font-bold" aria-hidden />
             </Link>
           )}
