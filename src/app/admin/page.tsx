@@ -167,11 +167,16 @@ export default function AdminPage() {
           >
             <span className="flex items-center gap-2 font-semibold">
               <Bell className="h-4 w-4 text-violet" />
-              {pendingRequestCount || unreadAdminRequests.length} request akses 18+ menunggu
+              Notifikasi request akses 18+
             </span>
             <span className="mt-1 block text-xs text-secondary">
-              Notifikasi akan ditandai sudah dibaca setelah panel ini dibuka.
+              {pendingRequestCount || unreadAdminRequests.length} request menunggu persetujuan. Klik panel ini untuk menandai notifikasi sudah dibaca.
             </span>
+            {unreadAdminRequests.slice(0, 3).map((notification) => (
+              <span key={notification.id} className="mt-2 block truncate text-xs text-primary/80">
+                • {notification.body}
+              </span>
+            ))}
           </button>
         )}
 

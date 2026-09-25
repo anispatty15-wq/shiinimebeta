@@ -6,7 +6,7 @@ import { ShieldAlert, LogIn, Lock, Clock, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function HentaiGuard({ children }: { children: React.ReactNode }) {
-  const { user, isAdult, adultStatus, loading } = useAuth();
+  const { user, isAdult, adultStatus, loading, signInWithGoogle } = useAuth();
   const router = useRouter();
 
   // Consider approved if either: has 18+ role OR adultStatus is approved
@@ -28,7 +28,7 @@ export default function HentaiGuard({ children }: { children: React.ReactNode })
         icon={<Lock className="w-8 h-8 text-pink" />}
         title="Konten Dewasa (18+)"
         desc="Kamu harus login untuk mengakses konten ini."
-        action={{ label: 'Login dengan Google', onClick: () => router.push('/profile') }}
+        action={{ label: 'Login dengan Google', onClick: signInWithGoogle }}
       />
     );
   }

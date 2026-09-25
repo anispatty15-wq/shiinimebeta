@@ -291,7 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setProfile((prev) => prev ? { ...prev, adultStatus: 'pending' } : prev);
     } catch (err) { console.error('[Auth] Request adult role error:', err); }
-  }, [user, adultStatus]);
+  }, [user, adultStatus, profile?.displayName]);
 
   // ── Award XP ──────────────────────────────────────────────
   const awardXP = useCallback(async (xp: number, minutes: number) => {
