@@ -1,13 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, Copy, Link2, Lock, LogOut, Mic, MicOff, Radio, Send, Settings2, Users, Volume2 } from 'lucide-react';
+import { Check, Copy, Link2, Lock, LogOut, Mic, MicOff, Radio, Settings2, Users, Volume2 } from 'lucide-react';
 import { collection, deleteDoc, doc, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { AnimeAPI } from '@/lib/api';
 import VideoPlayer from '@/components/VideoPlayer';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { hashWatchPartyPassword, type WatchPartyMember, type WatchPartyRoom } from '@/lib/watchParty';
+import AnimeEpisodePicker from '@/components/AnimeEpisodePicker';
 
 interface WatchPartyRoomProps {
   roomId: string;
@@ -290,7 +291,7 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
           <VideoPlayer defaultUrl={streamUrl} servers={[]} title={episodeTitle} />
           <div className="mt-3 rounded-app border border-border bg-surface p-4">
             <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs text-muted">Episode aktif</p><p className="mt-1 text-sm font-semibold text-primary">{episodeTitle || episodeSlug}</p></div><div className="flex items-center gap-2 text-xs text-secondary"><Volume2 className="h-4 w-4 text-cyan" /> {connectedVoiceUsers} voice terhubung</div></div>
-            {isHost && <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3"><Settings2 className="mt-2 h-4 w-4 text-cyan" /><input value={episodeSlug} onChange={(event) => setEpisodeSlug(event.target.value)} placeholder="Slug episode baru" className="min-w-[14rem] flex-1 rounded-app border border-border bg-bg px-3 py-2 text-sm text-primary outline-none focus:border-cyan" /><button disabled={savingEpisode} onClick={() => void updateEpisode()} className="rounded-app bg-cyan px-3 py-2 text-xs font-semibold text-bg disabled:opacity-50">{savingEpisode ? 'Memuat...' : 'Ganti episode'}</button></div>}
+            {isHost && <div className="mt-4 border-t border-border pt-3"><div className="mb-2 flex items-center gap-2 text-xs font-semibold text-primary"><Settings2 className="h-4 w-4 text-cyan" /> Ganti anime atau episode</div><AnimeEpisodePicker value={episodeSlug} onChange={(episode) => setEpisodeSlug(episode.slug)} /><button disabled={savingEpisode || !episodeSlug} onClick={() => void updateEpisode()} className="mt-2 rounded-app bg-cyan px-3 py-2 text-xs font-semibold text-bg disabled:opacity-50">{savingEpisode ? 'Memuat...' : 'Terapkan episode terpilih'}</button></div>}
             {voiceError && <p className="mt-3 text-xs text-secondary">{voiceError}</p>}
           </div>
         </main>

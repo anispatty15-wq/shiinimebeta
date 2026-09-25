@@ -1,13 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Lock, LogIn, Plus, Radio, Users } from 'lucide-react';
+import { ArrowRight, Lock, LogIn, Plus, Radio, Users } from 'lucide-react';
 import { collection, limit, onSnapshot, query } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { db, FIREBASE_READY } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { hashWatchPartyPassword, type WatchPartyRoom } from '@/lib/watchParty';
 import WatchPartyRoomView from '@/components/WatchPartyRoom';
+import AnimeEpisodePicker from '@/components/AnimeEpisodePicker';
+import type { AnimeEpisodeListItem } from '@/types/media';
 
 interface RoomForm {
   title: string;
@@ -27,6 +29,7 @@ export default function WatchPartyLobby() {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const [roomLink, setRoomLink] = useState('');
 
   useEffect(() => {
     if (!db || !FIREBASE_READY) return;
@@ -92,6 +95,18 @@ export default function WatchPartyLobby() {
     }
   }, [form, router, user]);
 
+  const openRoomLink = () => {
+    const value = roomLink.trim();
+    if (!value) return;
+    try {
+      const path = value.includes('/nobar/') ? new URL(value).pathname : `/nobar/${value.replace(/^\/+|\/+$/g, '')}`;
+      if (!path.startsWith('/nobar/')) throw new Error('invalid room');
+      router.push(path);
+    } catch {
+      setError('Masukkan link undangan atau ID room yang valid.');
+    }
+  };
+
   if (selectedRoomId) {
     return <WatchPartyRoomView roomId={selectedRoomId} onLeave={() => setSelectedRoomId(null)} />;
   }
@@ -129,10 +144,8 @@ export default function WatchPartyLobby() {
       {showCreate && (
         <div className="mt-5 rounded-app border border-cyan/30 bg-surface p-4">
           <h2 className="text-sm font-bold text-primary">Buat room baru</h2>
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <input value={form.title} onChange={(event) => setForm((value) => ({ ...value, title: event.target.value }))} placeholder="Nama room, misalnya Nobar One Piece" className="rounded-app border border-border bg-bg px-3 py-2.5 text-sm text-primary outline-none focus:border-cyan" />
-            <input value={form.episodeSlug} onChange={(event) => setForm((value) => ({ ...value, episodeSlug: event.target.value }))} placeholder="Slug episode, misalnya one-piece-episode-1000" className="rounded-app border border-border bg-bg px-3 py-2.5 text-sm text-primary outline-none focus:border-cyan" />
-          </div>
+          <input value={form.title} onChange={(event) => setForm((value) => ({ ...value, title: event.target.value }))} placeholder="Nama room (opsional), misalnya Nobar One Piece" className="mt-3 w-full rounded-app border border-border bg-bg px-3 py-2.5 text-sm text-primary outline-none focus:border-cyan" />
+          <div className="mt-3"><AnimeEpisodePicker value={form.episodeSlug} onChange={(episode: AnimeEpisodeListItem) => setForm((value) => ({ ...value, episodeSlug: episode.slug, title: value.title || episode.title }))} /></div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {(['public', 'private'] as const).map((visibility) => (
               <button key={visibility} onClick={() => setForm((value) => ({ ...value, visibility }))} className={`rounded-app border px-3 py-2 text-xs font-semibold ${form.visibility === visibility ? 'border-cyan bg-cyan/10 text-cyan' : 'border-border text-secondary'}`}>
@@ -144,6 +157,15 @@ export default function WatchPartyLobby() {
           </div>
         </div>
       )}
+
+      <div className="mt-5 rounded-app border border-border bg-surface p-4">
+        <h2 className="text-sm font-bold text-primary">Masuk ke room undangan</h2>
+        <p className="mt-1 text-xs text-secondary">Tempel link undangan atau masukkan ID room untuk masuk kembali.</p>
+        <div className="mt-3 flex gap-2">
+          <input value={roomLink} onChange={(event) => setRoomLink(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') openRoomLink(); }} placeholder="https://.../nobar/ID-room" className="min-w-0 flex-1 rounded-app border border-border bg-bg px-3 py-2.5 text-sm text-primary outline-none focus:border-cyan" />
+          <button onClick={openRoomLink} className="flex items-center gap-1.5 rounded-app bg-cyan px-3 py-2 text-xs font-semibold text-bg"><ArrowRight className="h-3.5 w-3.5" /> Masuk</button>
+        </div>
+      </div>
 
       <div className="mt-6 flex items-center gap-2 text-sm font-semibold text-primary"><Users className="h-4 w-4 text-cyan" /> Room public yang sedang tersedia</div>
       {rooms.length === 0 ? <p className="mt-4 rounded-app border border-border bg-surface p-5 text-sm text-secondary">Belum ada room public. Buat room pertama dan bagikan tautannya.</p> : (

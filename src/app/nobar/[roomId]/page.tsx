@@ -1,9 +1,10 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import WatchPartyRoom from '@/components/WatchPartyRoom';
 
 export default function WatchPartyRoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
-  return <WatchPartyRoom roomId={roomId} />;
+  const router = useRouter();
+  return <WatchPartyRoom roomId={roomId} onLeave={() => router.push('/nobar')} />;
 }
