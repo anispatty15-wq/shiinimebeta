@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, Copy, Link2, Lock, LogOut, Mic, MicOff, Radio, Settings2, Users, Volume2 } from 'lucide-react';
-import { collection, deleteDoc, doc, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
+import { Check, Copy, Link2, Lock, LogOut, Mic, MicOff, Radio, Settings2, Trash2, Users, Volume2 } from 'lucide-react';
+import { collection, deleteDoc, doc, getDocs, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore';
 import { AnimeAPI } from '@/lib/api';
 import VideoPlayer from '@/components/VideoPlayer';
 import { db } from '@/lib/firebase';
@@ -117,6 +117,30 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
     peerConnections.current.clear();
     onLeave?.();
   }, [accessGranted, onLeave, roomId, user]);
+
+  const deleteRoom = async () => {
+    if (!db || !user || !isHost) return;
+    if (!window.confirm('Hapus room nobar ini? Semua peserta akan dikeluarkan.')) return;
+    try {
+      const memberSnapshot = await getDocs(collection(db, 'watchRooms', roomId, 'members'));
+      const signalSnapshot = await getDocs(collection(db, 'watchRooms', roomId, 'signals'));
+      const batch = writeBatch(db);
+      memberSnapshot.docs.forEach((member) => batch.delete(member.ref));
+      signalSnapshot.docs.forEach((signal) => batch.delete(signal.ref));
+      batch.delete(doc(db, 'watchRooms', roomId));
+      await batch.commit();
+      localStream.current?.getTracks().forEach((track) => track.stop());
+      peerConnections.current.forEach(({ connection, audio }) => {
+        connection.close();
+        audio?.remove();
+      });
+      peerConnections.current.clear();
+      onLeave?.();
+    } catch (error) {
+      console.error('[WatchParty] delete room failed:', error);
+      setVoiceError('Room gagal dihapus. Coba lagi.');
+    }
+  };
 
   useEffect(() => () => { void leaveRoom(); }, [leaveRoom]);
 
@@ -283,6 +307,7 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
         <Radio className="h-5 w-5 text-cyan" />
         <div className="min-w-0 flex-1"><h1 className="truncate text-lg font-bold text-primary">{room.title}</h1><p className="text-xs text-secondary">Host: {room.hostName} · {room.visibility === 'private' ? 'Private' : 'Public'} · {members.length} peserta</p></div>
         <button onClick={() => void copyInvite()} className="flex items-center gap-1.5 rounded-app border border-cyan/40 px-3 py-2 text-xs font-semibold text-cyan">{copied ? <Check className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />} {copied ? 'Tersalin' : 'Salin undangan'}</button>
+        {isHost && <button onClick={() => void deleteRoom()} className="flex items-center gap-1.5 rounded-app border border-red-400/40 px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-400/10"><Trash2 className="h-3.5 w-3.5" /> Hapus room</button>}
         <button onClick={() => void leaveRoom()} className="flex items-center gap-1.5 rounded-app border border-border px-3 py-2 text-xs text-secondary hover:text-red-400"><LogOut className="h-3.5 w-3.5" /> Keluar</button>
       </div>
 

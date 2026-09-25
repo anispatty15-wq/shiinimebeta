@@ -84,6 +84,12 @@ export default function WatchPartyLobby() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      await setDoc(doc(db, 'watchRooms', roomId, 'members', user.uid), {
+        displayName: user.displayName ?? 'User',
+        photoURL: user.photoURL ?? '',
+        joinedAt: serverTimestamp(),
+        voiceEnabled: false,
+      });
       setForm(EMPTY_FORM);
       setShowCreate(false);
       router.push(`/nobar/${roomId}`);

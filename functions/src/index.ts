@@ -426,6 +426,48 @@ export const cleanupOldNotifications = functions.pubsub
   });
 
 /**
+ * Mark watch party rooms as empty when their last participant leaves.
+ * The scheduled cleanup below removes rooms that stay empty for 15 minutes.
+ */
+export const onWatchPartyMemberChanged = functions.firestore
+  .document('watchRooms/{roomId}/members/{memberId}')
+  .onWrite(async (change, context) => {
+    const roomRef = db.collection('watchRooms').doc(context.params.roomId);
+    if (!(await roomRef.get()).exists) return null;
+    const members = await roomRef.collection('members').get();
+    if (members.empty) {
+      await roomRef.set({ emptySince: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    } else {
+      await roomRef.set({ emptySince: admin.firestore.FieldValue.delete() }, { merge: true });
+    }
+    return null;
+  });
+
+/** Remove watch party rooms that have been empty for at least 15 minutes. */
+export const cleanupEmptyWatchParties = functions.pubsub
+  .schedule('every 15 minutes')
+  .timeZone('Asia/Jakarta')
+  .onRun(async () => {
+    const cutoff = admin.firestore.Timestamp.fromDate(new Date(Date.now() - 15 * 60 * 1000));
+    const rooms = await db.collection('watchRooms').where('emptySince', '<=', cutoff).get();
+
+    for (const room of rooms.docs) {
+      const [members, signals] = await Promise.all([
+        room.ref.collection('members').get(),
+        room.ref.collection('signals').get(),
+      ]);
+      const batch = db.batch();
+      members.docs.forEach((member) => batch.delete(member.ref));
+      signals.docs.forEach((signal) => batch.delete(signal.ref));
+      batch.delete(room.ref);
+      await batch.commit();
+    }
+
+    console.log(`Deleted ${rooms.size} empty watch party room(s)`);
+    return null;
+  });
+
+/**
  * Update user's FCM token
  * HTTP Callable function
  */
