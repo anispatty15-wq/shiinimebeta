@@ -1,10 +1,11 @@
 'use client';
 
-import { ExternalLink, MessageCircle } from 'lucide-react';
+import { ExternalLink, Instagram, MessageCircle } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
 const WUWA_URL = 'https://wuwatracker.com/id';
 const WA_URL = 'https://chat.whatsapp.com/FRWb2JXmQx14u39x0yhshZ';
+const INSTAGRAM_URL = 'https://www.instagram.com/shiinimeoffc?stkn=MW5pZXo5ZWkxaXVnbQ==';
 
 export default function SocialLinks() {
   const { language } = useLanguage();
@@ -15,6 +16,8 @@ export default function SocialLinks() {
         wuwaText: 'バナー、キャラクター、進行状況を確認できます。',
         wa: 'WhatsApp コミュニティ',
         waText: 'アニメについて話したり、最新情報を受け取れます。',
+        instagram: 'Shiinime Instagram',
+        instagramText: 'ニュース、更新情報、コンテンツをチェックしてください。',
         open: '開く',
         join: '参加する',
       }
@@ -25,6 +28,8 @@ export default function SocialLinks() {
           wuwaText: 'Check banners, characters, tier lists, and progress.',
           wa: 'WhatsApp Community',
           waText: 'Join the Shiinime anime discussion community.',
+          instagram: 'Shiinime Instagram',
+          instagramText: 'Follow news, updates, and content from Shiinime.',
           open: 'Open',
           join: 'Join now',
         }
@@ -34,6 +39,8 @@ export default function SocialLinks() {
           wuwaText: 'Cek banner, karakter, tier list, dan progress.',
           wa: 'Komunitas WhatsApp',
           waText: 'Gabung komunitas diskusi anime Shiinime.',
+          instagram: 'Instagram Shiinime',
+          instagramText: 'Ikuti berita, update, dan konten terbaru Shiinime.',
           open: 'Buka',
           join: 'Gabung',
         };
@@ -72,6 +79,21 @@ export default function SocialLinks() {
             <span className="mt-1 block text-xs text-secondary">{copy.waText}</span>
           </span>
           <span className="shrink-0 text-xs font-bold text-green-500">{copy.join}</span>
+        </a>
+        <a
+          href={INSTAGRAM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex min-w-0 items-center gap-3 rounded-app border border-border bg-surface p-3 transition-colors hover:border-pink-400/50"
+        >
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400">
+            <Instagram className="h-7 w-7 text-white" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <strong className="block truncate text-sm text-primary">{copy.instagram}</strong>
+            <span className="mt-1 block text-xs text-secondary">{copy.instagramText}</span>
+          </span>
+          <ExternalLink className="h-4 w-4 shrink-0 text-pink-400" aria-hidden />
         </a>
       </div>
     </section>
