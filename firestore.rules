@@ -55,6 +55,26 @@ service cloud.firestore {
         );
     }
 
+    // Watch party rooms. Public rooms can be discovered; private rooms are
+    // readable by authenticated users so the client can verify the password hash.
+    match /watchRooms/{roomId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn() && request.resource.data.hostId == request.auth.uid
+        && request.resource.data.visibility in ['public', 'private'];
+      allow update, delete: if isLoggedIn() && resource.data.hostId == request.auth.uid;
+
+      match /members/{memberId} {
+        allow read: if isLoggedIn();
+        allow create, update, delete: if isLoggedIn() && memberId == request.auth.uid;
+      }
+
+      match /signals/{signalId} {
+        allow read, delete: if isLoggedIn()
+          && (resource.data.recipientId == request.auth.uid || resource.data.senderId == request.auth.uid);
+        allow create: if isLoggedIn() && request.resource.data.senderId == request.auth.uid;
+      }
+    }
+
     // Comments — public read, logged-in write (own messages only)
     match /comments/{episodeSlug}/messages/{msgId} {
       allow read:   if true;

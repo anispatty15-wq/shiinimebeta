@@ -12,7 +12,7 @@ const translations = {
   id: {
     home: 'Beranda', anime: 'Anime', donghua: 'Donghua', hentai: 'Hentai', comic: 'Komik',
     schedule: 'Jadwal', filter: 'Filter', jikan: 'Jikan', friends: 'Teman', notifications: 'Notifikasi',
-    history: 'Riwayat', favorites: 'Favorit', tools: 'Tools', myProfile: 'Profil Saya', adminDashboard: 'Dashboard Admin',
+    history: 'Riwayat', favorites: 'Favorit', tools: 'Tools', nobar: 'Nobar', myProfile: 'Profil Saya', adminDashboard: 'Dashboard Admin',
     bookmarks: 'Bookmark', logout: 'Keluar', login: 'Masuk', profile: 'Profil', closeMenu: 'Tutup menu',
     openMenu: 'Buka menu', search: 'Cari', language: 'Bahasa', theme: 'Tema', darkMode: 'Mode gelap',
     lightMode: 'Mode terang', back: 'Kembali', editProfile: 'Edit Profil', addFriend: 'Tambah Teman',
@@ -22,7 +22,7 @@ const translations = {
   en: {
     home: 'Home', anime: 'Anime', donghua: 'Donghua', hentai: 'Hentai', comic: 'Comics',
     schedule: 'Schedule', filter: 'Filter', jikan: 'Jikan', friends: 'Friends', notifications: 'Notifications',
-    history: 'History', favorites: 'Favorites', tools: 'Tools', myProfile: 'My Profile', adminDashboard: 'Admin Dashboard',
+    history: 'History', favorites: 'Favorites', tools: 'Tools', nobar: 'Watch party', myProfile: 'My Profile', adminDashboard: 'Admin Dashboard',
     bookmarks: 'Bookmarks', logout: 'Logout', login: 'Login', profile: 'Profile', closeMenu: 'Close menu',
     openMenu: 'Open menu', search: 'Search', language: 'Language', theme: 'Theme', darkMode: 'Dark mode',
     lightMode: 'Light mode', back: 'Back', editProfile: 'Edit Profile', addFriend: 'Add Friend',
@@ -32,7 +32,7 @@ const translations = {
   ja: {
     home: 'ホーム', anime: 'アニメ', donghua: '中国アニメ', hentai: 'アダルト', comic: 'コミック',
     schedule: 'スケジュール', filter: 'フィルター', jikan: 'Jikan', friends: '友達', notifications: '通知',
-    history: '履歴', favorites: 'お気に入り', tools: 'ツール', myProfile: 'プロフィール', adminDashboard: '管理ダッシュボード',
+    history: '履歴', favorites: 'お気に入り', tools: 'ツール', nobar: 'ウォッチパーティー', myProfile: 'プロフィール', adminDashboard: '管理ダッシュボード',
     bookmarks: 'ブックマーク', logout: 'ログアウト', login: 'ログイン', profile: 'プロフィール',
     closeMenu: 'メニューを閉じる', openMenu: 'メニューを開く', search: '検索', language: '言語', theme: 'テーマ', darkMode: 'ダークモード',
     lightMode: 'ライトモード', back: '戻る', editProfile: 'プロフィールを編集', addFriend: '友達を追加',

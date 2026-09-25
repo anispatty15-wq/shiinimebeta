@@ -29,6 +29,7 @@ const NAV_LINKS = [
   { href: '/history', key: 'history' },
   { href: '/favorites', key: 'favorites' },
   { href: '/tools',               key: 'tools' },
+  { href: '/nobar',               key: 'nobar' },
 ] as const;
 
 // The five primary destinations are already present in BottomNav on mobile.
