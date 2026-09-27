@@ -374,7 +374,8 @@ export default function WatchPartyRoomView({ roomId, onLeave }: WatchPartyRoomPr
           peer.ontrack = (event) => {
             const audio = document.createElement('audio');
             audio.autoplay = true;
-            audio.playsInline = true;
+            audio.setAttribute('playsinline', 'true');
+            audio.setAttribute('webkit-playsinline', 'true');
             audio.volume = 1;
             audio.srcObject = event.streams[0] ?? null;
             document.body.appendChild(audio);
